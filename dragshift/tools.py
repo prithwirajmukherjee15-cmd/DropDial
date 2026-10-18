@@ -404,20 +404,7 @@ class CropWindow(ToolWindow):
 
 
 # ================================================================ ADD BG
-PRESETS = [
-    ("Sunset", ["#ffb36b", "#ff5f6d", "#a24bff"]),
-    ("Prism", ["#ff6b9d", "#ffb36b", "#ffe66b", "#7dffb0", "#6bd5ff", "#8a7bff"]),
-    ("Peach", ["#ffd6a5", "#ff9a8b"]),
-    ("Aurora", ["#00d2ff", "#7a5cff", "#ff5fd2"]),
-    ("Mint", ["#a8ffce", "#3ad6c6"]),
-    ("Ocean", ["#43cbff", "#2058d6"]),
-    ("Dusk", ["#2b1055", "#d53a9d"]),
-    ("Lemon", ["#fff59d", "#ffb74d"]),
-    ("Night", ["#0f2027", "#2c5364"]),
-    ("Rose", ["#ffdde1", "#ee9ca7"]),
-]
-SOLIDS = ["#ffffff", "#f2f2f7", "#d1d1d6", "#8e8e93", "#1c1c1e", "#000000", "#ff3b30",
-          "#ff9500", "#ffcc00", "#34c759", "#00c7be", "#007aff", "#5856d6", "#af52de"]
+PRESETS, SOLIDS = imaging.BG_PRESETS, imaging.BG_SOLIDS
 
 
 class AddBgWindow(ToolWindow):

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import threading
 from pathlib import Path
 
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif", ".tif", ".tiff",
@@ -9,19 +10,26 @@ IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif", ".tif", ".tiff
 PDF_EXTS = {".pdf"}
 DOCX_EXTS = {".docx"}
 TEXT_EXTS = {".txt", ".md", ".csv", ".log", ".json", ".xml", ".html", ".htm"}
+VECTOR_EXTS = {".svg"}
+EBOOK_EXTS = {".epub", ".mobi", ".fb2", ".xps", ".oxps", ".cbz"}
+VIDEO_EXTS = {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v", ".wmv", ".flv", ".mpg", ".mpeg", ".3gp"}
+AUDIO_EXTS = {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg", ".opus", ".wma", ".aiff", ".aif"}
+
+CATEGORIES = (("image", IMAGE_EXTS), ("pdf", PDF_EXTS), ("docx", DOCX_EXTS), ("text", TEXT_EXTS),
+              ("vector", VECTOR_EXTS), ("ebook", EBOOK_EXTS), ("video", VIDEO_EXTS),
+              ("audio", AUDIO_EXTS))
 
 
 def category(path: str | Path) -> str | None:
     ext = Path(path).suffix.lower()
-    if ext in IMAGE_EXTS:
-        return "image"
-    if ext in PDF_EXTS:
-        return "pdf"
-    if ext in DOCX_EXTS:
-        return "docx"
-    if ext in TEXT_EXTS:
-        return "text"
+    for name, exts in CATEGORIES:
+        if ext in exts:
+            return name
     return None
+
+
+def all_extensions() -> set[str]:
+    return set().union(*(exts for _, exts in CATEGORIES))
 
 
 def unique_path(path: str | Path) -> Path:
@@ -46,15 +54,82 @@ CONFIG = {
     "output": "next",        # "next" = beside the original, "folder" = a "DragShift" subfolder
     "jpg_quality": 90,
     "pdf_dpi": 200,
+    "out_dir": None,         # explicit folder (command line --out, watch folders); wins over "output"
 }
 
 
+_LOCAL = threading.local()
+BESIDE = "beside"   # output_override value: always next to the source, ignoring Settings
+
+
+class output_override:
+    """Per-thread output location: a folder, BESIDE, or None (use Settings).
+    Thread-local so a watch folder or recipe running in the background can't
+    redirect a conversion running at the same time."""
+
+    def __init__(self, where):
+        self.where = where
+
+    def __enter__(self):
+        self.prev = getattr(_LOCAL, "out", None)
+        _LOCAL.out = self.where
+        return self
+
+    def __exit__(self, *exc):
+        _LOCAL.out = self.prev
+
+
 def output_dir(src: str | Path) -> Path:
+    local = getattr(_LOCAL, "out", None)
+    if local == BESIDE:
+        return Path(src).parent
+    if local:
+        d = Path(local)
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+    if CONFIG.get("out_dir"):
+        d = Path(CONFIG["out_dir"])
+        d.mkdir(parents=True, exist_ok=True)
+        return d
     d = Path(src).parent
     if CONFIG.get("output") == "folder":
         d = d / "DragShift"
         d.mkdir(exist_ok=True)
     return d
+
+
+def data_dir() -> Path:
+    """Per-user folder for recipes, history and logs."""
+    import sys
+    override = os.environ.get("DRAGSHIFT_HOME")
+    if override:
+        d = Path(override)
+    elif sys.platform == "darwin":
+        d = Path.home() / "Library" / "Application Support" / "DragShift"
+    elif sys.platform == "win32":
+        d = Path(os.environ.get("APPDATA") or Path.home()) / "DragShift"
+    else:
+        d = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "DragShift"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def parse_size(text: str) -> int:
+    """'500KB', '1.5 mb', '800k', '2000000' -> bytes."""
+    t = text.strip().lower().replace(" ", "")
+    mult = 1
+    for suf, m in (("gb", 1024 ** 3), ("mb", 1024 ** 2), ("kb", 1024), ("g", 1024 ** 3),
+                   ("m", 1024 ** 2), ("k", 1024), ("b", 1)):
+        if t.endswith(suf):
+            t, mult = t[: -len(suf)], m
+            break
+    try:
+        n = float(t)
+    except ValueError:
+        raise UserError(f"Can't read the size {text!r}. Try something like 500KB or 2MB.") from None
+    if n <= 0:
+        raise UserError("The size must be bigger than zero.")
+    return int(n * mult)
 
 
 def sibling(src: str | Path, suffix_label: str = "", ext: str | None = None) -> Path:

@@ -27,6 +27,8 @@ IMAGE_TARGETS = ["PNG", "JPG", "WEBP", "HEIC", "TIFF", "AVIF", "BMP", "PDF", "IC
 PDF_TARGETS = ["JPG", "PNG", "DOCX", "TXT"]
 DOCX_TARGETS = ["PDF", "TXT"]
 TEXT_TARGETS = ["PDF", "DOCX"]
+VECTOR_TARGETS = ["PNG", "JPG", "WEBP", "PDF", "ICO"]
+EBOOK_TARGETS = ["PDF", "DOCX", "TXT"]
 
 PIL_FORMAT = {"PNG": "PNG", "JPG": "JPEG", "WEBP": "WEBP", "HEIC": "HEIF", "TIFF": "TIFF",
               "AVIF": "AVIF", "BMP": "BMP", "PDF": "PDF", "ICO": "ICO", "GIF": "GIF"}
@@ -164,53 +166,57 @@ def pdf_to_txt(src: str | Path) -> list[Path]:
 
 def pdf_to_docx(src: str | Path) -> list[Path]:
     """Text blocks become paragraphs, embedded images are kept, one Word page per PDF page."""
+    out = sibling(src, ext=".docx")
+    with open_pdf(src) as doc:
+        _doc_to_docx(doc, out)
+    return [out]
+
+
+def _doc_to_docx(doc, out: Path) -> None:
     from docx import Document
     from docx.enum.text import WD_BREAK
     from docx.shared import Inches
 
     d = Document()
-    with open_pdf(src) as doc:
-        for pno, page in enumerate(doc):
-            if pno:
-                d.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
-            items = []
-            for b in page.get_text("dict")["blocks"]:
-                y = b["bbox"][1]
-                if b.get("type") == 0:
-                    lines = []
-                    size = 11.0
-                    bold = False
-                    for ln in b["lines"]:
-                        spans = ln["spans"]
-                        if spans:
-                            size = max(size, max(s["size"] for s in spans)) if not lines else size
-                            bold = bold or any("Bold" in s["font"] for s in spans)
-                        lines.append("".join(s["text"] for s in spans))
-                    txt = " ".join(l.strip() for l in lines).strip()
-                    if txt:
-                        items.append((y, "text", (txt, size, bold)))
-                elif b.get("type") == 1 and b.get("image"):
-                    items.append((y, "img", (b["image"], b["bbox"])))
-            items.sort(key=lambda t: t[0])
-            for _, kind, data in items:
-                if kind == "text":
-                    txt, size, bold = data
-                    if size >= 16:
-                        d.add_heading(txt, level=1 if size >= 20 else 2)
-                    else:
-                        p = d.add_paragraph()
-                        r = p.add_run(txt)
-                        r.bold = bold and len(txt) < 120
+    for pno, page in enumerate(doc):
+        if pno:
+            d.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+        items = []
+        for b in page.get_text("dict")["blocks"]:
+            y = b["bbox"][1]
+            if b.get("type") == 0:
+                lines = []
+                size = 11.0
+                bold = False
+                for ln in b["lines"]:
+                    spans = ln["spans"]
+                    if spans:
+                        size = max(size, max(s["size"] for s in spans)) if not lines else size
+                        bold = bold or any("Bold" in s["font"] for s in spans)
+                    lines.append("".join(s["text"] for s in spans))
+                txt = " ".join(l.strip() for l in lines).strip()
+                if txt:
+                    items.append((y, "text", (txt, size, bold)))
+            elif b.get("type") == 1 and b.get("image"):
+                items.append((y, "img", (b["image"], b["bbox"])))
+        items.sort(key=lambda t: t[0])
+        for _, kind, data in items:
+            if kind == "text":
+                txt, size, bold = data
+                if size >= 16:
+                    d.add_heading(txt, level=1 if size >= 20 else 2)
                 else:
-                    raw, bbox = data
-                    width_in = min(6.5, max(0.5, (bbox[2] - bbox[0]) / 72))
-                    try:
-                        d.add_picture(io.BytesIO(raw), width=Inches(width_in))
-                    except Exception:
-                        pass
-    out = sibling(src, ext=".docx")
+                    p = d.add_paragraph()
+                    r = p.add_run(txt)
+                    r.bold = bold and len(txt) < 120
+            else:
+                raw, bbox = data
+                width_in = min(6.5, max(0.5, (bbox[2] - bbox[0]) / 72))
+                try:
+                    d.add_picture(io.BytesIO(raw), width=Inches(width_in))
+                except Exception:
+                    pass
     d.save(out)
-    return [out]
 
 
 # ---------------------------------------------------------------- DOCX
@@ -352,6 +358,77 @@ def text_to_docx(src: str | Path) -> list[Path]:
     return [out]
 
 
+# ---------------------------------------------------------------- SVG
+def _open_svg(src: str | Path):
+    try:
+        return fitz.open(str(src))
+    except Exception as e:
+        raise UserError("This SVG couldn't be read.") from e
+
+
+def svg_to_image(src: str | Path, long_side: int = 2048) -> Image.Image:
+    """Render an SVG to pixels; small icons are scaled up so the result stays crisp."""
+    with _open_svg(src) as doc:
+        page = doc[0]
+        w, h = page.rect.width or 1, page.rect.height or 1
+        zoom = max(1.0, long_side / max(w, h))
+        pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=True)
+        mode = "RGBA" if pix.alpha else "RGB"
+        return Image.frombytes(mode, (pix.width, pix.height), pix.samples)
+
+
+def svg_to(src: str | Path, target: str) -> list[Path]:
+    target = target.upper()
+    if target == "PDF":
+        out = sibling(src, ext=".pdf")
+        with _open_svg(src) as doc:
+            pdf = fitz.open("pdf", doc.convert_to_pdf())   # stays vector
+            atomic_save(lambda dst: pdf.save(str(dst), garbage=3, deflate=True), out)
+            pdf.close()
+        return [out]
+    out = sibling(src, ext="." + target.lower())
+    save_image(svg_to_image(src), out, target)
+    return [out]
+
+
+# ---------------------------------------------------------------- e-books (EPUB, MOBI, FB2, XPS, CBZ)
+def _open_ebook(src: str | Path):
+    try:
+        doc = fitz.open(str(src))
+    except Exception as e:
+        raise UserError("This e-book couldn't be opened (DRM-protected books can't be converted).") from e
+    if doc.needs_pass:
+        doc.close()
+        raise UserError("This e-book is locked.")
+    return doc
+
+
+def ebook_to(src: str | Path, target: str) -> list[Path]:
+    target = target.upper()
+    with _open_ebook(src) as doc:
+        if target == "TXT":
+            out = sibling(src, ext=".txt")
+            out.write_text("\n\f\n".join(pg.get_text("text") for pg in doc), encoding="utf-8")
+            return [out]
+        pdf = fitz.open("pdf", doc.convert_to_pdf())
+        try:
+            toc = doc.get_toc()
+            if toc:
+                pdf.set_toc(toc)
+        except Exception:
+            pass
+        try:
+            if target == "PDF":
+                out = sibling(src, ext=".pdf")
+                atomic_save(lambda dst: pdf.save(str(dst), garbage=3, deflate=True), out)
+            else:
+                out = sibling(src, ext=".docx")
+                _doc_to_docx(pdf, out)
+        finally:
+            pdf.close()
+    return [out]
+
+
 # ---------------------------------------------------------------- dispatch
 def targets_for(cat: str, src_ext: str) -> list[str]:
     src_ext = src_ext.lower().lstrip(".")
@@ -362,7 +439,11 @@ def targets_for(cat: str, src_ext: str) -> list[str]:
         if not HEIF_OK:
             t = [x for x in t if x != "HEIC"]
         return t
-    return {"pdf": PDF_TARGETS, "docx": DOCX_TARGETS, "text": TEXT_TARGETS}.get(cat, [])
+    if cat in ("video", "audio"):
+        from . import media
+        return media.targets_for(cat, src_ext)
+    return {"pdf": PDF_TARGETS, "docx": DOCX_TARGETS, "text": TEXT_TARGETS,
+            "vector": VECTOR_TARGETS, "ebook": EBOOK_TARGETS}.get(cat, [])
 
 
 def convert(src: str | Path, cat: str, target: str) -> list[Path]:
@@ -380,4 +461,14 @@ def convert(src: str | Path, cat: str, target: str) -> list[Path]:
         return docx_to_pdf(src) if target == "PDF" else docx_to_txt(src)
     if cat == "text":
         return text_to_pdf(src) if target == "PDF" else text_to_docx(src)
+    if cat == "vector":
+        return svg_to(src, target)
+    if cat == "ebook":
+        return ebook_to(src, target)
+    if cat == "video":
+        from . import media
+        return media.convert_video(src, target)
+    if cat == "audio":
+        from . import media
+        return media.convert_audio(src, target)
     raise ValueError(f"Can't convert {cat} to {target}")

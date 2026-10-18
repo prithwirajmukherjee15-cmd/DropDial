@@ -55,6 +55,17 @@ def size_change(before: int, after: int) -> tuple[str, str]:
     return text, "same size"
 
 
+def media_str(path: Path) -> str:
+    """'0:42 · 1280×720' for video/audio outputs (empty if ffmpeg can't read it)."""
+    if category(path) not in ("video", "audio"):
+        return ""
+    try:
+        from .media import describe
+        return describe(path)
+    except Exception:
+        return ""
+
+
 def _dim_str(d) -> str:
     return f"{d[0]}×{d[1]}" if d else ""
 
@@ -86,6 +97,9 @@ def summarize(action: str, srcs: list, outs: list, extra: str = "") -> Result:
         d = dims(o0) if category(o0) == "image" else None
         if d:
             bits.append(_dim_str(d))
+        m = media_str(o0)
+        if m:
+            bits.append(m)
         if o0.suffix.lower() == ".pdf":
             n = pages(o0)
             if n:
@@ -130,6 +144,41 @@ def summarize(action: str, srcs: list, outs: list, extra: str = "") -> Result:
     if name == "Merge":
         n = pages(o0)
         return Result(f"Merged {len(srcs)} PDFs", f"{n} pages · {human_size(after)} · {o0.name}", outs, srcs)
+
+    if kind == "recipe":
+        sizes, verdict = size_change(before, after)
+        n = len(outs)
+        title = name if n == 1 else f"{name} · {n} files"
+        detail = (f"{extra} · " if extra else "") + (o0.name if n == 1 else sizes)
+        return Result(title, detail, outs, srcs, good=verdict if verdict.endswith("smaller") else "")
+
+    if name == "Audio":
+        return Result("Audio extracted", " · ".join(b for b in (media_str(o0), human_size(after), o0.name) if b),
+                      outs, srcs)
+
+    if name == "Mute":
+        return Result("Sound removed", f"{o0.name} · {human_size(after)}", outs, srcs, good="silent copy")
+
+    if name == "Frame":
+        return Result("Frame saved", f"{_dim_str(dims(o0))} · {o0.name}", outs, srcs)
+
+    if name in ("Normalize", "Trim silence"):
+        title = "Loudness normalized" if name == "Normalize" else "Silence trimmed"
+        return Result(title, " · ".join(b for b in (media_str(o0), o0.name) if b), outs, srcs,
+                      good="-16 LUFS" if name == "Normalize" else "")
+
+    if name == "Numbers":
+        n = pages(o0)
+        return Result("Page numbers added", f"{n} page{'s' if n != 1 else ''} · {o0.name}", outs, srcs)
+
+    if name == "Watermark":
+        return Result("Watermarked", f"{extra} · {o0.name}" if extra else o0.name, outs, srcs)
+
+    if name == "Unlock":
+        return Result("Password removed", o0.name, outs, srcs, good="unlocked")
+
+    if name == "Rotate" and category(o0) == "video":
+        return Result("Rotated 90°", " · ".join(b for b in (media_str(o0), o0.name) if b), outs, srcs)
 
     if name == "Rotate":
         n = pages(o0)

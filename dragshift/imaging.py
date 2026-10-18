@@ -505,6 +505,22 @@ def rounded_mask(size: tuple[int, int], radius: int) -> Image.Image:
     return m.resize(size, Image.LANCZOS)
 
 
+BG_PRESETS = [
+    ("Sunset", ["#ffb36b", "#ff5f6d", "#a24bff"]),
+    ("Prism", ["#ff6b9d", "#ffb36b", "#ffe66b", "#7dffb0", "#6bd5ff", "#8a7bff"]),
+    ("Peach", ["#ffd6a5", "#ff9a8b"]),
+    ("Aurora", ["#00d2ff", "#7a5cff", "#ff5fd2"]),
+    ("Mint", ["#a8ffce", "#3ad6c6"]),
+    ("Ocean", ["#43cbff", "#2058d6"]),
+    ("Dusk", ["#2b1055", "#d53a9d"]),
+    ("Lemon", ["#fff59d", "#ffb74d"]),
+    ("Night", ["#0f2027", "#2c5364"]),
+    ("Rose", ["#ffdde1", "#ee9ca7"]),
+]
+BG_SOLIDS = ["#ffffff", "#f2f2f7", "#d1d1d6", "#8e8e93", "#1c1c1e", "#000000", "#ff3b30",
+          "#ff9500", "#ffcc00", "#34c759", "#00c7be", "#007aff", "#5856d6", "#af52de"]
+
+
 ASPECTS = {"1:1": 1.0, "4:3": 4 / 3, "16:9": 16 / 9, "9:16": 9 / 16, "4:5": 4 / 5, "3:2": 1.5}
 
 
@@ -544,3 +560,159 @@ def pil_to_png_bytes(im: Image.Image) -> bytes:
     buf = io.BytesIO()
     im.save(buf, "PNG")
     return buf.getvalue()
+
+
+# ---------------------------------------------------------------- PDF: page numbers, watermark, unlock
+def _visible_point(page, x: float, y: float):
+    """A point given in what-you-see coordinates → the page's unrotated coordinates."""
+    return fitz.Point(x, y) * page.derotation_matrix
+
+
+NUMBER_STYLES = {"1": "{n}", "1 / N": "{n} / {total}", "Page 1": "Page {n}",
+                 "Page 1 of N": "Page {n} of {total}"}
+POSITIONS = ("bottom-center", "bottom-right", "bottom-left", "top-center", "top-right", "top-left")
+
+
+def pdf_page_numbers(src: str | Path, style: str = "1 / N", position: str = "bottom-center",
+                     size: float = 10.0, start: int = 1) -> Path:
+    fmt = NUMBER_STYLES.get(style, style)
+    if position not in POSITIONS:
+        position = "bottom-center"
+    out = sibling(src, "Numbered", ".pdf")
+    with open_pdf(src) as doc:
+        total = doc.page_count + start - 1
+        for i, page in enumerate(doc):
+            text = fmt.format(n=i + start, total=total)
+            w, h = page.rect.width, page.rect.height
+            tw = fitz.get_text_length(text, fontname="helv", fontsize=size)
+            margin = max(18.0, min(w, h) * 0.045)
+            vert, horiz = position.split("-")
+            x = {"left": margin, "center": (w - tw) / 2, "right": w - margin - tw}[horiz]
+            y = margin + size if vert == "top" else h - margin
+            page.insert_text(_visible_point(page, x, y), text, fontsize=size, fontname="helv",
+                             color=(0.25, 0.25, 0.25), rotate=page.rotation)
+        atomic_save(lambda dst: doc.save(str(dst), garbage=3, deflate=True), out)
+    return out
+
+
+def _hex_rgb01(c: str) -> tuple[float, float, float]:
+    r, g, b = _hex(c)
+    return r / 255, g / 255, b / 255
+
+
+def watermark_pdf(src: str | Path, text: str, opacity: float = 0.15, angle: float = 45.0,
+                  color: str = "#ff3d6e") -> Path:
+    """Big diagonal text across every page (vector, so it stays sharp when zoomed)."""
+    text = text.strip()
+    if not text:
+        from .util import UserError
+        raise UserError("Type the watermark text first.")
+    out = sibling(src, "Watermarked", ".pdf")
+    import math
+    with open_pdf(src) as doc:
+        unit = fitz.get_text_length(text, fontname="hebo", fontsize=1) or 1
+        for page in doc:
+            w, h = page.rect.width, page.rect.height
+            span = math.hypot(w, h) * 0.62
+            size = max(8.0, min(span / unit, h * 0.25))
+            tw = unit * size
+            c = fitz.Point(w / 2, h / 2)
+            start = fitz.Point(c.x - tw / 2, c.y + size * 0.35)
+            m = fitz.Matrix(angle)   # `rotate=` below already accounts for the page's rotation
+            page.insert_text(_visible_point(page, start.x, start.y), text, fontsize=size,
+                             fontname="hebo", color=_hex_rgb01(color), fill_opacity=opacity,
+                             stroke_opacity=opacity, rotate=page.rotation,
+                             morph=(_visible_point(page, c.x, c.y), m), overlay=True)
+        atomic_save(lambda dst: doc.save(str(dst), garbage=3, deflate=True), out)
+    return out
+
+
+def unlock_pdf(src: str | Path, password: str) -> Path:
+    from .util import UserError
+    out = sibling(src, "Unlocked", ".pdf")
+    doc = fitz.open(str(src))
+    try:
+        if not doc.needs_pass and not doc.is_encrypted:
+            raise UserError("This PDF isn't password-protected.")
+        if doc.needs_pass and not doc.authenticate(password):
+            raise UserError("That password didn't work.")
+        atomic_save(lambda dst: doc.save(str(dst), encryption=fitz.PDF_ENCRYPT_NONE, garbage=3,
+                                         deflate=True), out)
+    finally:
+        doc.close()
+    return out
+
+
+def pdf_is_locked(src: str | Path) -> bool:
+    try:
+        with fitz.open(str(src)) as d:
+            return bool(d.needs_pass)
+    except Exception:
+        return False
+
+
+# ---------------------------------------------------------------- image watermark
+WATERMARK_POSITIONS = ("bottom-right", "bottom-left", "top-right", "top-left", "center", "tile")
+
+
+def _font(px: int):
+    from PIL import ImageFont
+    for name in ("DejaVuSans-Bold.ttf", "arialbd.ttf", "Arial Bold.ttf", "Helvetica.ttc",
+                 "LiberationSans-Bold.ttf"):
+        try:
+            return ImageFont.truetype(name, px)
+        except OSError:
+            continue
+    return ImageFont.load_default(size=px)
+
+
+def watermark_image(im: Image.Image, text: str, position: str = "bottom-right",
+                    opacity: float = 0.6, scale: float = 0.045, color: str = "#ffffff") -> Image.Image:
+    """Text with a soft shadow so it reads on any photo. `scale` = text height / image height."""
+    text = text.strip()
+    if not text:
+        return im.copy()
+    base = im.convert("RGBA")
+    w, h = base.size
+    px = max(10, int(min(w, h) * scale * (0.6 if position == "tile" else 1)))
+    font = _font(px)
+    rgb = _hex(color)
+    a = int(255 * max(0.0, min(1.0, opacity)))
+    probe = ImageDraw.Draw(Image.new("L", (1, 1)))
+    x0, y0, x1, y1 = probe.textbbox((0, 0), text, font=font)
+    tw, th = x1 - x0, y1 - y0
+    shadow_off = max(1, px // 14)
+
+    def stamp(layer: Image.Image, x: int, y: int):
+        d = ImageDraw.Draw(layer)
+        d.text((x - x0 + shadow_off, y - y0 + shadow_off), text, font=font, fill=(0, 0, 0, a // 2))
+        d.text((x - x0, y - y0), text, font=font, fill=(*rgb, a))
+
+    if position == "tile":
+        import math
+        diag = int(math.hypot(w, h)) + 2
+        layer = Image.new("RGBA", (diag, diag), (0, 0, 0, 0))
+        step_x, step_y = tw + px * 3, th + px * 3
+        for row, y in enumerate(range(0, diag, step_y)):
+            offset = (row % 2) * step_x // 2
+            for x in range(-step_x + offset, diag, step_x):
+                stamp(layer, x, y)
+        layer = layer.rotate(30, resample=Image.BICUBIC)
+        left, top = (diag - w) // 2, (diag - h) // 2
+        layer = layer.crop((left, top, left + w, top + h))
+    else:
+        layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+        m = max(8, int(min(w, h) * 0.03))
+        if position == "center":
+            x, y = (w - tw) // 2, (h - th) // 2
+        else:
+            vert, horiz = position.split("-")
+            x = m if horiz == "left" else w - m - tw
+            y = m if vert == "top" else h - m - th
+        stamp(layer, x, y)
+    out = Image.alpha_composite(base, layer)
+    return out if im.mode == "RGBA" else out.convert("RGB")
+
+
+def watermark_image_file(src: str | Path, text: str, **kw) -> Path:
+    return save_like(watermark_image(open_image(src), text, **kw), src, "Watermarked")
