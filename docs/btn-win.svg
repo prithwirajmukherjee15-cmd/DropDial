@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="236" height="56" viewBox="0 0 236 56">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#262833"/><stop offset="1" stop-color="#0d0e13"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7e7c1"/><stop offset="0.55" stop-color="#d8ad62"/><stop offset="1" stop-color="#a87a34"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="234" height="54" rx="14" fill="url(#bg)" stroke="url(#gold)" stroke-width="1.5"/>
+  <g transform="translate(18 14)" fill="url(#gold)"><path d="M3 6.5l9-1.3v8.6H3zM13.2 5l11.8-1.7v10.5H13.2zM3 15.1h9v8.7l-9-1.3zM13.2 15.1H25v10.6L13.2 24z"/></g>
+  <text x="58" y="25" font-family="-apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="11"
+        fill="#e3be7a" letter-spacing="1.2">WINDOWS · INSTALLER</text>
+  <text x="58" y="43" font-family="-apple-system, 'Segoe UI', Inter, Helvetica, Arial, sans-serif" font-size="17"
+        font-weight="600" fill="#f7f4ee">Download .exe</text>
+</svg>
