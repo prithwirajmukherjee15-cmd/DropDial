@@ -308,7 +308,7 @@ jobs:
             - **DragShift.exe** — portable.
 
             **Mac** (macOS 11+). Easiest, with no security warning, is to paste into Terminal:
-            `curl -fsSL https://raw.githubusercontent.com/llamaboi55/DragShift/main/install-mac.sh | bash`
+            `curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/dragshift/main/install-mac.sh | bash`
 
             Or download:
             - **DragShift-mac-apple-silicon.dmg** — M1/M2/M3/M4 Macs.
@@ -320,7 +320,7 @@ jobs:
             **Linux** (Debian 12+, Ubuntu 23.04+, Mint, MX… on X11 desktops such as XFCE, MATE, Cinnamon):
             - **DragShift-linux-amd64.deb** — install with `sudo apt install ./DragShift-linux-amd64.deb`, then open DragShift from the app menu. Works with or without a compositor.
 
-            Enjoying DragShift? Tips are welcome: [Cash App $AtikaKadesha](https://cash.app/$AtikaKadesha) ♥
+            **New in 2.0:** video & audio, SVG and e-books, recipes, watch folders, history and a command line.
 
             Built automatically from commit ${{ github.sha }}.
           files: out/*

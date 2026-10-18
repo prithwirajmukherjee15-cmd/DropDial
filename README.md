@@ -1,8 +1,19 @@
-# DragShift
+# DragShift 2
 
 Convert and edit files on **Windows, Mac and Linux** with a liquid-glass radial menu. Start dragging any file, press **Shift**, and drop it on a slice.
 
 ![DragShift radial menu and Add BG editor](docs/preview.png)
+
+**New in 2.0**
+
+- 🎬 **Video & audio**: MP4, MOV, MKV, WEBM, AVI → MP4 / WEBM / MOV / **GIF** / MP3, and MP3, WAV, M4A, FLAC, OGG between each other. Tools: compress, extract audio, mute, grab a frame, rotate, normalize loudness, trim silence. ffmpeg comes bundled.
+- 📚 **More formats**: SVG → PNG/JPG/WEBP/PDF/ICO, and e-books (EPUB, MOBI, FB2, XPS, CBZ) → PDF/DOCX/TXT.
+- ©️ **New tools**: watermark images and PDFs, number PDF pages, unlock a PDF you know the password for.
+- ⚡ **Recipes**: several steps in one drop, from a third ring in the menu. *Web-ready* = resize → remove metadata → WebP. Eight built in, and a builder for your own.
+- 📂 **Watch folders**: new files in a folder are processed automatically (screenshots → WebP, scans → PDF…).
+- 🕘 **History** of everything DragShift made, with open, show, copy and undo.
+- ⌨️ **Command line**: `dragshift convert *.heic --to jpg`, `dragshift recipe run web-ready *.png`, `dragshift watch ~/Screenshots --recipe web-ready`.
+- 📋 **Copy** button on every notification: paste the result straight into a chat, email or folder.
 
 ## Download
 
@@ -14,7 +25,7 @@ From the [latest release](../../releases/latest):
 **Mac (easiest, no security warning):** paste this into Terminal:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/llamaboi55/DragShift/main/install-mac.sh | bash
+curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/dragshift/main/install-mac.sh | bash
 ```
 
 It picks the right build for your Mac, installs it to Applications and opens it ([see what it does](install-mac.sh)). Run the same line again to update.
@@ -52,9 +63,11 @@ Open **DragShift** from the app menu. It sits in the panel's notification area, 
 1. Start dragging a file in File Explorer, Finder, your Linux file manager or on the desktop.
 2. Press **Shift**. The menu opens under your cursor.
 3. Drop the file on a slice. The result is saved **next to the original**, and the original is never changed.
-4. To switch between **Convert** and **Tools**, tap **Shift** again.
+4. Tap **Shift** again to switch rings: **Convert → Tools → Recipes**.
 
-Each action ends with a notification that shows what changed, for example *"2.4 MB → 610 KB · 75% smaller"* or *"2400×1600 → 1200×800"*, with **Open**, **Show in folder** and **Undo**. Undo moves the new file to the Recycle Bin (Trash on Mac and Linux).
+![Convert, Tools and Recipes rings](docs/rings.png)
+
+Each action ends with a notification that shows what changed, for example *"2.4 MB → 610 KB · 75% smaller"* or *"2400×1600 → 1200×800"*, with **Open**, **Copy**, **Folder** and **Undo**. Undo moves the new file to the Recycle Bin (Trash on Mac and Linux). Long video jobs show a percentage while they run. Everything you make is also listed in **History** (tray menu).
 
 You can also right-click a file → **DragShift…**, use **Send to → DragShift**, or double-click the tray icon to pick a file.
 
@@ -66,6 +79,55 @@ You can also right-click a file → **DragShift…**, use **Send to → DragShif
 | PDF | JPG or PNG (one per page), DOCX, TXT | Compress · Split · Rotate · Merge (drop several) · **Protect** (AES-256 password) · **Extract images** · Metadata |
 | Word (.docx) | PDF (uses Microsoft Word if it's installed, otherwise a built-in renderer), TXT | — |
 | Text (.txt, .md, .csv…) | PDF, DOCX | — |
+| Video (MP4, MOV, MKV, WEBM, AVI, M4V…) | MP4, WEBM, MOV, GIF (first 30 s, palette-optimised), MP3 | **Compress** (H.264, ≤1080p) · **Audio** (save the sound as MP3) · **Mute** · **Frame** (still image) · **Rotate** |
+| Audio (MP3, WAV, M4A, FLAC, OGG…) | Any of those | **Normalize** (−16 LUFS) · **Trim silence** · **Compress** |
+| SVG | PNG / JPG / WEBP (crisp at 2048 px), PDF (stays vector), ICO | — |
+| E-books (EPUB, MOBI, FB2, XPS, CBZ) | PDF (keeps the table of contents), DOCX, TXT | — |
+
+PDFs also get **Numbers** (page numbers) and **Watermark** (big diagonal stamp, live preview); images get **Watermark** (corner, centre or tiled). A password-protected PDF shows an **Unlock** slice.
+
+### Recipes
+
+A recipe runs several steps with one drop. A step that doesn't fit a file is skipped for that file, so *Email size* shrinks photos, PDFs and videos alike.
+
+| Recipe | Does | For |
+|---|---|---|
+| ⚡ Web-ready | resize to 2048 px → remove metadata → WebP | images |
+| ✉ Email size | resize to 1600 px → photos under 900 KB, PDFs and videos compressed | images, PDFs, videos |
+| ⛨ Private | remove camera, GPS and author details | images, PDFs |
+| ♥ Social | gradient backdrop at 4:5 → 1350 px → JPG | images |
+| ⎙ Scan → PDF | auto-enhance → combine into one PDF → compress | images |
+| ⚠ Confidential | tiled CONFIDENTIAL watermark → page numbers | images, PDFs |
+| ▶ Share video | 720p H.264 MP4 | videos |
+| ♫ Podcast | MP3 → trim silence → normalize loudness | videos, audio |
+
+Open **Recipes…** from the tray to hide the ones you don't use or build your own from 15 steps (convert, resize, compress, remove metadata, watermark, add background, auto-enhance, black & white, rotate, page numbers, combine, extract audio, normalize, trim silence, grab a frame). Recipes are plain JSON, so you can export and share them.
+
+![Recipe builder](docs/recipes.png)
+
+### Watch folders
+
+Tray → **Watch folders…** → pick a folder and what to do with new files (a recipe or a conversion). Files already in the folder are left alone, half-downloaded files are waited for, and results go into a `DragShift` subfolder (or next to the file, if you prefer).
+
+### Command line
+
+Everything is scriptable. On Mac and Linux run the app binary with a command; from source use `python -m dragshift`:
+
+```bash
+dragshift convert *.heic --to jpg
+dragshift compress photo.jpg --target 500KB
+dragshift resize *.png --long 1920 --out ~/Desktop/small
+dragshift watermark *.jpg --text "© Jane Doe" --position tile
+dragshift pdf merge a.pdf b.pdf          # also: split, rotate, number, protect, unlock, extract, compress
+dragshift media gif clip.mov --fps 15    # also: audio, mute, frame, rotate, normalize, trim-silence
+dragshift recipe run web-ready ~/Pictures/*.png
+dragshift recipe run my-recipe.json *.jpg
+dragshift info photo.jpg video.mp4
+dragshift watch ~/Screenshots --recipe web-ready   # headless; Ctrl+C to stop
+dragshift formats
+```
+
+Add `--json` for machine-readable output. The exit code is 1 if any file failed.
 
 **Settings** (tray menu): trigger key (Shift, Ctrl or Alt), where results go (next to the original or a `DragShift` subfolder), JPG/WebP quality, PDF → image resolution, and start at login.
 
@@ -84,11 +146,9 @@ Every push runs these jobs on GitHub's Windows, Mac and Linux machines:
 - **Debian/XFCE:** builds the .deb on Debian 12, installs it, and runs the same kind of end-to-end test in Thunar under XFCE's window manager with the compositor **off**. Real XTest drags with Shift go through conversions, PDF tools, merging, the tool windows and Open With. The results and a recording are saved to the `e2e-linux-output` branch.
 - **Demo video:** pushing to the `demo` branch records a showcase video.
 
-## Support
+## Credits
 
-DragShift is free. If it saves you time, you can leave a tip on Cash App: [**$AtikaKadesha**](https://cash.app/$AtikaKadesha). Thank you!
-
-<img src="docs/tip-cashapp.png" alt="Cash App QR code for $AtikaKadesha" width="220">
+DragShift 2 builds on [DragShift](https://github.com/llamaboi55/DragShift) by llamaboi55: the radial menu, liquid-glass rendering, image/PDF tools and the cross-platform end-to-end test rigs all come from there. 2.0 adds video and audio, SVG and e-books, watermarks, page numbers, unlock, recipes, watch folders, history and the command line.
 
 ## License
 
@@ -98,11 +158,14 @@ DragShift is free. If it saves you time, you can leave a tip on Cash App: [**$At
 
 ```bash
 pip install -r requirements.txt
-python -m dragshift
+python -m dragshift            # the menu app
+python -m dragshift --help     # the command line
 ```
 
 On Linux, PySide6 also needs the Qt XCB libraries: `sudo apt install libxcb-cursor0 libxkbcommon-x11-0`.
 
-Tests: `python -m pytest -q`. Logs are written to `%LOCALAPPDATA%\DragShift\log.txt` on Windows, `~/Library/Logs/DragShift/log.txt` on Mac and `~/.local/share/DragShift/log.txt` on Linux.
+Video and audio use ffmpeg from your PATH if you have it, otherwise the copy bundled by `imageio-ffmpeg` (set `DRAGSHIFT_FFMPEG` to point at a specific one). Recipes, watch folders and history live in `%APPDATA%\DragShift`, `~/Library/Application Support/DragShift` or `~/.config/DragShift` (override with `DRAGSHIFT_HOME`).
+
+Tests: `QT_QPA_PLATFORM=offscreen python -m pytest -q`. Logs are written to `%LOCALAPPDATA%\DragShift\log.txt` on Windows, `~/Library/Logs/DragShift/log.txt` on Mac and `~/.local/share/DragShift/log.txt` on Linux.
 
 Windows builds will be code-signed by the SignPath Foundation, which provides free code signing for open-source projects.
