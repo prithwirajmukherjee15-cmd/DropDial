@@ -322,6 +322,19 @@ jobs:
 
       - run: ls -la out
 
+      - name: Tidy the "latest" release (drop files from old names, move the tag to this commit)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh release view latest --repo "$REPO" >/dev/null 2>&1; then
+            gh release view latest --repo "$REPO" --json assets -q '.assets[].name' | while read -r name; do
+              case "$name" in DropDial*) ;; *) echo "removing old download $name"; gh release delete-asset latest "$name" --repo "$REPO" --yes ;; esac
+            done
+            gh api -X PATCH "repos/$REPO/git/refs/tags/latest" -f sha="$GITHUB_SHA" -F force=true >/dev/null && echo "tag moved to $GITHUB_SHA" || true
+          fi
+
       - name: Publish download (latest)
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
