@@ -1,9 +1,9 @@
 """Command line: everything the menu does, scriptable. Qt is never imported here.
 
-    dragshift convert *.heic --to jpg
-    dragshift compress photo.jpg --target 500KB
-    dragshift recipe run web-ready ~/Pictures/*.png --out ~/Desktop/web
-    dragshift watch ~/Screenshots --recipe web-ready
+    dropdial convert *.heic --to jpg
+    dropdial compress photo.jpg --target 500KB
+    dropdial recipe run web-ready ~/Pictures/*.png --out ~/Desktop/web
+    dropdial watch ~/Screenshots --recipe web-ready
 """
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ COMMANDS = {"convert", "compress", "resize", "strip", "watermark", "pdf", "media
 
 
 def is_cli(argv: list[str]) -> bool:
-    """True if argv asks for a command (`dragshift --out x convert …`), not the menu app."""
+    """True if argv asks for a command (`dropdial --out x convert …`), not the menu app."""
     args = iter(argv[1:])
     for tok in args:
         if tok in ("-h", "--help", "--version", "help") or tok in COMMANDS:
@@ -257,7 +257,7 @@ def cmd_recipe(a, out: Out) -> None:
             print(f"{st.key:<15} {st.label:<22} [{', '.join(st.cats)}]  {ps}")
         return
     if not a.name:
-        raise UserError("which recipe? e.g. `dragshift recipe run web-ready photo.jpg`")
+        raise UserError("which recipe? e.g. `dropdial recipe run web-ready photo.jpg`")
     r = recipes.find(a.name)
     if a.op == "show":
         print(json.dumps(r.to_json(), indent=2, ensure_ascii=False))
@@ -359,7 +359,7 @@ def cmd_watch(a, out: Out) -> None:
     else:
         rules = [r for r in watch.load_rules() if r.enabled]
         if not rules:
-            raise UserError("no watch folders set up. Give a folder: dragshift watch ~/Inbox --recipe web-ready")
+            raise UserError("no watch folders set up. Give a folder: dropdial watch ~/Inbox --recipe web-ready")
     print("Press Ctrl+C to stop.")
     try:
         watch.run_forever(rules, log=lambda s: print(s, flush=True))
@@ -375,9 +375,9 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("--json", action="store_true", help="machine-readable output")
     common.add_argument("-q", "--quiet", action="store_true", help="only print errors")
 
-    p = argparse.ArgumentParser(prog="dragshift", description="Convert and edit files. Run without a "
+    p = argparse.ArgumentParser(prog="dropdial", description="Convert and edit files. Run without a "
                                 "command to start the menu app.", parents=[common])
-    p.add_argument("--version", action="version", version=f"DragShift {__version__} · {CREDIT}")
+    p.add_argument("--version", action="version", version=f"DropDial {__version__} · {CREDIT}")
     sub = p.add_subparsers(dest="cmd", metavar="COMMAND")
 
     s = sub.add_parser("convert", parents=[common], help="convert to another format")
@@ -457,7 +457,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("folder", nargs="?", help="omit to use the folders saved in the app")
     s.add_argument("--recipe")
     s.add_argument("--to", metavar="FORMAT")
-    s.add_argument("--beside", action="store_true", help="save next to the new files (default: DragShift/ subfolder)")
+    s.add_argument("--beside", action="store_true", help="save next to the new files (default: DropDial/ subfolder)")
     s.set_defaults(fn=cmd_watch)
     return p
 
@@ -479,9 +479,9 @@ def main(argv: list[str] | None = None) -> int:
         a.fn(a, out)
         return out.finish()
     except UserError as e:
-        print(f"dragshift: {e}", file=sys.stderr)
+        print(f"dropdial: {e}", file=sys.stderr)
         return 1
-    except BrokenPipeError:            # e.g. `dragshift recipe list | head`
+    except BrokenPipeError:            # e.g. `dropdial recipe list | head`
         import os
         os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
         return 0

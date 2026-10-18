@@ -537,7 +537,7 @@ def run(recipe: Recipe, srcs: list, progress: Callable[[int, int, str], None] | 
             raise UserError(f"{s.name} was moved or deleted.")
     if not any(recipe.applies_to(category(s)) for s in srcs):
         raise UserError(f"“{recipe.name}” doesn't apply to {srcs[0].suffix or 'this'} files.")
-    root = Path(tempfile.mkdtemp(prefix="dragshift-recipe-"))
+    root = Path(tempfile.mkdtemp(prefix="dropdial-recipe-"))
     counter = [0]
 
     def fresh(path: Path, stem: str) -> Path:

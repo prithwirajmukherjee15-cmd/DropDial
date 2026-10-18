@@ -15,14 +15,14 @@ import pyautogui
 from PIL import Image, ImageDraw
 
 import winkit as wk
-import dragshift.convert  # noqa: F401  (registers HEIC/AVIF support for the verifiers)
+import dropdial.convert  # noqa: F401  (registers HEIC/AVIF support for the verifiers)
 
 OUT = wk.ROOT / "e2e_out"
 OUT.mkdir(exist_ok=True)
 (OUT / "shots").mkdir(exist_ok=True)
-EXP = Path(r"C:\DragShiftTest")
+EXP = Path(r"C:\DropDialTest")
 DESK = wk.desktop_dir()
-STASH = Path(r"C:\DragShiftTest_outputs")
+STASH = Path(r"C:\DropDialTest_outputs")
 RESULTS: list[dict] = []
 
 
@@ -56,7 +56,7 @@ def make_pdf(path: Path, img: Path, pages=3, title="Report"):
         for j in range(12):
             pg.insert_text((72, 120 + j * 18), "Lorem ipsum dolor sit amet, consectetur adipiscing.", fontsize=11)
         pg.insert_image(pymupdf.Rect(72, 360, 420, 600), filename=str(img))
-    doc.set_metadata({"author": "Jimmy", "title": title})
+    doc.set_metadata({"author": "Test Author", "title": title})
     doc.save(path)
 
 
@@ -70,7 +70,7 @@ def make_files(folder: Path, prefix=""):
     from docx import Document
     d = Document()
     d.add_heading("Letter", 1)
-    d.add_paragraph("Hello from the DragShift end-to-end test.")
+    d.add_paragraph("Hello from the DropDial end-to-end test.")
     d.save(folder / f"{prefix}Letter.docx")
     (folder / f"{prefix}Notes.txt").write_text("Shopping list\n- coffee\n- limes\n", encoding="utf-8")
 
@@ -152,8 +152,8 @@ def pdf_pages(p: Path) -> int:
 
 # ------------------------------------------------------------------ menu layout (from the app itself)
 def ring_index(paths: list[str], ring: str, label: str) -> tuple[int, int, int]:
-    from dragshift.app import DragShiftApp
-    rings = DragShiftApp.build_rings(None, paths)
+    from dropdial.app import DropDialApp
+    rings = DropDialApp.build_rings(None, paths)
     names = list(rings)
     items = rings[ring]
     labels = [i.label for i in items]
@@ -224,9 +224,9 @@ def run(name: str, where: str, files: list[str], ring: str, label: str, verify, 
         pyautogui.keyUp("shift")
         pyautogui.press("esc")
         time.sleep(0.5)
-        # close any stray DragShift window
+        # close any stray DropDial window
         try:
-            for w in wk.uia().windows(title_re=".*— DragShift"):
+            for w in wk.uia().windows(title_re=".*— DropDial"):
                 w.close()
         except Exception:
             pass
@@ -412,7 +412,7 @@ def v_redact(outs, srcs):
 
 
 def v_no_gps_keep_camera(outs, srcs):
-    from dragshift import imaging
+    from dropdial import imaging
     s = imaging.metadata_summary(outs[0])
     assert "Location" not in s, "GPS still present"
     assert "Camera" in s, "camera info was removed"
@@ -420,7 +420,7 @@ def v_no_gps_keep_camera(outs, srcs):
 
 
 def v_no_meta(outs, srcs):
-    from dragshift import imaging
+    from dropdial import imaging
     n, gps = imaging.count_metadata(outs[0])
     assert n == 0 and not gps, f"{n} fields remain"
     return "0 metadata fields left"
@@ -494,8 +494,8 @@ def run_ipc(name: str, file: str, label: str, verify):
         wk.glide(int(sw * 0.62), int(sh * 0.45), 0.4)
         c = wk.menu_center(pyautogui.position())
         pyw = Path(sys.executable).with_name("pythonw.exe")
-        env = dict(__import__("os").environ, DRAGSHIFT_RECORDING="1")
-        subprocess.Popen([str(pyw), "-m", "dragshift", str(folder / file)], cwd=str(wk.ROOT), env=env)
+        env = dict(__import__("os").environ, DROPDIAL_RECORDING="1")
+        subprocess.Popen([str(pyw), "-m", "dropdial", str(folder / file)], cwd=str(wk.ROOT), env=env)
         time.sleep(2.5)  # instant hand-off to the running copy, menu opens
         _, idx, n = ring_index([str(folder / file)], "Convert", label)
         wk.glide(*wk.petal_xy(c, n, idx), 0.4)
@@ -608,7 +608,7 @@ def main():
             wk.log("drag image check failed", e)
         passed = sum(r["status"] == "PASS" for r in RESULTS)
         (OUT / "results.json").write_text(json.dumps(RESULTS, indent=1))
-        lines = [f"# DragShift end-to-end test — {passed}/{len(RESULTS)} passed", "",
+        lines = [f"# DropDial end-to-end test — {passed}/{len(RESULTS)} passed", "",
                  "| # | Where | Scenario | Result | Detail | Time |", "|---|---|---|---|---|---|"]
         for i, r in enumerate(RESULTS, 1):
             mark = "✅" if r["status"] == "PASS" else "❌"

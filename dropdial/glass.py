@@ -268,7 +268,7 @@ def exclude_from_capture(hwnd: int) -> bool:
     if sys.platform == "darwin":
         from . import platform_mac
         return platform_mac.OK      # macOS: we capture "below our window" instead
-    if sys.platform != "win32" or os.environ.get("DRAGSHIFT_RECORDING"):
+    if sys.platform != "win32" or os.environ.get("DROPDIAL_RECORDING"):
         return False
     try:
         return bool(ctypes.windll.user32.SetWindowDisplayAffinity(ctypes.c_void_p(hwnd), 0x11))

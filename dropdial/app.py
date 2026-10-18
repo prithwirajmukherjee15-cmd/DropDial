@@ -1,4 +1,4 @@
-"""DragShift: Shift+drag any file to convert or edit it from a radial liquid-glass menu."""
+"""DropDial: Shift+drag any file to convert or edit it from a radial liquid-glass menu."""
 from __future__ import annotations
 
 import json
@@ -18,11 +18,11 @@ from . import CREDIT, __version__, convert, glass, history, imaging, media, pane
 from .radial import Item, RadialMenu
 from .settings import Settings, SettingsWindow, WelcomeWindow, TRIGGERS
 from .toasts import ToastStack
-from .trigger import DragShiftWatcher
+from .trigger import DropDialWatcher
 from .util import (UserError, category, current_progress, file_size, human_size, keep, progress_hook,
                    release)
 
-APP_NAME = "DragShift"
+APP_NAME = "DropDial"
 PROJECT_URL = "https://github.com/prithwirajmukherjee15-cmd/dragshift"
 VERSION = __version__
 IS_WIN = sys.platform == "win32"
@@ -104,7 +104,7 @@ def friendly_error(e: Exception) -> str:
     if isinstance(e, PermissionError) or "permission denied" in low:
         return "No permission to write next to this file. Try a folder you own, or set Settings → Save results → subfolder."
     if "cannot identify image" in low:
-        return "This file doesn't look like an image DragShift can read."
+        return "This file doesn't look like an image DropDial can read."
     if isinstance(e, FileNotFoundError):
         return "The file was moved or deleted."
     return msg
@@ -139,7 +139,7 @@ def make_tray_icon() -> QIcon:
 
 
 def make_icon() -> QIcon:
-    ico = Path(__file__).with_name("assets") / "dragshift.ico"
+    ico = Path(__file__).with_name("assets") / "dropdial.ico"
     if ico.exists():
         return QIcon(str(ico))
     pm = QPixmap(64, 64)
@@ -153,7 +153,7 @@ def make_icon() -> QIcon:
 
 
 # ---------------------------------------------------------------- the app
-class DragShiftApp(QObject):
+class DropDialApp(QObject):
     def __init__(self, qapp: QApplication):
         super().__init__()
         self.qapp = qapp
@@ -167,7 +167,7 @@ class DragShiftApp(QObject):
 
         # the watcher only manages menus it opened (drag mode); click-mode menus (tray, right-click,
         # Send To) must not be closed just because no mouse button is held
-        self.watcher = DragShiftWatcher(lambda: self.menu.isVisible() and not self.menu.click_mode,
+        self.watcher = DropDialWatcher(lambda: self.menu.isVisible() and not self.menu.click_mode,
                                         lambda: self.menu.got_drag, self)
         self.watcher.set_key(self.settings.get("trigger"))
         self.watcher.show_menu.connect(lambda pos: self.menu.popup(pos))
@@ -242,7 +242,7 @@ class DragShiftApp(QObject):
             if files:
                 self.queue_files(files)
             elif data.get("show"):
-                self.toasts.info("DragShift is already running",
+                self.toasts.info("DropDial is already running",
                                  f"Drag any file and press {self.trigger_label()}. It lives in the tray.")
             sock.disconnectFromServer()
             sock.deleteLater()
@@ -506,7 +506,7 @@ class DragShiftApp(QObject):
             self.open_dialog()
 
     def open_dialog(self):
-        files, _ = QFileDialog.getOpenFileNames(None, "Choose file(s) for DragShift", QDir.homePath())
+        files, _ = QFileDialog.getOpenFileNames(None, "Choose file(s) for DropDial", QDir.homePath())
         if files:
             self.show_click_menu(files)
 
@@ -576,7 +576,7 @@ class DragShiftApp(QObject):
                             toast=self.settings.get("watch_toasts"))
 
 
-class DragShiftQApplication(QApplication):
+class DropDialQApplication(QApplication):
     """macOS delivers files from Finder's "Open With", the Dock and `open -a` as FileOpen
     events (not argv)."""
     file_opened = Signal(str)
@@ -620,18 +620,18 @@ def send_to_running(payload: dict) -> bool:
 
 
 def setup_logging():
-    """Errors go to %LOCALAPPDATA%\\DragShift\\log.txt (pythonw / the .exe have no console)."""
+    """Errors go to %LOCALAPPDATA%\\DropDial\\log.txt (pythonw / the .exe have no console)."""
     import faulthandler
     if IS_MAC:
-        base = Path.home() / "Library" / "Logs" / "DragShift"
+        base = Path.home() / "Library" / "Logs" / "DropDial"
     else:
-        base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DragShift"
+        base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / ".local" / "share") / "DropDial"
     base.mkdir(parents=True, exist_ok=True)
     path = base / "log.txt"
     if path.exists() and path.stat().st_size > 1_000_000:
         path.replace(base / "log.old.txt")
     f = open(path, "a", encoding="utf-8", buffering=1)
-    f.write(f"\n==== DragShift {VERSION} started {time.strftime('%Y-%m-%d %H:%M:%S')} ====\n")
+    f.write(f"\n==== DropDial {VERSION} started {time.strftime('%Y-%m-%d %H:%M:%S')} ====\n")
     if sys.stderr is None or getattr(sys, "frozen", False) or sys.executable.lower().endswith("pythonw.exe"):
         sys.stdout = sys.stderr = f
     faulthandler.enable(f)
@@ -651,11 +651,11 @@ def main(argv: list[str] | None = None) -> int:
     if IS_WIN:
         try:  # crisp taskbar/tray icon grouping
             import ctypes
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("DragShift.App")
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("DropDial.App")
         except Exception:
             pass
     QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
-    qapp = DragShiftQApplication(argv)
+    qapp = DropDialQApplication(argv)
     if IS_MAC:
         mac_setup(qapp)
     qapp.setApplicationName(APP_NAME)
@@ -669,17 +669,17 @@ def main(argv: list[str] | None = None) -> int:
     # already running? hand over and exit (instant: no second UI start-up)
     if send_to_running({"files": files} if files else {"show": "--quiet" not in argv}):
         return 0
-    app = DragShiftApp(qapp)
+    app = DropDialApp(qapp)
     qapp.file_opened.connect(lambda f: app.queue_files([f]))
     if qapp.early_files:
         app.queue_files(list(qapp.early_files))
-    if files:  # e.g. "Send to → DragShift" or drag onto the .exe
+    if files:  # e.g. "Send to → DropDial" or drag onto the .exe
         QTimer.singleShot(120, lambda: app.queue_files(files))
     elif not app.settings.get("welcomed"):
         QTimer.singleShot(300, app.show_welcome)
     elif "--quiet" not in argv:
         QTimer.singleShot(400, lambda: app.toasts.info(
-            "DragShift is running", f"Drag any file, then press {app.trigger_label()}."))
+            "DropDial is running", f"Drag any file, then press {app.trigger_label()}."))
     return qapp.exec()
 
 
@@ -710,7 +710,7 @@ def selftest() -> int:
             svg.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">'
                            '<circle cx="10" cy="10" r="8" fill="red"/></svg>')
             convert.convert(svg, "vector", "PNG")
-            os.environ.setdefault("DRAGSHIFT_HOME", str(Path(d) / "home"))
+            os.environ.setdefault("DROPDIAL_HOME", str(Path(d) / "home"))
             recipes.run(recipes.find("Private"), [src])
             if media.available():
                 print("selftest: ffmpeg at", media.ffmpeg_path())

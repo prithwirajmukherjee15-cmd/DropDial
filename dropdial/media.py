@@ -1,9 +1,9 @@
 """Video and audio, powered by ffmpeg.
 
-ffmpeg is found in this order: $DRAGSHIFT_FFMPEG, the system PATH, then the copy that ships
-with the `imageio-ffmpeg` package (installed with DragShift, so it works out of the box).
+ffmpeg is found in this order: $DROPDIAL_FFMPEG, the system PATH, then the copy that ships
+with the `imageio-ffmpeg` package (installed with DropDial, so it works out of the box).
 Every function takes a source path and returns the output path(s), written next to the
-source like the rest of DragShift. Nothing here imports Qt."""
+source like the rest of DropDial. Nothing here imports Qt."""
 from __future__ import annotations
 
 import os
@@ -29,7 +29,7 @@ _EVEN = "scale=trunc(iw/2)*2:trunc(ih/2)*2"   # H.264 needs even dimensions
 # ---------------------------------------------------------------- finding ffmpeg
 @lru_cache(maxsize=1)
 def ffmpeg_path() -> str | None:
-    env = os.environ.get("DRAGSHIFT_FFMPEG")
+    env = os.environ.get("DROPDIAL_FFMPEG")
     if env and Path(env).exists():
         return env
     found = shutil.which("ffmpeg")

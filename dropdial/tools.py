@@ -1425,7 +1425,7 @@ class WatermarkWindow(ToolWindow):
         super().__init__("Watermark", paths, notify, size=(820, 720))
         from PySide6.QtCore import QSettings
         self.is_pdf = is_pdf
-        self.store = QSettings("DragShift", "DragShift")
+        self.store = QSettings("DropDial", "DropDial")
         self.color = (self.PDF_COLORS if is_pdf else self.IMAGE_COLORS)[0]
         self.small = None if is_pdf else open_preview(self.path, 900)
 
@@ -1439,7 +1439,7 @@ class WatermarkWindow(ToolWindow):
         grid.addWidget(QLabel("Text"), 0, 0)
         default = "CONFIDENTIAL" if is_pdf else "© " + (self._user() or "Your Name")
         self.text = QLineEdit(str(self.store.value("pdf_watermark" if is_pdf else "watermark", default)))
-        self.text.setPlaceholderText("e.g. © Jane Doe 2026")
+        self.text.setPlaceholderText("e.g. © Your Name 2026")
         grid.addWidget(self.text, 0, 1, 1, 2)
         r = 1
         if not is_pdf:

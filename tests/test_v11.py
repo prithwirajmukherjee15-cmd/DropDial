@@ -1,12 +1,12 @@
-"""Tests for v1.1 features: target-size compress, resize, protect, extract, location strip,
+"""Tests for image/PDF tools: target-size compress, resize, protect, extract, location strip,
 result summaries, output folder setting, liquid renderer."""
 from pathlib import Path
 
 import pytest
 from PIL import Image, ImageDraw
 
-from dragshift import convert, imaging, liquid, report
-from dragshift.util import CONFIG, UserError
+from dropdial import convert, imaging, liquid, report
+from dropdial.util import CONFIG, UserError
 
 
 def photo(tmp_path, name="Photo.jpg", size=(2400, 1600), gps=True) -> Path:
@@ -19,8 +19,8 @@ def photo(tmp_path, name="Photo.jpg", size=(2400, 1600), gps=True) -> Path:
         d.ellipse((x, y, x + random.randrange(20, 200), y + random.randrange(20, 200)),
                   fill=tuple(random.randrange(256) for _ in range(3)))
     ex = Image.Exif()
-    ex[0x010F] = "Canon"
-    ex[0x0110] = "Canon EOS R6"
+    ex[0x010F] = "TestCam"
+    ex[0x0110] = "TestCam Model 1"
     if gps:
         ex[0x8825] = {1: "N", 2: (24.0, 33.0, 18.0), 3: "W", 4: (81.0, 47.0, 0.0)}
     p = tmp_path / name
@@ -60,13 +60,13 @@ def test_resize(tmp_path):
 def test_metadata_summary_and_location(tmp_path):
     p = photo(tmp_path)
     s = imaging.metadata_summary(p)
-    assert s["Camera"] == "Canon EOS R6"
+    assert s["Camera"] == "TestCam Model 1"
     assert s["Location"].startswith("24.555")
     n, gps = imaging.count_metadata(p)
     assert gps and n >= 3
     out = imaging.strip_location(p)
     s2 = imaging.metadata_summary(out)
-    assert "Location" not in s2 and s2.get("Camera") == "Canon EOS R6"
+    assert "Location" not in s2 and s2.get("Camera") == "TestCam Model 1"
     clean = imaging.strip_image_metadata(p)
     assert imaging.count_metadata(clean)[0] == 0
 
@@ -103,7 +103,7 @@ def test_output_folder_setting(tmp_path):
     CONFIG["output"] = "folder"
     try:
         out = convert.convert(p, "image", "PNG")[0]
-        assert out.parent.name == "DragShift"
+        assert out.parent.name == "DropDial"
     finally:
         CONFIG["output"] = "next"
 

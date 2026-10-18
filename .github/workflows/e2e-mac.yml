@@ -29,17 +29,17 @@ jobs:
       - name: Test the one-line installer (as a user would run it)
         run: |
           # the installer downloads the latest published release: skip until the first one exists
-          if ! curl -fsIL -o /dev/null "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/DragShift-mac-apple-silicon.dmg"; then
+          if ! curl -fsIL -o /dev/null "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/DropDial-mac-apple-silicon.dmg"; then
             echo "::notice::No release published yet, skipping the installer test"; exit 0
           fi
           curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/install-mac.sh" | bash
           sleep 6
-          pgrep -x DragShift && echo "DragShift is running"
-          if xattr -p com.apple.quarantine /Applications/DragShift.app 2>/dev/null; then
+          pgrep -x DropDial && echo "DropDial is running"
+          if xattr -p com.apple.quarantine /Applications/DropDial.app 2>/dev/null; then
             echo "::error::app is quarantined"; exit 1
           fi
-          spctl --assess --type execute /Applications/DragShift.app 2>&1 || true   # informational
-          pkill -x DragShift || true
+          spctl --assess --type execute /Applications/DropDial.app 2>&1 || true   # informational
+          pkill -x DropDial || true
           echo "installer OK"
 
       - name: Run end-to-end scenarios on the Finder desktop

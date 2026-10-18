@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 from PIL import Image, ImageDraw
 
-from dragshift import convert, imaging
-from dragshift.util import category, sibling
+from dropdial import convert, imaging
+from dropdial.util import category, sibling
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def img(tmp_path) -> Path:
     im = Image.new("RGBA", (640, 420), (255, 255, 255, 0))
     d = ImageDraw.Draw(im)
     d.rectangle((40, 40, 600, 380), fill=(255, 120, 80, 255))
-    d.text((60, 60), "DragShift test", fill=(0, 0, 0, 255))
+    d.text((60, 60), "DropDial test", fill=(0, 0, 0, 255))
     p = tmp_path / "Page 001.png"
     exif = Image.Exif()
     exif[0x010F] = "TestCam"  # Make
@@ -29,7 +29,7 @@ def pdf(tmp_path, img) -> Path:
         page.insert_text((72, 72), f"Hello page {i + 1}", fontsize=24)
         page.insert_text((72, 120), "Body text line for extraction.", fontsize=11)
         page.insert_image(convert.fitz.Rect(72, 150, 300, 300), filename=str(img))
-    doc.set_metadata({"author": "Jimmy", "title": "Demo"})
+    doc.set_metadata({"author": "Test Author", "title": "Demo"})
     p = tmp_path / "Doc.pdf"
     doc.save(p)
     return p
@@ -86,7 +86,7 @@ def test_tools(img, pdf):
     c = imaging.compress_image(img, 60)
     assert c.exists()
     assert imaging.compress_image(img, 60, 300, to_webp=True).suffix == ".webp"
-    assert imaging.read_pdf_metadata(pdf)["author"] == "Jimmy"
+    assert imaging.read_pdf_metadata(pdf)["author"] == "Test Author"
     assert "author" not in imaging.read_pdf_metadata(imaging.strip_pdf_metadata(pdf))
     assert len(imaging.split_pdf(pdf)) == 2
     assert imaging.compress_pdf(pdf).exists()

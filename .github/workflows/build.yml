@@ -33,10 +33,10 @@ jobs:
           QT_QPA_PLATFORM: offscreen
 
       - name: Build app folder (for the installer)
-        run: pyinstaller DragShift.spec --noconfirm
+        run: pyinstaller DropDial.spec --noconfirm
 
-      - name: Build portable DragShift.exe
-        run: pyinstaller DragShift.spec --noconfirm
+      - name: Build portable DropDial.exe
+        run: pyinstaller DropDial.spec --noconfirm
         env:
           ONEFILE: "1"
 
@@ -45,12 +45,12 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          foreach ($exe in @("dist\DragShift\DragShift.exe", "dist\DragShift.exe")) {
+          foreach ($exe in @("dist\DropDial\DropDial.exe", "dist\DropDial.exe")) {
             $p = Start-Process -FilePath $exe -ArgumentList "--selftest" -Wait -PassThru
             if ($p.ExitCode -ne 0) { throw "Self-test failed for $exe ($($p.ExitCode))" }
             "Self-test passed: $exe"
           }
-          "{0:N1} MB portable" -f ((Get-Item dist\DragShift.exe).Length / 1MB)
+          "{0:N1} MB portable" -f ((Get-Item dist\DropDial.exe).Length / 1MB)
 
       - name: Build installer
         shell: pwsh
@@ -60,33 +60,33 @@ jobs:
             choco install innosetup -y --no-progress | Out-Null
             $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           }
-          & $iscc installer\DragShift.iss
+          & $iscc installer\DropDial.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
-          "{0:N1} MB installer" -f ((Get-Item dist\DragShift-Setup.exe).Length / 1MB)
+          "{0:N1} MB installer" -f ((Get-Item dist\DropDial-Setup.exe).Length / 1MB)
 
       - name: Test the installer (silent install, run, uninstall)
         shell: pwsh
         run: |
-          $p = Start-Process dist\DragShift-Setup.exe -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /TASKS=contextmenu" -Wait -PassThru
+          $p = Start-Process dist\DropDial-Setup.exe -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /TASKS=contextmenu" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Install failed ($($p.ExitCode))" }
-          $app = "$env:LOCALAPPDATA\Programs\DragShift\DragShift.exe"
+          $app = "$env:LOCALAPPDATA\Programs\DropDial\DropDial.exe"
           if (-not (Test-Path $app)) { throw "App not installed" }
-          if (-not (Test-Path "HKCU:\Software\Classes\*\shell\DragShift\command")) { throw "Context menu not registered" }
+          if (-not (Test-Path "HKCU:\Software\Classes\*\shell\DropDial\command")) { throw "Context menu not registered" }
           $env:QT_QPA_PLATFORM = "offscreen"
           $t = Start-Process $app -ArgumentList "--selftest" -Wait -PassThru
           if ($t.ExitCode -ne 0) { throw "Installed app self-test failed" }
           Remove-Item Env:QT_QPA_PLATFORM
-          $u = Start-Process "$env:LOCALAPPDATA\Programs\DragShift\unins000.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES" -Wait -PassThru
+          $u = Start-Process "$env:LOCALAPPDATA\Programs\DropDial\unins000.exe" -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES" -Wait -PassThru
           Start-Sleep 3
-          if (Test-Path "HKCU:\Software\Classes\*\shell\DragShift") { throw "Uninstall left the context menu behind" }
+          if (Test-Path "HKCU:\Software\Classes\*\shell\DropDial") { throw "Uninstall left the context menu behind" }
           "Installer OK"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows
           path: |
-            dist/DragShift.exe
-            dist/DragShift-Setup.exe
+            dist/DropDial.exe
+            dist/DropDial-Setup.exe
 
   macos:
     strategy:
@@ -116,17 +116,17 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
 
-      - name: Build DragShift.app
-        run: pyinstaller DragShift.spec --noconfirm
+      - name: Build DropDial.app
+        run: pyinstaller DropDial.spec --noconfirm
 
       - name: Self-test the app bundle
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          dist/DragShift.app/Contents/MacOS/DragShift --selftest
-          codesign --verify --deep --verbose=2 dist/DragShift.app || true
-          /usr/libexec/PlistBuddy -c "Print :LSUIElement" dist/DragShift.app/Contents/Info.plist
-          /usr/libexec/PlistBuddy -c "Print :NSHumanReadableCopyright" dist/DragShift.app/Contents/Info.plist
+          dist/DropDial.app/Contents/MacOS/DropDial --selftest
+          codesign --verify --deep --verbose=2 dist/DropDial.app || true
+          /usr/libexec/PlistBuddy -c "Print :LSUIElement" dist/DropDial.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :NSHumanReadableCopyright" dist/DropDial.app/Contents/Info.plist
 
       - name: Sign & notarize the app (only when Apple credentials are configured)
         env:
@@ -150,30 +150,30 @@ jobs:
           security list-keychains -d user -s $KC $(security list-keychains -d user | tr -d '"')
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KCPW" $KC
           # sign every nested binary first, then the bundle (hardened runtime + timestamp)
-          find dist/DragShift.app/Contents -type f \( -name "*.so" -o -name "*.dylib" -o -perm -111 \) -print0 |
+          find dist/DropDial.app/Contents -type f \( -name "*.so" -o -name "*.dylib" -o -perm -111 \) -print0 |
             xargs -0 -I{} codesign --force --timestamp --options runtime --entitlements installer/entitlements.plist --sign "$MACOS_SIGN_IDENTITY" "{}" || true
-          codesign --force --deep --timestamp --options runtime --entitlements installer/entitlements.plist --sign "$MACOS_SIGN_IDENTITY" dist/DragShift.app
-          codesign --verify --deep --strict --verbose=2 dist/DragShift.app
-          ditto -c -k --keepParent dist/DragShift.app DragShift.zip
-          xcrun notarytool submit DragShift.zip --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
-          xcrun stapler staple dist/DragShift.app
-          spctl --assess --type execute --verbose dist/DragShift.app
+          codesign --force --deep --timestamp --options runtime --entitlements installer/entitlements.plist --sign "$MACOS_SIGN_IDENTITY" dist/DropDial.app
+          codesign --verify --deep --strict --verbose=2 dist/DropDial.app
+          ditto -c -k --keepParent dist/DropDial.app DropDial.zip
+          xcrun notarytool submit DropDial.zip --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple dist/DropDial.app
+          spctl --assess --type execute --verbose dist/DropDial.app
           echo "SIGNED=1" >> $GITHUB_ENV
 
-      - name: Make the branded .dmg (drag DragShift to Applications)
+      - name: Make the branded .dmg (drag DropDial to Applications)
         env:
-          VOLNAME: DragShift by Prithwiraj Mukherjee
+          VOLNAME: DropDial by Prithwiraj Mukherjee
         run: |
-          DMG="dist/DragShift-mac-${{ matrix.arch }}.dmg"
+          DMG="dist/DropDial-mac-${{ matrix.arch }}.dmg"
           rm -f "$DMG"
-          mkdir -p dmgsrc && cp -R dist/DragShift.app dmgsrc/
+          mkdir -p dmgsrc && cp -R dist/DropDial.app dmgsrc/
           # Retina-ready background: 1x + 2x combined into one TIFF
           tiffutil -cathidpicheck packaging/mac/dmg-background.png packaging/mac/dmg-background@2x.png -out dmg-background.tiff
           brew install create-dmg >/dev/null 2>&1 || true
           if command -v create-dmg >/dev/null && create-dmg \
-              --volname "$VOLNAME" --volicon dragshift/assets/dragshift.icns \
+              --volname "$VOLNAME" --volicon dropdial/assets/dropdial.icns \
               --background dmg-background.tiff --window-pos 200 140 --window-size 660 420 \
-              --icon-size 112 --text-size 13 --icon "DragShift.app" 165 215 --hide-extension "DragShift.app" \
+              --icon-size 112 --text-size 13 --icon "DropDial.app" 165 215 --hide-extension "DropDial.app" \
               --app-drop-link 495 215 "$DMG" dmgsrc; then
             echo "Branded DMG built"
           else
@@ -188,8 +188,8 @@ jobs:
           # check the credit made it in
           hdiutil attach "$DMG" -mountpoint /tmp/dmgcheck -nobrowse -quiet
           ls -la /tmp/dmgcheck
-          test -d /tmp/dmgcheck/DragShift.app
-          /usr/libexec/PlistBuddy -c "Print :NSHumanReadableCopyright" /tmp/dmgcheck/DragShift.app/Contents/Info.plist
+          test -d /tmp/dmgcheck/DropDial.app
+          /usr/libexec/PlistBuddy -c "Print :NSHumanReadableCopyright" /tmp/dmgcheck/DropDial.app/Contents/Info.plist
           hdiutil detach /tmp/dmgcheck -quiet
           if [ "$SIGNED" = "1" ]; then
             codesign --force --timestamp --sign "${{ secrets.MACOS_SIGN_IDENTITY }}" "$DMG"
@@ -200,7 +200,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: mac-${{ matrix.arch }}
-          path: dist/DragShift-mac-${{ matrix.arch }}.dmg
+          path: dist/DropDial-mac-${{ matrix.arch }}.dmg
 
   linux:
     # Built on Debian 12 (glibc 2.36): the .deb runs on Debian 12/13, Ubuntu 23.04+, Mint 22, MX 23…
@@ -237,13 +237,13 @@ jobs:
         run: /opt/venv/bin/python -m pytest -q
 
       - name: Build the app folder
-        run: /opt/venv/bin/pyinstaller DragShift.spec --noconfirm
+        run: /opt/venv/bin/pyinstaller DropDial.spec --noconfirm
 
       - name: Build the .deb
         run: |
-          PATH=/opt/venv/bin:$PATH packaging/linux/build-deb.sh 2.0.0
-          dpkg-deb --info dist/DragShift-linux-amd64.deb
-          desktop-file-validate packaging/linux/dragshift.desktop
+          PATH=/opt/venv/bin:$PATH packaging/linux/build-deb.sh 1.0.0
+          dpkg-deb --info dist/DropDial-linux-amd64.deb
+          desktop-file-validate packaging/linux/dropdial.desktop
 
       - name: Install the .deb and self-test it
         env:
@@ -252,17 +252,17 @@ jobs:
           LC_ALL: C.UTF-8
         run: |
           mkdir -p e2e_linux_out
-          apt-get install -y -q ./dist/DragShift-linux-amd64.deb 2>&1 | tail -5
-          test -x /usr/bin/dragshift
+          apt-get install -y -q ./dist/DropDial-linux-amd64.deb 2>&1 | tail -5
+          test -x /usr/bin/dropdial
           set +e
-          dragshift --selftest > e2e_linux_out/selftest.txt 2>&1
+          dropdial --selftest > e2e_linux_out/selftest.txt 2>&1
           rc=$?
           set -e
           echo "exit code $rc" >> e2e_linux_out/selftest.txt
-          cat ~/.local/share/DragShift/log.txt >> e2e_linux_out/selftest.txt 2>/dev/null || true
+          cat ~/.local/share/DropDial/log.txt >> e2e_linux_out/selftest.txt 2>/dev/null || true
           if [ $rc -ne 0 ]; then
-            /opt/venv/bin/python -X faulthandler -m dragshift --selftest >> e2e_linux_out/selftest.txt 2>&1 || true
-            cat ~/.local/share/DragShift/log.txt >> e2e_linux_out/selftest.txt 2>/dev/null || true
+            /opt/venv/bin/python -X faulthandler -m dropdial --selftest >> e2e_linux_out/selftest.txt 2>&1 || true
+            cat ~/.local/share/DropDial/log.txt >> e2e_linux_out/selftest.txt 2>/dev/null || true
           fi
           cat e2e_linux_out/selftest.txt
           if [ $rc -ne 0 ]; then
@@ -276,7 +276,7 @@ jobs:
           Xvfb :99 -screen 0 1280x800x24 >/tmp/xvfb.log 2>&1 &
           sleep 2
           eval $(dbus-launch --sh-syntax)
-          /opt/venv/bin/python -c "from dragshift.imaging import gradient; gradient((1280, 800), ['#ffb36b', '#ff5f6d', '#c2508f', '#7b8cff'], 160).save('/tmp/wall.png')"
+          /opt/venv/bin/python -c "from dropdial.imaging import gradient; gradient((1280, 800), ['#ffb36b', '#ff5f6d', '#c2508f', '#7b8cff'], 160).save('/tmp/wall.png')"
           xfwm4 --compositor=off >/tmp/xfwm4.log 2>&1 &
           sleep 2
           feh --no-fehbg --bg-fill /tmp/wall.png
@@ -306,7 +306,7 @@ jobs:
         if: always()
         with:
           name: linux-deb
-          path: dist/DragShift-linux-amd64.deb
+          path: dist/DropDial-linux-amd64.deb
 
   publish:
     needs: [windows, macos, linux]
@@ -327,28 +327,28 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: DragShift (latest build)
+          name: DropDial (latest build)
           make_latest: true
           body: |
-            **DragShift 2** for Mac, Windows and Linux · Made by Prithwiraj Mukherjee
+            **DropDial** for Mac, Windows and Linux · Made by Prithwiraj Mukherjee
 
             | Platform | Direct download |
             |---|---|
-            | 🍎 Mac (Apple Silicon: M1–M4) | [DragShift-mac-apple-silicon.dmg](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-mac-apple-silicon.dmg) |
-            | 🍎 Mac (Intel) | [DragShift-mac-intel.dmg](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-mac-intel.dmg) |
-            | 🪟 Windows installer (recommended) | [DragShift-Setup.exe](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-Setup.exe) |
-            | 🪟 Windows portable | [DragShift.exe](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift.exe) |
-            | 🐧 Linux (Debian/Ubuntu .deb) | [DragShift-linux-amd64.deb](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-linux-amd64.deb) |
+            | 🍎 Mac (Apple Silicon: M1–M4) | [DropDial-mac-apple-silicon.dmg](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-mac-apple-silicon.dmg) |
+            | 🍎 Mac (Intel) | [DropDial-mac-intel.dmg](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-mac-intel.dmg) |
+            | 🪟 Windows installer (recommended) | [DropDial-Setup.exe](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-Setup.exe) |
+            | 🪟 Windows portable | [DropDial.exe](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial.exe) |
+            | 🐧 Linux (Debian/Ubuntu .deb) | [DropDial-linux-amd64.deb](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-linux-amd64.deb) |
 
             **Mac**, easiest with no security warning: paste into Terminal
             `curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/dragshift/main/install-mac.sh | bash`
-            Using the .dmg instead: open it and drag DragShift into Applications. On first launch (until DragShift is notarized by Apple) open it once and click **Done**, then **System Settings → Privacy & Security → Open Anyway**. Or in Terminal: `xattr -dr com.apple.quarantine /Applications/DragShift.app`
+            Using the .dmg instead: open it and drag DropDial into Applications. On first launch (until DropDial is notarized by Apple) open it once and click **Done**, then **System Settings → Privacy & Security → Open Anyway**. Or in Terminal: `xattr -dr com.apple.quarantine /Applications/DropDial.app`
 
-            **Windows**: run DragShift-Setup.exe (per-user, no admin). If SmartScreen warns, click **More info → Run anyway**.
+            **Windows**: run DropDial-Setup.exe (per-user, no admin). If SmartScreen warns, click **More info → Run anyway**.
 
-            **Linux** (Debian 12+, Ubuntu 23.04+, Mint, MX… on X11 desktops such as XFCE, MATE, Cinnamon): `sudo apt install ./DragShift-linux-amd64.deb`, then open DragShift from the app menu.
+            **Linux** (Debian 12+, Ubuntu 23.04+, Mint, MX… on X11 desktops such as XFCE, MATE, Cinnamon): `sudo apt install ./DropDial-linux-amd64.deb`, then open DropDial from the app menu.
 
-            **New in 2.0:** a premium midnight-and-gold look, video & audio, SVG and e-books, watermarks, recipes, watch folders, history and a command line.
+            **What's inside:** images, PDFs, Word, text, video, audio, SVG and e-books; compress, resize, crop, edit, annotate, redact, watermark; multi-step recipes, watch folders, history and a command line.
 
             Built automatically from commit ${{ github.sha }}.
           files: out/*

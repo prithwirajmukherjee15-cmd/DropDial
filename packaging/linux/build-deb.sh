@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
-# Build dragshift_<version>_<arch>.deb from the PyInstaller folder in dist/dragshift.
+# Build dropdial_<version>_<arch>.deb from the PyInstaller folder in dist/dropdial.
 #   usage: packaging/linux/build-deb.sh 1.2.0
 set -euo pipefail
 VERSION="${1:-1.2.0}"
 ARCH="$(dpkg --print-architecture)"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-PKG="$ROOT/build/deb/dragshift_${VERSION}_${ARCH}"
+PKG="$ROOT/build/deb/dropdial_${VERSION}_${ARCH}"
 rm -rf "${PKG:?}"
 mkdir -p "$PKG/DEBIAN" "$PKG/opt" "$PKG/usr/bin" "$PKG/usr/share/applications" \
-         "$PKG/usr/share/doc/dragshift"
-cp -a "$ROOT/dist/dragshift" "$PKG/opt/dragshift"
-ln -s /opt/dragshift/dragshift "$PKG/usr/bin/dragshift"
-install -m644 "$ROOT/packaging/linux/dragshift.desktop" "$PKG/usr/share/applications/"
+         "$PKG/usr/share/doc/dropdial"
+cp -a "$ROOT/dist/dropdial" "$PKG/opt/dropdial"
+ln -s /opt/dropdial/dropdial "$PKG/usr/bin/dropdial"
+install -m644 "$ROOT/packaging/linux/dropdial.desktop" "$PKG/usr/share/applications/"
 for s in 16 24 32 48 64 128 256 512; do
   d="$PKG/usr/share/icons/hicolor/${s}x${s}/apps"; mkdir -p "$d"
-  python3 -c "from PIL import Image; Image.open('$ROOT/dragshift/assets/dragshift.png').resize(($s,$s), Image.LANCZOS).save('$d/dragshift.png')"
+  python3 -c "from PIL import Image; Image.open('$ROOT/dropdial/assets/dropdial.png').resize(($s,$s), Image.LANCZOS).save('$d/dropdial.png')"
 done
-install -m644 "$ROOT/LICENSE" "$PKG/usr/share/doc/dragshift/copyright"
+install -m644 "$ROOT/LICENSE" "$PKG/usr/share/doc/dropdial/copyright"
 SIZE=$(du -sk "$PKG" | cut -f1)
 cat > "$PKG/DEBIAN/control" <<CTRL
-Package: dragshift
+Package: dropdial
 Version: $VERSION
 Section: graphics
 Priority: optional
@@ -35,7 +35,7 @@ Description: Convert and edit files with a Shift+drag radial menu
  images, PDFs, Word and text files, videos, audio, SVGs and e-books;
  compress, resize, crop, annotate, watermark, redact, run multi-step
  recipes and more. Made by Prithwiraj Mukherjee. Works on X11 desktops including XFCE, with or without
- a compositor. Right-click > Open With > DragShift works everywhere.
+ a compositor. Right-click > Open With > DropDial works everywhere.
 CTRL
 cat > "$PKG/DEBIAN/postinst" <<'POST'
 #!/bin/sh
@@ -47,6 +47,6 @@ POST
 cp "$PKG/DEBIAN/postinst" "$PKG/DEBIAN/postrm"
 chmod 755 "$PKG/DEBIAN/postinst" "$PKG/DEBIAN/postrm"
 mkdir -p "$ROOT/dist"
-dpkg-deb --build --root-owner-group "$PKG" "$ROOT/dist/dragshift_${VERSION}_${ARCH}.deb"
-cp "$ROOT/dist/dragshift_${VERSION}_${ARCH}.deb" "$ROOT/dist/DragShift-linux-${ARCH}.deb"
+dpkg-deb --build --root-owner-group "$PKG" "$ROOT/dist/dropdial_${VERSION}_${ARCH}.deb"
+cp "$ROOT/dist/dropdial_${VERSION}_${ARCH}.deb" "$ROOT/dist/DropDial-linux-${ARCH}.deb"
 ls -la "$ROOT/dist/"*.deb

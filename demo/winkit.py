@@ -80,17 +80,17 @@ def set_resolution(w: int, h: int):
 
 
 def prepare_desktop(wallpaper_colors=("#ffb36b", "#ff5f6d", "#c2508f", "#7b8cff")):
-    from dragshift.imaging import gradient
+    from dropdial.imaging import gradient
     set_resolution(1920, 1080)
     time.sleep(1)
-    p = Path(os.environ.get("TEMP", r"C:\Temp")) / "dragshift_wall.bmp"
+    p = Path(os.environ.get("TEMP", r"C:\Temp")) / "dropdial_wall.bmp"
     gradient((1920, 1080), list(wallpaper_colors), 160).save(p)
     user32.SystemParametersInfoW(20, 0, str(p), 3)
     subprocess.run(["taskkill", "/F", "/IM", "ServerManager.exe"], capture_output=True)
     adv = r"HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
     subprocess.run(["reg", "add", adv, "/v", "HideFileExt", "/t", "REG_DWORD", "/d", "0", "/f"], capture_output=True)
-    # DragShift: skip the welcome window
-    subprocess.run(["reg", "add", r"HKCU\Software\DragShift\DragShift", "/v", "welcomed", "/t", "REG_SZ",
+    # DropDial: skip the welcome window
+    subprocess.run(["reg", "add", r"HKCU\Software\DropDial\DropDial", "/v", "welcomed", "/t", "REG_SZ",
                     "/d", "true", "/f"], capture_output=True)
     user32.SendMessageTimeoutW(0xFFFF, 0x1A, 0, "Environment", 2, 1000, None)
     dismiss_system_dialogs()
@@ -104,7 +104,7 @@ def dismiss_system_dialogs():
         for w in uia().windows():
             try:
                 r = w.rectangle()
-                if r.width() > 800 or "DragShift" in w.window_text():
+                if r.width() > 800 or "DropDial" in w.window_text():
                     continue
                 ok = w.child_window(title="OK", control_type="Button")
                 if ok.exists(timeout=0.2):
@@ -117,7 +117,7 @@ def dismiss_system_dialogs():
 
 
 def copy_app_log(dest: Path):
-    src = Path(os.environ.get("LOCALAPPDATA", "")) / "DragShift" / "log.txt"
+    src = Path(os.environ.get("LOCALAPPDATA", "")) / "DropDial" / "log.txt"
     try:
         if src.exists():
             dest.write_bytes(src.read_bytes())
@@ -131,10 +131,10 @@ def desktop_dir() -> Path:
 
 def start_app(extra_env: dict | None = None) -> subprocess.Popen:
     env = dict(os.environ)
-    env["DRAGSHIFT_RECORDING"] = "1"
+    env["DROPDIAL_RECORDING"] = "1"
     env.update(extra_env or {})
     pyw = Path(sys.executable).with_name("pythonw.exe")
-    return subprocess.Popen([str(pyw if pyw.exists() else sys.executable), "-m", "dragshift", "--quiet"],
+    return subprocess.Popen([str(pyw if pyw.exists() else sys.executable), "-m", "dropdial", "--quiet"],
                             cwd=str(ROOT), env=env)
 
 

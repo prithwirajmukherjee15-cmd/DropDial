@@ -9,7 +9,7 @@ ff_datas, ff_bins, ff_hidden = collect_all("imageio_ffmpeg")
 
 a = Analysis(
     ["run.py"],
-    datas=[("dragshift/assets", "dragshift/assets")] + heif_datas + ff_datas,
+    datas=[("dropdial/assets", "dropdial/assets"), ("LICENSE", ".")] + heif_datas + ff_datas,
     binaries=heif_bins + ff_bins,
     hiddenimports=["win32com.client", "PySide6.QtNetwork", "AppKit", "Quartz", "objc"] + heif_hidden + ff_hidden,
     excludes=["tkinter", "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtQml",
@@ -30,30 +30,30 @@ a.datas = [d for d in a.datas if "translations" not in d[0].replace("\\", "/")]
 pyz = PYZ(a.pure)
 import sys
 IS_MAC = sys.platform == "darwin"
-common = dict(name="DragShift", console=False, upx=False)
+common = dict(name="DropDial", console=False, upx=False)
 IS_LINUX = sys.platform.startswith("linux")
 if IS_MAC:
-    common.update(icon="dragshift/assets/dragshift.icns")
+    common.update(icon="dropdial/assets/dropdial.icns")
 elif IS_LINUX:
-    common.update(name="dragshift")       # icon comes from the .desktop file / hicolor theme
+    common.update(name="dropdial")       # icon comes from the .desktop file / hicolor theme
 else:
-    common.update(icon="dragshift/assets/dragshift.ico", version="installer/version_info.txt")
+    common.update(icon="dropdial/assets/dropdial.ico", version="installer/version_info.txt")
 
 if IS_MAC:
     exe = EXE(pyz, a.scripts, [], exclude_binaries=True, argv_emulation=False, **common)
-    coll = COLLECT(exe, a.binaries, a.datas, name="DragShift", upx=False)
+    coll = COLLECT(exe, a.binaries, a.datas, name="DropDial", upx=False)
     app = BUNDLE(
         coll,
-        name="DragShift.app",
-        icon="dragshift/assets/dragshift.icns",
-        bundle_identifier="com.dragshift.app",
+        name="DropDial.app",
+        icon="dropdial/assets/dropdial.icns",
+        bundle_identifier="com.prithwirajmukherjee.dropdial",
         info_plist={
-            "CFBundleName": "DragShift",
-            "CFBundleDisplayName": "DragShift",
-            "CFBundleShortVersionString": "2.0.0",
-            "CFBundleVersion": "2.0.0",
+            "CFBundleName": "DropDial",
+            "CFBundleDisplayName": "DropDial",
+            "CFBundleShortVersionString": "1.0.0",
+            "CFBundleVersion": "1.0.0",
             "NSHumanReadableCopyright": "© 2026 Prithwiraj Mukherjee. Made by Prithwiraj Mukherjee.",
-            "CFBundleGetInfoString": "DragShift 2.0.0, made by Prithwiraj Mukherjee",
+            "CFBundleGetInfoString": "DropDial 1.0.0, made by Prithwiraj Mukherjee",
             "LSUIElement": True,                 # menu-bar app, no Dock icon
             "LSMinimumSystemVersion": "11.0",
             "NSHighResolutionCapable": True,
@@ -69,9 +69,9 @@ if IS_MAC:
     )
 elif IS_LINUX:
     exe = EXE(pyz, a.scripts, [], exclude_binaries=True, **common)
-    coll = COLLECT(exe, a.binaries, a.datas, name="dragshift", upx=False)  # no strip: breaks OpenBLAS with Debian 12 binutils
+    coll = COLLECT(exe, a.binaries, a.datas, name="dropdial", upx=False)  # no strip: breaks OpenBLAS with Debian 12 binutils
 elif onefile:
     exe = EXE(pyz, a.scripts, a.binaries, a.datas, [], **common)
 else:
     exe = EXE(pyz, a.scripts, [], exclude_binaries=True, **common)
-    coll = COLLECT(exe, a.binaries, a.datas, name="DragShift", upx=False)
+    coll = COLLECT(exe, a.binaries, a.datas, name="DropDial", upx=False)

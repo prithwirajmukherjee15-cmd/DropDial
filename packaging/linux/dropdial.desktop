@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=DragShift
+Name=DropDial
 GenericName=File converter
 Comment=Convert and edit files: start dragging a file and press Shift
-Exec=dragshift %F
-Icon=dragshift
+Exec=dropdial %F
+Icon=dropdial
 Terminal=false
 Categories=Utility;Graphics;Office;
 Keywords=convert;compress;resize;pdf;heic;webp;image;video;audio;mp4;mp3;gif;watermark;

@@ -1,4 +1,4 @@
-"""Records the DragShift showcase video on a real Windows desktop (GitHub Actions runner).
+"""Records the DropDial showcase video on a real Windows desktop (GitHub Actions runner).
 Outputs demo_out/: demo_raw.mp4, steps.json (caption timestamps), results/ (files it made)."""
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from e2e_windows import make_photo, make_pdf
 
 OUT = wk.ROOT / "demo_out"
 OUT.mkdir(exist_ok=True)
-DEMO = Path(r"C:\DragShiftDemo")
+DEMO = Path(r"C:\DropDialDemo")
 DESK = wk.desktop_dir()
 STEPS: list[dict] = []
 
@@ -32,8 +32,8 @@ def sweep(c, n, order, dwell=0.42):
 
 
 def menu_layout(path: str, ring: str):
-    from dragshift.app import DragShiftApp
-    rings = DragShiftApp.build_rings(None, [path])
+    from dropdial.app import DropDialApp
+    rings = DropDialApp.build_rings(None, [path])
     return [i.label for i in rings[ring]]
 
 

@@ -149,13 +149,13 @@ def request_screen_recording() -> bool:
 
 
 # ---------------------------------------------------------------- start at login
-AGENT = Path.home() / "Library" / "LaunchAgents" / "com.dragshift.app.plist"
+AGENT = Path.home() / "Library" / "LaunchAgents" / "com.prithwirajmukherjee.dropdial.plist"
 
 
 def _program() -> list[str]:
     if getattr(sys, "frozen", False):
         return [sys.executable, "--quiet"]
-    return [sys.executable, "-m", "dragshift", "--quiet"]
+    return [sys.executable, "-m", "dropdial", "--quiet"]
 
 
 def autostart_enabled() -> bool:
@@ -166,7 +166,7 @@ def set_autostart(on: bool):
     if on:
         AGENT.parent.mkdir(parents=True, exist_ok=True)
         with open(AGENT, "wb") as f:
-            plistlib.dump({"Label": "com.dragshift.app", "ProgramArguments": _program(),
+            plistlib.dump({"Label": "com.prithwirajmukherjee.dropdial", "ProgramArguments": _program(),
                            "RunAtLoad": True, "ProcessType": "Interactive"}, f)
     elif AGENT.exists():
         AGENT.unlink()

@@ -49,7 +49,7 @@ def _button(text: str, slot, primary: bool = False, tip: str = "") -> QPushButto
 
 # ================================================================ History
 class HistoryWindow(GlassWindow):
-    """Everything DragShift made: search it, open it, show it, undo it."""
+    """Everything DropDial made: search it, open it, show it, undo it."""
 
     def __init__(self):
         super().__init__("History", size=(640, 600))
@@ -456,7 +456,7 @@ class RecipesWindow(GlassWindow):
                                               "Recipe (*.json)")
         if path:
             Path(path).write_text(json.dumps(r.to_json(), indent=2, ensure_ascii=False), encoding="utf-8")
-            self.msg.setText(f"Exported to {Path(path).name}. Run it with: dragshift recipe run \"{path}\" FILES")
+            self.msg.setText(f"Exported to {Path(path).name}. Run it with: dropdial recipe run \"{path}\" FILES")
 
     def import_json(self):
         path, _ = QFileDialog.getOpenFileName(self, "Import recipe", "", "Recipe (*.json)")
@@ -491,7 +491,7 @@ class WatchWindow(GlassWindow):
         row.addWidget(_button("Remove", self.remove))
         row.addStretch(1)
         self.toasts = QCheckBox("Show a notification for each file")
-        self.store = QSettings("DragShift", "DragShift")
+        self.store = QSettings("DropDial", "DropDial")
         self.toasts.setChecked(self.store.value("watch_toasts", True) in (True, "true", "1", 1))
         self.toasts.toggled.connect(lambda on: self.store.setValue("watch_toasts", on))
         row.addWidget(self.toasts)
@@ -514,7 +514,7 @@ class WatchWindow(GlassWindow):
         g.addWidget(self.action, 1, 1, 1, 2)
         g.addWidget(QLabel("Save to"), 2, 0)
         self.output = QComboBox()
-        self.output.addItem("A “DragShift” subfolder", "subfolder")
+        self.output.addItem("A “DropDial” subfolder", "subfolder")
         self.output.addItem("The same folder", "beside")
         g.addWidget(self.output, 2, 1, 1, 2)
         g.setColumnStretch(1, 1)

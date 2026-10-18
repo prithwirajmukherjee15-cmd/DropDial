@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 from PIL import Image, ImageDraw
 
-from dragshift import cli, convert, history, imaging, media, recipes, report, watch
-from dragshift.util import (BESIDE, UserError, category, output_dir, output_override, parse_size,
+from dropdial import cli, convert, history, imaging, media, recipes, report, watch
+from dropdial.util import (BESIDE, UserError, category, output_dir, output_override, parse_size,
                             progress_hook)
 
 needs_ffmpeg = pytest.mark.skipif(not media.available(), reason="ffmpeg not available")
@@ -22,7 +22,7 @@ def photo(tmp_path, name="Photo.jpg", size=(2400, 1600)) -> Path:
     for i in range(0, size[0], 37):
         d.line((i, 0, size[0] - i, size[1]), fill=(i % 255, 90, 200), width=9)
     ex = Image.Exif()
-    ex[0x010F] = "Canon"
+    ex[0x010F] = "TestCam"
     ex[0x8825] = {1: "N", 2: (24.0, 33.0, 18.0), 3: "W", 4: (81.0, 47.0, 0.0)}
     p = tmp_path / name
     im.save(p, quality=95, exif=ex)
@@ -34,7 +34,7 @@ def pdf(tmp_path, pages=3, name="Doc.pdf") -> Path:
     for i in range(pages):
         pg = doc.new_page()
         pg.insert_text((72, 72), f"Page {i + 1}", fontsize=20)
-    doc.set_metadata({"author": "Jimmy"})
+    doc.set_metadata({"author": "Test Author"})
     p = tmp_path / name
     doc.save(p)
     return p
@@ -226,7 +226,7 @@ def test_audio_conversions_and_tools(clip):
 def test_missing_ffmpeg_is_a_friendly_error(monkeypatch, tmp_path):
     media.ffmpeg_path.cache_clear()
     monkeypatch.setattr(media.shutil, "which", lambda *_: None)
-    monkeypatch.setenv("DRAGSHIFT_FFMPEG", "")
+    monkeypatch.setenv("DROPDIAL_FFMPEG", "")
     import builtins
     real_import = builtins.__import__
 
@@ -264,7 +264,7 @@ def test_recipe_run_web_ready(tmp_path):
     im = Image.open(out)
     assert max(im.size) == 2048
     assert imaging.count_metadata(out)[0] == 0
-    left = sorted(p.name for p in tmp_path.iterdir() if p.name != "dragshift-home")
+    left = sorted(p.name for p in tmp_path.iterdir() if p.name != "dropdial-home")
     assert left == ["Photo Web-ready.webp", "Photo.jpg"]  # no temp files left behind
     assert res.steps_run == ["resize long 2048 px", "remove metadata", "save as WEBP"]
 
@@ -351,7 +351,7 @@ def test_folder_scanner(tmp_path):
     clock.t = 5
     assert sc.poll() == []                                 # only once
     outs = rule.process(new)
-    assert outs[0].parent == inbox / "DragShift" and outs[0].name == "new Private.jpg"
+    assert outs[0].parent == inbox / "DropDial" and outs[0].name == "new Private.jpg"
     assert imaging.count_metadata(outs[0])[0] == 0
 
 
@@ -426,8 +426,8 @@ def test_cli_commands(tmp_path, capsys):
 
 # ---------------------------------------------------------------- menu rings
 def test_menu_rings(tmp_path):
-    from dragshift.app import DragShiftApp
-    rings = lambda p: {k: [i.label for i in v] for k, v in DragShiftApp.build_rings(None, [str(p)]).items()}
+    from dropdial.app import DropDialApp
+    rings = lambda p: {k: [i.label for i in v] for k, v in DropDialApp.build_rings(None, [str(p)]).items()}
     img = rings(photo(tmp_path, size=(100, 80)))
     assert list(img) == ["Convert", "Tools", "Recipes"] and "Watermark" in img["Tools"]
     doc = pdf(tmp_path)

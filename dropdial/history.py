@@ -1,4 +1,4 @@
-"""A log of everything DragShift made, so results can be found (or undone) later.
+"""A log of everything DropDial made, so results can be found (or undone) later.
 Stored as JSON lines in the data folder; capped so it never grows without bound."""
 from __future__ import annotations
 

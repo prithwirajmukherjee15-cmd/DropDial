@@ -16,7 +16,7 @@ DRAG_THRESHOLD = 10   # px the mouse must travel with the button held
 NO_DRAG_TIMEOUT = 50  # ticks (≈ 0.75 s) to wait for a file drag to enter before hiding
 
 
-class DragShiftWatcher(QObject):
+class DropDialWatcher(QObject):
     show_menu = Signal(QPoint)
     toggle_ring = Signal()
     hide_menu = Signal()

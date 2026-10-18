@@ -1,6 +1,6 @@
 """Watch folders: new files dropped into a folder are processed automatically.
 
-    ~/Screenshots  →  recipe "Web-ready"      (results in ~/Screenshots/DragShift/)
+    ~/Screenshots  →  recipe "Web-ready"      (results in ~/Screenshots/DropDial/)
     ~/Downloads    →  convert to PDF
 
 Polling (every couple of seconds) is used instead of OS notifications: it works the same
@@ -19,7 +19,7 @@ from typing import Callable
 
 from .util import UserError, category, data_dir, output_override
 
-SUBFOLDER = "DragShift"
+SUBFOLDER = "DropDial"
 
 
 @dataclass
@@ -27,7 +27,7 @@ class WatchRule:
     folder: str
     action: str                 # "recipe:<name>" or "convert:<FORMAT>"
     enabled: bool = True
-    output: str = "subfolder"   # "subfolder" (<folder>/DragShift) or "beside"
+    output: str = "subfolder"   # "subfolder" (<folder>/DropDial) or "beside"
 
     @property
     def label(self) -> str:
@@ -159,7 +159,7 @@ def save_rules(rules: list[WatchRule]) -> None:
 
 def run_forever(rules: list[WatchRule], interval: float = 2.0,
                 log: Callable[[str], None] = print) -> None:
-    """Headless loop used by `dragshift watch` (Ctrl+C to stop)."""
+    """Headless loop used by `dropdial watch` (Ctrl+C to stop)."""
     scanners = [FolderScanner(r) for r in rules if r.enabled]
     for s in scanners:
         log(f"Watching {s.rule.folder} → {s.rule.label} (results in {s.rule.out_dir()})")

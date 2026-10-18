@@ -5,8 +5,8 @@
 * Compositing: XFCE often runs without a compositor (xfwm4 compositing off, or slow GPUs).
   Then translucent windows would show black corners, so callers shape windows with masks.
 * Wayland sessions don't expose global input state, so the Shift trigger is unavailable
-  there; right-click → Open With DragShift still works.
-* Start at login: ~/.config/autostart/dragshift.desktop
+  there; right-click → Open With DropDial still works.
+* Start at login: ~/.config/autostart/dropdial.desktop
 """
 from __future__ import annotations
 
@@ -109,7 +109,7 @@ def escape_down() -> bool:
 # ---------------------------------------------------------------- compositing
 def composited() -> bool:
     """True if a compositing manager runs (translucent windows work)."""
-    if os.environ.get("DRAGSHIFT_FORCE_NO_COMPOSITOR"):
+    if os.environ.get("DROPDIAL_FORCE_NO_COMPOSITOR"):
         return False
     if is_wayland():
         return True
@@ -137,13 +137,13 @@ def reveal(path: str) -> bool:
 
 
 # ---------------------------------------------------------------- start at login
-AUTOSTART = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "autostart" / "dragshift.desktop"
+AUTOSTART = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "autostart" / "dropdial.desktop"
 
 
 def _exec() -> str:
     if getattr(sys, "frozen", False):
         return f'"{sys.executable}" --quiet'
-    return f'"{sys.executable}" -m dragshift --quiet'
+    return f'"{sys.executable}" -m dropdial --quiet'
 
 
 def autostart_enabled() -> bool:
@@ -153,8 +153,8 @@ def autostart_enabled() -> bool:
 def set_autostart(on: bool):
     if on:
         AUTOSTART.parent.mkdir(parents=True, exist_ok=True)
-        AUTOSTART.write_text("[Desktop Entry]\nType=Application\nName=DragShift\n"
-                             f"Exec={_exec()}\nIcon=dragshift\nX-GNOME-Autostart-enabled=true\n"
+        AUTOSTART.write_text("[Desktop Entry]\nType=Application\nName=DropDial\n"
+                             f"Exec={_exec()}\nIcon=dropdial\nX-GNOME-Autostart-enabled=true\n"
                              "Comment=Shift+drag file converter\n", encoding="utf-8")
     elif AUTOSTART.exists():
         AUTOSTART.unlink()

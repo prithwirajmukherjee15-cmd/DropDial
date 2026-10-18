@@ -1,6 +1,6 @@
 # Removing the macOS "could not verify" warning (Developer ID + notarization)
 
-The build already signs and notarizes DragShift automatically **once these repository secrets exist**
+The build already signs and notarizes DropDial automatically **once these repository secrets exist**
 (GitHub → Settings → Secrets and variables → Actions → New repository secret).
 
 1. Join the Apple Developer Program ($99/year): https://developer.apple.com/programs/

@@ -14,7 +14,7 @@ from .window import GlassWindow
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
 IS_LINUX = sys.platform.startswith("linux")
-APP = "DragShift"
+APP = "DropDial"
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 DEFAULTS = {
@@ -56,7 +56,7 @@ class Settings:
 def launch_command() -> str:
     if getattr(sys, "frozen", False):
         return f'"{sys.executable}" --quiet'
-    return f'"{sys.executable}" -m dragshift --quiet'
+    return f'"{sys.executable}" -m dropdial --quiet'
 
 
 def autostart_enabled() -> bool:
@@ -101,7 +101,7 @@ def set_autostart(on: bool):
 
 TRIGGERS = ([("shift", "Shift ⇧"), ("ctrl", "Control ⌃"), ("alt", "Option ⌥")] if IS_MAC
             else [("shift", "Shift"), ("ctrl", "Ctrl"), ("alt", "Alt")])
-OUTPUTS = [("next", "Next to the original"), ("folder", "In a “DragShift” subfolder")]
+OUTPUTS = [("next", "Next to the original"), ("folder", "In a “DropDial” subfolder")]
 DPIS = [(150, "150 dpi · small"), (200, "200 dpi · balanced"), (300, "300 dpi · print")]
 
 
@@ -161,7 +161,7 @@ class SettingsWindow(GlassWindow):
         r += 1
 
         if IS_WIN or IS_MAC or IS_LINUX:
-            self.auto = QCheckBox("Start DragShift with Windows" if IS_WIN else "Open DragShift at login")
+            self.auto = QCheckBox("Start DropDial with Windows" if IS_WIN else "Open DropDial at login")
             self.auto.setChecked(autostart_enabled())
             self.auto.toggled.connect(set_autostart)
             grid.addWidget(self.auto, r, 1)
@@ -176,7 +176,7 @@ class SettingsWindow(GlassWindow):
                 r += 1
         self.body.addLayout(grid)
         self.body.addStretch(1)
-        about = QLabel(f"DragShift {__version__}  ·  {CREDIT}")
+        about = QLabel(f"DropDial {__version__}  ·  {CREDIT}")
         about.setObjectName("credit")
         foot = QHBoxLayout()
         foot.addWidget(about)
@@ -194,7 +194,7 @@ class SettingsWindow(GlassWindow):
 
 class WelcomeWindow(GlassWindow):
     def __init__(self, settings: Settings, trigger_label: str = "Shift"):
-        super().__init__("Welcome to DragShift", size=(560, 430))
+        super().__init__("Welcome to DropDial", size=(560, 430))
         self.s = settings
         steps = [
             ("1", "Start dragging any file", "in Finder or on the desktop" if IS_MAC else
@@ -228,7 +228,7 @@ class WelcomeWindow(GlassWindow):
             from . import platform_mac
             if not platform_mac.has_screen_recording():
                 note = QLabel("Optional: allow Screen Recording so the glass can refract the windows "
-                              "behind it (otherwise it shows your wallpaper). DragShift never saves or sends it.")
+                              "behind it (otherwise it shows your wallpaper). DropDial never saves or sends it.")
                 note.setObjectName("dim")
                 note.setWordWrap(True)
                 self.body.addWidget(note)
@@ -239,7 +239,7 @@ class WelcomeWindow(GlassWindow):
             from . import platform_linux
             if platform_linux.is_wayland():
                 note = QLabel("You're on a Wayland session: the Shift-while-dragging trigger needs X11 (e.g. XFCE). "
-                              "Right-click a file → Open With → DragShift still works.")
+                              "Right-click a file → Open With → DropDial still works.")
                 note.setObjectName("warn")
                 note.setWordWrap(True)
                 self.body.addWidget(note)

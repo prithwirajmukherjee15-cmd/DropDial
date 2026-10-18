@@ -51,7 +51,7 @@ class UserError(Exception):
 
 # Runtime options (filled from Settings at start-up; plain values so worker threads can read them)
 CONFIG = {
-    "output": "next",        # "next" = beside the original, "folder" = a "DragShift" subfolder
+    "output": "next",        # "next" = beside the original, "folder" = a "DropDial" subfolder
     "jpg_quality": 90,
     "pdf_dpi": 200,
     "out_dir": None,         # explicit folder (command line --out, watch folders); wins over "output"
@@ -121,7 +121,7 @@ def output_dir(src: str | Path) -> Path:
         return d
     d = Path(src).parent
     if CONFIG.get("output") == "folder":
-        d = d / "DragShift"
+        d = d / "DropDial"
         d.mkdir(exist_ok=True)
     return d
 
@@ -129,15 +129,15 @@ def output_dir(src: str | Path) -> Path:
 def data_dir() -> Path:
     """Per-user folder for recipes, history and logs."""
     import sys
-    override = os.environ.get("DRAGSHIFT_HOME")
+    override = os.environ.get("DROPDIAL_HOME")
     if override:
         d = Path(override)
     elif sys.platform == "darwin":
-        d = Path.home() / "Library" / "Application Support" / "DragShift"
+        d = Path.home() / "Library" / "Application Support" / "DropDial"
     elif sys.platform == "win32":
-        d = Path(os.environ.get("APPDATA") or Path.home()) / "DragShift"
+        d = Path(os.environ.get("APPDATA") or Path.home()) / "DropDial"
     else:
-        d = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "DragShift"
+        d = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "DropDial"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
