@@ -1,0 +1,53 @@
+name: End-to-end test (real Windows desktop)
+
+on:
+  push:
+    branches: [main, e2e]
+    paths-ignore: ["**.md", "docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  e2e:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyautogui pywinauto imageio-ffmpeg
+
+      - name: Run end-to-end scenarios
+        run: python demo/e2e_windows.py
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: cat e2e_out/results.md >> $GITHUB_STEP_SUMMARY || true
+
+      - name: Save results to the e2e-output branch
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p /tmp/o && cp -r e2e_out/* /tmp/o/ || true
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout --orphan e2e-output
+          git rm -rfq . || true
+          cp -r /tmp/o/* . || true
+          git add -A
+          git commit -qm "E2E results ${GITHUB_SHA}" || true
+          git push -f origin e2e-output
+
+      - name: Fail if any scenario failed
+        shell: bash
+        run: python -c "import json,sys; r=json.load(open('e2e_out/results.json')); f=[x['name'] for x in r if x['status']!='PASS']; print(len(r)-len(f),'/',len(r),'passed'); sys.exit(1 if f or not r else 0)"
