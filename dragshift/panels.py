@@ -220,7 +220,7 @@ class RecipesWindow(GlassWindow):
         cols.setSpacing(14)
         left = QVBoxLayout()
         self.list = _list()
-        self.list.setMinimumWidth(250)
+        self.list.setMinimumWidth(275)
         self.list.currentItemChanged.connect(lambda *_: self._load_current())
         self.list.itemChanged.connect(self._toggled)
         left.addWidget(self.list, 1)

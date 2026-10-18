@@ -411,8 +411,8 @@ class RadialMenu(QWidget):
     # ------------------------------------------------------------ painting
     def _text_colors(self) -> tuple[QColor, QColor, QColor]:
         if self.is_light:
-            return QColor(28, 20, 44), QColor(28, 20, 44, 170), QColor(255, 255, 255, 120)
-        return QColor(255, 255, 255), QColor(255, 255, 255, 190), QColor(0, 0, 0, 110)
+            return QColor(24, 20, 14), QColor(24, 20, 14, 170), QColor(255, 255, 255, 120)
+        return QColor(247, 244, 238), QColor(227, 190, 122, 220), QColor(0, 0, 0, 120)
 
     def paintEvent(self, e):
         p = QPainter(self)
@@ -452,12 +452,12 @@ class RadialMenu(QWidget):
     def _paint_fallback(self, p: QPainter, c: QPointF, n: int):
         hub = QPainterPath()
         hub.addEllipse(c, R_HUB, R_HUB)
-        glass.paint_glass(p, hub, self.backdrop, QPointF(0, 0), tint=QColor(22, 18, 34, 80),
+        glass.paint_glass(p, hub, self.backdrop, QPointF(0, 0), tint=glass.glass_tint(110),
                           rainbow_alpha=150, highlight=1.3)
         for i in range(n):
             a0, a1 = angles(n, i)
             glass.paint_glass(p, sector_path(c, R_IN, R_OUT, a0, a1), self.backdrop, QPointF(0, 0),
-                              tint=QColor(22, 18, 34, 62), rainbow_alpha=140)
+                              tint=glass.glass_tint(92), rainbow_alpha=110)
 
     def _paint_hover(self, p: QPainter, c: QPointF, a0: float, a1: float, h: float, img: QImage | None):
         mid = math.radians((a0 + a1) / 2)
@@ -476,15 +476,15 @@ class RadialMenu(QWidget):
             p.setClipPath(path)
             p.drawImage(0, 0, img)
             p.restore()
-        # light blooming up from underneath the cursor
+        # warm champagne light blooming up from underneath the cursor
         glow_c = self.cursor_pos - off
-        g = QRadialGradient(glow_c, 120)
-        g.setColorAt(0.0, QColor(255, 196, 120, int(150 * h)))
-        g.setColorAt(0.45, QColor(255, 90, 150, int(95 * h)))
-        g.setColorAt(1.0, QColor(130, 100, 255, int(40 * h)))
+        g = QRadialGradient(glow_c, 130)
+        g.setColorAt(0.0, QColor(255, 236, 196, int(150 * h)))
+        g.setColorAt(0.4, QColor(216, 173, 98, int(105 * h)))
+        g.setColorAt(1.0, QColor(120, 86, 40, int(45 * h)))
         p.fillPath(path, g)
-        # brighter specular rim + iridescent edge while hovered
-        p.setPen(QPen(QColor(255, 255, 255, int(170 * h)), 1.3))
+        # gold specular rim + pearl edge while hovered
+        p.setPen(QPen(QColor(255, 240, 210, int(190 * h)), 1.3))
         p.drawPath(path)
         p.setPen(glass.iridescent_pen(c, 2.2, int(230 * h), angle=(a0 + a1) / 2))
         p.drawPath(path)
@@ -494,8 +494,8 @@ class RadialMenu(QWidget):
         hs = self.hub_spring
         if hs > 0.001:
             g = QRadialGradient(c, R_HUB)
-            g.setColorAt(0, QColor(255, 255, 255, int(70 * hs)))
-            g.setColorAt(1, QColor(255, 255, 255, int(20 * hs)))
+            g.setColorAt(0, QColor(255, 236, 196, int(70 * hs)))
+            g.setColorAt(1, QColor(216, 173, 98, int(24 * hs)))
             p.setPen(Qt.NoPen)
             p.setBrush(g)
             p.drawEllipse(c, R_HUB, R_HUB)
@@ -543,7 +543,7 @@ class RadialMenu(QWidget):
         pt = QPointF(c.x() + (r + push) * math.cos(rad), c.y() - (r + push) * math.sin(rad))
         p.save()
         p.setOpacity(p.opacity() * (0.25 + 0.75 * self._swap))
-        col = QColor(255, 255, 255) if h > 0.5 else fg   # hovered petal is warm-lit: white text
+        col = QColor(255, 250, 240) if h > 0.5 else fg   # hovered petal is warm-lit: bright text
         f = QFont("Segoe UI Variable Display", 1)
         if it.glyph:
             f.setPixelSize(int(18 + 3 * h))

@@ -8,7 +8,11 @@
 AppId={{6C1E2B0A-7D5F-4E8B-9F3A-D7A5F1C2B3E4}
 AppName=DragShift
 AppVersion={#AppVersion}
-AppPublisher=DragShift
+AppPublisher=Prithwiraj Mukherjee
+AppCopyright=Copyright (C) 2026 Prithwiraj Mukherjee. Made by Prithwiraj Mukherjee.
+AppPublisherURL=https://github.com/prithwirajmukherjee15-cmd/dragshift
+VersionInfoCompany=Prithwiraj Mukherjee
+VersionInfoCopyright=Copyright (C) 2026 Prithwiraj Mukherjee
 DefaultDirName={localappdata}\Programs\DragShift
 DefaultGroupName=DragShift
 DisableProgramGroupPage=yes

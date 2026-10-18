@@ -1,11 +1,28 @@
-# DragShift 2
+<p align="center"><img src="dragshift/assets/dragshift.png" width="128" alt="DragShift icon"></p>
 
-Convert and edit files on **Windows, Mac and Linux** with a liquid-glass radial menu. Start dragging any file, press **Shift**, and drop it on a slice.
+<h1 align="center">DragShift 2</h1>
 
-![DragShift radial menu and Add BG editor](docs/preview.png)
+<p align="center"><b>Made by Prithwiraj Mukherjee</b></p>
+
+Convert and edit files on **Mac, Windows and Linux** with a liquid-glass radial menu. Start dragging any file, press **Shift**, and drop it on a slice.
+
+![Convert, Tools and Recipes rings](docs/rings.png)
+
+## ⬇️ Download
+
+| Platform | Direct download |
+|---|---|
+| 🍎 **Mac** (Apple Silicon: M1, M2, M3, M4) | [**DragShift-mac-apple-silicon.dmg**](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-mac-apple-silicon.dmg) |
+| 🍎 **Mac** (Intel) | [**DragShift-mac-intel.dmg**](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-mac-intel.dmg) |
+| 🪟 **Windows** installer (recommended) | [**DragShift-Setup.exe**](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-Setup.exe) |
+| 🪟 **Windows** portable | [**DragShift.exe**](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift.exe) |
+| 🐧 **Linux** (Debian, Ubuntu, Mint, MX… `.deb`) | [**DragShift-linux-amd64.deb**](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-linux-amd64.deb) |
+
+The links always point at the newest build. All releases: [Releases page](../../releases). Install notes for each platform are [below](#install).
 
 **New in 2.0**
 
+- ✨ **Premium look**: a new Midnight & Champagne theme and icon across the menu, windows and notifications.
 - 🎬 **Video & audio**: MP4, MOV, MKV, WEBM, AVI → MP4 / WEBM / MOV / **GIF** / MP3, and MP3, WAV, M4A, FLAC, OGG between each other. Tools: compress, extract audio, mute, grab a frame, rotate, normalize loudness, trim silence. ffmpeg comes bundled.
 - 📚 **More formats**: SVG → PNG/JPG/WEBP/PDF/ICO, and e-books (EPUB, MOBI, FB2, XPS, CBZ) → PDF/DOCX/TXT.
 - ©️ **New tools**: watermark images and PDFs, number PDF pages, unlock a PDF you know the password for.
@@ -15,9 +32,9 @@ Convert and edit files on **Windows, Mac and Linux** with a liquid-glass radial 
 - ⌨️ **Command line**: `dragshift convert *.heic --to jpg`, `dragshift recipe run web-ready *.png`, `dragshift watch ~/Screenshots --recipe web-ready`.
 - 📋 **Copy** button on every notification: paste the result straight into a chat, email or folder.
 
-## Download
+## Install
 
-From the [latest release](../../releases/latest):
+**Windows:**
 
 - **DragShift-Setup.exe** (recommended): installs for your user only, so no admin rights are needed. It adds a Start menu entry, an option to start with Windows, a right-click **DragShift…** entry and a **Send to → DragShift** entry. It uninstalls cleanly from Settings → Apps.
 - **DragShift.exe**: a portable version you can run from anywhere.
@@ -34,7 +51,9 @@ Or download the .dmg yourself:
 - **DragShift-mac-apple-silicon.dmg**: for Macs with M1, M2, M3 or M4 chips (macOS 11 or later).
 - **DragShift-mac-intel.dmg**: for Intel Macs.
 
-Open the .dmg and drag **DragShift** into Applications. DragShift lives in the menu bar and has no Dock icon. You can also right-click any file → **Open With → DragShift**.
+Open the .dmg and drag **DragShift** into Applications. DragShift lives in the menu bar and has no Dock icon.
+
+<img src="docs/dmg.png" width="440" alt="The DragShift .dmg window"> You can also right-click any file → **Open With → DragShift**.
 
 **Linux (Debian, Ubuntu, Mint, MX… with XFCE, MATE, Cinnamon or any X11 desktop):** download **DragShift-linux-amd64.deb**, then run:
 
@@ -66,6 +85,8 @@ Open **DragShift** from the app menu. It sits in the panel's notification area, 
 4. Tap **Shift** again to switch rings: **Convert → Tools → Recipes**.
 
 ![Convert, Tools and Recipes rings](docs/rings.png)
+
+![Result notification](docs/toast.png)
 
 Each action ends with a notification that shows what changed, for example *"2.4 MB → 610 KB · 75% smaller"* or *"2400×1600 → 1200×800"*, with **Open**, **Copy**, **Folder** and **Undo**. Undo moves the new file to the Recycle Bin (Trash on Mac and Linux). Long video jobs show a percentage while they run. Everything you make is also listed in **History** (tray menu).
 
@@ -133,7 +154,7 @@ Add `--json` for machine-readable output. The exit code is 1 if any file failed.
 
 ## The look
 
-The menu, notifications and windows use real **liquid-glass** rendering. DragShift captures the screen behind each surface and refracts it through the shape. A curved edge bends light, R, G and B bend by slightly different amounts (which gives the rainbow fringe), a highlight runs along the rim facing the light, and the tint adapts to what's behind it so text stays readable. The menu renders on a background thread while it pops in, so it still opens instantly.
+DragShift 2 uses a **Midnight & Champagne** theme: graphite glass, champagne-gold accents and a pearl rim, with a matching icon. The menu, notifications and windows use real **liquid-glass** rendering. DragShift captures the screen behind each surface and refracts it through the shape. A curved edge bends light, R, G and B bend by slightly different amounts (a subtle colour fringe at the edge), a highlight runs along the rim facing the light, and the tint adapts to what's behind it so text stays readable. The menu renders on a background thread while it pops in, so it still opens instantly.
 
 ## Tested on real desktops
 
@@ -148,7 +169,7 @@ Every push runs these jobs on GitHub's Windows, Mac and Linux machines:
 
 ## Credits
 
-DragShift 2 builds on [DragShift](https://github.com/llamaboi55/DragShift) by llamaboi55: the radial menu, liquid-glass rendering, image/PDF tools and the cross-platform end-to-end test rigs all come from there. 2.0 adds video and audio, SVG and e-books, watermarks, page numbers, unlock, recipes, watch folders, history and the command line.
+**DragShift 2 is made by Prithwiraj Mukherjee.** It builds on [DragShift](https://github.com/llamaboi55/DragShift) by llamaboi55: the radial menu, liquid-glass rendering, image/PDF tools and the cross-platform end-to-end test rigs all come from there. 2.0 adds video and audio, SVG and e-books, watermarks, page numbers, unlock, recipes, watch folders, history and the command line.
 
 ## License
 

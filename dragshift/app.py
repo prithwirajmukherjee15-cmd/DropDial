@@ -14,7 +14,7 @@ from PySide6.QtGui import (QAction, QColor, QCursor, QDesktopServices, QGuiAppli
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QSystemTrayIcon, QWidget
 
-from . import __version__, convert, glass, history, imaging, media, panels, recipes, report, tools, watch
+from . import CREDIT, __version__, convert, glass, history, imaging, media, panels, recipes, report, tools, watch
 from .radial import Item, RadialMenu
 from .settings import Settings, SettingsWindow, WelcomeWindow, TRIGGERS
 from .toasts import ToastStack
@@ -187,6 +187,9 @@ class DragShiftApp(QObject):
         self.tray.setToolTip(f"{APP_NAME} — press {self.trigger_label()} while dragging a file")
         m = QMenu()
         m.setStyleSheet(glass.QSS)
+        credit = m.addAction(f"{APP_NAME} {VERSION}  ·  {CREDIT}")
+        credit.setEnabled(False)          # a signature line, styled gold by the stylesheet
+        m.addSeparator()
         self.act_enabled = QAction("Enabled", m, checkable=True, checked=True)
         self.act_enabled.toggled.connect(lambda on: setattr(self.watcher, "enabled", on))
         m.addAction(self.act_enabled)
@@ -198,7 +201,7 @@ class DragShiftApp(QObject):
         m.addAction("Settings…", self.open_settings)
         m.addSeparator()
         m.addAction("How to use", self.show_welcome)
-        m.addAction(f"About {APP_NAME} {VERSION}", lambda: QDesktopServices.openUrl(QUrl(PROJECT_URL)))
+        m.addAction(f"About {APP_NAME}…", lambda: QDesktopServices.openUrl(QUrl(PROJECT_URL)))
         m.addSeparator()
         m.addAction(f"Quit {APP_NAME}", self.qapp.quit)
         self.tray_menu = m

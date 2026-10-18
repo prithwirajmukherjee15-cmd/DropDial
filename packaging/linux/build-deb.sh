@@ -27,13 +27,14 @@ Architecture: $ARCH
 Installed-Size: $SIZE
 Depends: libc6 (>= 2.36), libx11-6, libxext6, libxrender1, libxkbcommon0, libxkbcommon-x11-0, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xfixes0, libxcb-xinerama0, libxcb-xkb1, libfontconfig1, libfreetype6, libdbus-1-3, libegl1, libgl1, libglib2.0-0
 Recommends: xdg-utils
-Maintainer: DragShift <https://github.com/prithwirajmukherjee15-cmd/dragshift>
+Maintainer: Prithwiraj Mukherjee <https://github.com/prithwirajmukherjee15-cmd/dragshift>
 Homepage: https://github.com/prithwirajmukherjee15-cmd/dragshift
 Description: Convert and edit files with a Shift+drag radial menu
  Start dragging a file in your file manager (Thunar, Nautilus, Nemo...),
  press Shift and drop it on a slice of the liquid-glass menu: convert
- images, PDFs, Word and text files, compress, resize, crop, annotate,
- redact and more. Works on X11 desktops including XFCE, with or without
+ images, PDFs, Word and text files, videos, audio, SVGs and e-books;
+ compress, resize, crop, annotate, watermark, redact, run multi-step
+ recipes and more. Made by Prithwiraj Mukherjee. Works on X11 desktops including XFCE, with or without
  a compositor. Right-click > Open With > DragShift works everywhere.
 CTRL
 cat > "$PKG/DEBIAN/postinst" <<'POST'

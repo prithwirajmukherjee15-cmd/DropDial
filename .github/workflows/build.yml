@@ -126,6 +126,7 @@ jobs:
           dist/DragShift.app/Contents/MacOS/DragShift --selftest
           codesign --verify --deep --verbose=2 dist/DragShift.app || true
           /usr/libexec/PlistBuddy -c "Print :LSUIElement" dist/DragShift.app/Contents/Info.plist
+          /usr/libexec/PlistBuddy -c "Print :NSHumanReadableCopyright" dist/DragShift.app/Contents/Info.plist
 
       - name: Sign & notarize the app (only when Apple credentials are configured)
         env:
@@ -159,17 +160,41 @@ jobs:
           spctl --assess --type execute --verbose dist/DragShift.app
           echo "SIGNED=1" >> $GITHUB_ENV
 
-      - name: Make the .dmg (drag DragShift to Applications)
+      - name: Make the branded .dmg (drag DragShift to Applications)
+        env:
+          VOLNAME: DragShift by Prithwiraj Mukherjee
         run: |
-          mkdir -p dmg
-          cp -R dist/DragShift.app dmg/
-          ln -s /Applications dmg/Applications
-          hdiutil create -volname "DragShift" -srcfolder dmg -ov -format UDZO "dist/DragShift-mac-${{ matrix.arch }}.dmg"
-          du -h "dist/DragShift-mac-${{ matrix.arch }}.dmg"
+          DMG="dist/DragShift-mac-${{ matrix.arch }}.dmg"
+          rm -f "$DMG"
+          mkdir -p dmgsrc && cp -R dist/DragShift.app dmgsrc/
+          # Retina-ready background: 1x + 2x combined into one TIFF
+          tiffutil -cathidpicheck packaging/mac/dmg-background.png packaging/mac/dmg-background@2x.png -out dmg-background.tiff
+          brew install create-dmg >/dev/null 2>&1 || true
+          if command -v create-dmg >/dev/null && create-dmg \
+              --volname "$VOLNAME" --volicon dragshift/assets/dragshift.icns \
+              --background dmg-background.tiff --window-pos 200 140 --window-size 660 420 \
+              --icon-size 112 --text-size 13 --icon "DragShift.app" 165 215 --hide-extension "DragShift.app" \
+              --app-drop-link 495 215 "$DMG" dmgsrc; then
+            echo "Branded DMG built"
+          else
+            # Finder styling can time out on CI machines: still ship a working DMG with the credit
+            echo "::warning::create-dmg failed, building a plain DMG"
+            rm -f "$DMG"
+            ln -s /Applications dmgsrc/Applications
+            mkdir -p dmgsrc/.background && cp dmg-background.tiff dmgsrc/.background/background.tiff
+            hdiutil create -volname "$VOLNAME" -srcfolder dmgsrc -ov -format UDZO "$DMG"
+          fi
+          du -h "$DMG"
+          # check the credit made it in
+          hdiutil attach "$DMG" -mountpoint /tmp/dmgcheck -nobrowse -quiet
+          ls -la /tmp/dmgcheck
+          test -d /tmp/dmgcheck/DragShift.app
+          /usr/libexec/PlistBuddy -c "Print :NSHumanReadableCopyright" /tmp/dmgcheck/DragShift.app/Contents/Info.plist
+          hdiutil detach /tmp/dmgcheck -quiet
           if [ "$SIGNED" = "1" ]; then
-            codesign --force --timestamp --sign "${{ secrets.MACOS_SIGN_IDENTITY }}" "dist/DragShift-mac-${{ matrix.arch }}.dmg"
-            xcrun notarytool submit "dist/DragShift-mac-${{ matrix.arch }}.dmg" --apple-id "${{ secrets.APPLE_ID }}" --password "${{ secrets.APPLE_APP_PASSWORD }}" --team-id "${{ secrets.APPLE_TEAM_ID }}" --wait
-            xcrun stapler staple "dist/DragShift-mac-${{ matrix.arch }}.dmg"
+            codesign --force --timestamp --sign "${{ secrets.MACOS_SIGN_IDENTITY }}" "$DMG"
+            xcrun notarytool submit "$DMG" --apple-id "${{ secrets.APPLE_ID }}" --password "${{ secrets.APPLE_APP_PASSWORD }}" --team-id "${{ secrets.APPLE_TEAM_ID }}" --wait
+            xcrun stapler staple "$DMG"
           fi
 
       - uses: actions/upload-artifact@v4
@@ -216,7 +241,7 @@ jobs:
 
       - name: Build the .deb
         run: |
-          PATH=/opt/venv/bin:$PATH packaging/linux/build-deb.sh 1.2.0
+          PATH=/opt/venv/bin:$PATH packaging/linux/build-deb.sh 2.0.0
           dpkg-deb --info dist/DragShift-linux-amd64.deb
           desktop-file-validate packaging/linux/dragshift.desktop
 
@@ -285,7 +310,9 @@ jobs:
 
   publish:
     needs: [windows, macos, linux]
-    if: always() && github.event_name == 'push' && needs.windows.result == 'success'
+    if: >-
+      always() && github.event_name == 'push' &&
+      (needs.windows.result == 'success' || needs.macos.result == 'success' || needs.linux.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -303,24 +330,25 @@ jobs:
           name: DragShift (latest build)
           make_latest: true
           body: |
-            **Windows**
-            - **DragShift-Setup.exe** — recommended. Per-user install (no admin), Start menu, start with Windows, right-click "DragShift…" and Send To.
-            - **DragShift.exe** — portable.
+            **DragShift 2** for Mac, Windows and Linux · Made by Prithwiraj Mukherjee
 
-            **Mac** (macOS 11+). Easiest, with no security warning, is to paste into Terminal:
+            | Platform | Direct download |
+            |---|---|
+            | 🍎 Mac (Apple Silicon: M1–M4) | [DragShift-mac-apple-silicon.dmg](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-mac-apple-silicon.dmg) |
+            | 🍎 Mac (Intel) | [DragShift-mac-intel.dmg](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-mac-intel.dmg) |
+            | 🪟 Windows installer (recommended) | [DragShift-Setup.exe](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-Setup.exe) |
+            | 🪟 Windows portable | [DragShift.exe](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift.exe) |
+            | 🐧 Linux (Debian/Ubuntu .deb) | [DragShift-linux-amd64.deb](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DragShift-linux-amd64.deb) |
+
+            **Mac**, easiest with no security warning: paste into Terminal
             `curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/dragshift/main/install-mac.sh | bash`
+            Using the .dmg instead: open it and drag DragShift into Applications. On first launch (until DragShift is notarized by Apple) open it once and click **Done**, then **System Settings → Privacy & Security → Open Anyway**. Or in Terminal: `xattr -dr com.apple.quarantine /Applications/DragShift.app`
 
-            Or download:
-            - **DragShift-mac-apple-silicon.dmg** — M1/M2/M3/M4 Macs.
-            - **DragShift-mac-intel.dmg** — Intel Macs.
-            Open the .dmg and drag DragShift to Applications.
-            **First launch (until DragShift is notarized by Apple):** open DragShift once and click **Done** on the warning, then go to **System Settings → Privacy & Security**, scroll down and click **Open Anyway** next to "DragShift was blocked", and confirm. You only do this once.
-            Or in Terminal: `xattr -dr com.apple.quarantine /Applications/DragShift.app`
+            **Windows**: run DragShift-Setup.exe (per-user, no admin). If SmartScreen warns, click **More info → Run anyway**.
 
-            **Linux** (Debian 12+, Ubuntu 23.04+, Mint, MX… on X11 desktops such as XFCE, MATE, Cinnamon):
-            - **DragShift-linux-amd64.deb** — install with `sudo apt install ./DragShift-linux-amd64.deb`, then open DragShift from the app menu. Works with or without a compositor.
+            **Linux** (Debian 12+, Ubuntu 23.04+, Mint, MX… on X11 desktops such as XFCE, MATE, Cinnamon): `sudo apt install ./DragShift-linux-amd64.deb`, then open DragShift from the app menu.
 
-            **New in 2.0:** video & audio, SVG and e-books, recipes, watch folders, history and a command line.
+            **New in 2.0:** a premium midnight-and-gold look, video & audio, SVG and e-books, watermarks, recipes, watch folders, history and a command line.
 
             Built automatically from commit ${{ github.sha }}.
           files: out/*

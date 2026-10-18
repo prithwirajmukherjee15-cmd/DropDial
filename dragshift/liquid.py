@@ -21,9 +21,9 @@ from PIL import Image, ImageEnhance, ImageFilter
 class GlassStyle:
     bezel: float = 22.0        # px width of the curved edge where light bends
     strength: float = 16.0     # max displacement in px at the very edge
-    dispersion: float = 0.32   # extra bend for blue vs red (rainbow fringe)
+    dispersion: float = 0.18   # extra bend for blue vs red (a hint of fringe, not a rainbow)
     blur: float = 2.2          # Liquid Glass stays fairly clear
-    saturation: float = 1.45
+    saturation: float = 1.2      # restrained: premium glass doesn't oversaturate
     spec: float = 0.95         # specular rim intensity
     light: tuple[float, float] = (-0.55, -0.83)  # direction *towards* the light (top-left)
 
@@ -132,7 +132,7 @@ def render(backdrop: Image.Image, sdf: np.ndarray, style: GlassStyle = GlassStyl
 
     # adaptive tint keeps text legible on any wallpaper
     if tint is None:
-        tint = (236, 232, 246, 0.14) if is_light else (18, 14, 30, 0.26)
+        tint = (242, 238, 230, 0.16) if is_light else (12, 13, 20, 0.34)   # pearl / midnight
     tr, tg, tb, ta = tint
     out = out * (1 - ta) + np.array([tr, tg, tb], np.float32) * ta
 

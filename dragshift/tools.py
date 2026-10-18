@@ -253,7 +253,7 @@ class CropView(ImageView):
             p.drawLine(QPointF(x, r.top()), QPointF(x, r.bottom()))
             p.drawLine(QPointF(r.left(), y), QPointF(r.right(), y))
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor("#ff6a4d"))
+        p.setBrush(QColor("#e3be7a"))
         for pt in (r.topLeft(), r.topRight(), r.bottomLeft(), r.bottomRight()):
             p.drawEllipse(pt, 5.5, 5.5)
         # live output size badge
@@ -266,7 +266,7 @@ class CropView(ImageView):
         badge = QRectF(r.center().x() - w / 2, r.bottom() - 30, w, 22)
         if badge.top() < r.top() + 4:
             badge.moveTop(r.bottom() + 6)
-        p.setBrush(QColor(20, 16, 32, 190))
+        p.setBrush(QColor(13, 14, 20, 200))
         p.drawRoundedRect(badge, 11, 11)
         p.setPen(QColor(255, 255, 255))
         p.drawText(badge, Qt.AlignCenter, txt)
@@ -801,7 +801,7 @@ class RedactView(ImageView):
 
     def paint_overlay(self, p, t):
         if self.cur is not None:
-            p.setPen(QPen(QColor("#ff5f6d"), 1.5, Qt.DashLine))
+            p.setPen(QPen(QColor("#e3be7a"), 1.5, Qt.DashLine))
             p.setBrush(QColor(0, 0, 0, 90))
             p.drawRect(self.rect_to_widget(self.cur))
 

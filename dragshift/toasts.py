@@ -248,10 +248,10 @@ class ToastCard(QWidget):
         err = self.state == "error"
         if img is not None and not img.isNull() and img.size() == self.size():
             p.drawImage(0, 0, img)
-            tint = QColor(140, 30, 50, 150) if err else QColor(20, 16, 32, 120)
+            tint = QColor(110, 34, 30, 160) if err else glass.glass_tint(140)
         else:
-            tint = QColor(120, 30, 45, 230) if err else QColor(34, 27, 52, 232)
-        glass.paint_glass(p, path, tint=tint, rainbow_alpha=170)
+            tint = QColor(96, 30, 28, 236) if err else glass.glass_tint(236, 8)
+        glass.paint_glass(p, path, tint=tint, rainbow_alpha=130)
 
         x = 16
         # leading visual: spinner / thumbnail / icon
@@ -282,7 +282,7 @@ class ToastCard(QWidget):
             f.setPixelSize(22)
             f.setBold(True)
             p.setFont(f)
-            p.setPen(QColor("#8dffb8") if self.state == "done" else QColor("#ffd36b") if err else QColor(255, 255, 255))
+            p.setPen(glass.gold() if self.state == "done" else QColor("#f0b46a") if err else QColor(255, 250, 240))
             p.drawText(QRectF(lead.center().x() - 22, lead.center().y() - 22, 44, 44), Qt.AlignCenter, icon)
             x = 82
 
@@ -306,10 +306,10 @@ class ToastCard(QWidget):
             if gx + gw < W - 34:
                 chip = QRectF(gx, 14, gw, 18)
                 p.setPen(Qt.NoPen)
-                p.setBrush(QColor(80, 220, 140, 70))
+                p.setBrush(glass.gold(48))
                 p.drawRoundedRect(chip, 9, 9)
                 p.setFont(f2)
-                p.setPen(QColor("#a8ffc9"))
+                p.setPen(QColor("#f7e7c1"))
                 p.drawText(chip, Qt.AlignCenter, self.good)
         f.setPixelSize(12)
         f.setBold(False)
@@ -338,8 +338,8 @@ class ToastCard(QWidget):
                 bw = fm.horizontalAdvance(labels[nme]) + 22
                 br = QRectF(bx, H - 32, bw, 22)
                 self.buttons.append((nme, br))
-                p.setPen(QPen(QColor(255, 255, 255, 120 if self.hover_btn == i else 60), 1))
-                p.setBrush(QColor(255, 255, 255, 60 if self.hover_btn == i else 26))
+                p.setPen(QPen(glass.gold(170) if self.hover_btn == i else QColor(255, 255, 255, 45), 1))
+                p.setBrush(QColor(255, 255, 255, 40 if self.hover_btn == i else 16))
                 p.drawRoundedRect(br, 11, 11)
                 p.setPen(QColor(255, 255, 255))
                 p.drawText(br, Qt.AlignCenter, labels[nme])

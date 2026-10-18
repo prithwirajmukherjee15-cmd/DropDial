@@ -12,7 +12,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import __version__
+from . import CREDIT, __version__
 from .util import CONFIG, UserError, category, human_size
 
 COMMANDS = {"convert", "compress", "resize", "strip", "watermark", "pdf", "media", "recipe",
@@ -377,7 +377,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = argparse.ArgumentParser(prog="dragshift", description="Convert and edit files. Run without a "
                                 "command to start the menu app.", parents=[common])
-    p.add_argument("--version", action="version", version=f"DragShift {__version__}")
+    p.add_argument("--version", action="version", version=f"DragShift {__version__} · {CREDIT}")
     sub = p.add_subparsers(dest="cmd", metavar="COMMAND")
 
     s = sub.add_parser("convert", parents=[common], help="convert to another format")

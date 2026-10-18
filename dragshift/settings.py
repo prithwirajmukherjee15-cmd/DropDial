@@ -7,7 +7,7 @@ from PySide6.QtCore import QSettings, Qt, Signal
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QHBoxLayout, QLabel,
                                QPushButton, QSlider, QVBoxLayout)
 
-from . import __version__
+from . import CREDIT, __version__
 from .util import CONFIG
 from .window import GlassWindow
 
@@ -176,8 +176,8 @@ class SettingsWindow(GlassWindow):
                 r += 1
         self.body.addLayout(grid)
         self.body.addStretch(1)
-        about = QLabel(f"DragShift {__version__}  ·  originals are never modified")
-        about.setObjectName("dim")
+        about = QLabel(f"DragShift {__version__}  ·  {CREDIT}")
+        about.setObjectName("credit")
         foot = QHBoxLayout()
         foot.addWidget(about)
         foot.addStretch(1)
@@ -208,7 +208,8 @@ class WelcomeWindow(GlassWindow):
             badge = QLabel(n)
             badge.setAlignment(Qt.AlignCenter)
             badge.setFixedSize(34, 34)
-            badge.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:1,y2:1, stop:0 #ff8a5c, stop:1 #ff4f8b);"
+            badge.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #f7e7c1, stop:0.5 #d8ad62,"
+                                " stop:1 #a87a34); color: #1a1408; border: 1px solid rgba(255,240,210,0.7);"
                                 "border-radius: 17px; font-weight: 700; font-size: 12pt;")
             row.addWidget(badge)
             col = QVBoxLayout()
@@ -242,6 +243,10 @@ class WelcomeWindow(GlassWindow):
                 note.setObjectName("warn")
                 note.setWordWrap(True)
                 self.body.addWidget(note)
+        sig = QLabel(CREDIT)
+        sig.setObjectName("credit")
+        sig.setAlignment(Qt.AlignRight)
+        self.body.addWidget(sig)
         foot = QHBoxLayout()
         if IS_WIN or IS_MAC or IS_LINUX:
             self.auto = QCheckBox("Start with Windows" if IS_WIN else "Open at login")

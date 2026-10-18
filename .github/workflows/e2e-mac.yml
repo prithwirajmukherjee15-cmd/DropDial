@@ -28,6 +28,10 @@ jobs:
 
       - name: Test the one-line installer (as a user would run it)
         run: |
+          # the installer downloads the latest published release: skip until the first one exists
+          if ! curl -fsIL -o /dev/null "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/DragShift-mac-apple-silicon.dmg"; then
+            echo "::notice::No release published yet, skipping the installer test"; exit 0
+          fi
           curl -fsSL "https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/install-mac.sh" | bash
           sleep 6
           pgrep -x DragShift && echo "DragShift is running"

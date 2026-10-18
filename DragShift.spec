@@ -52,6 +52,8 @@ if IS_MAC:
             "CFBundleDisplayName": "DragShift",
             "CFBundleShortVersionString": "2.0.0",
             "CFBundleVersion": "2.0.0",
+            "NSHumanReadableCopyright": "© 2026 Prithwiraj Mukherjee. Made by Prithwiraj Mukherjee.",
+            "CFBundleGetInfoString": "DragShift 2.0.0, made by Prithwiraj Mukherjee",
             "LSUIElement": True,                 # menu-bar app, no Dock icon
             "LSMinimumSystemVersion": "11.0",
             "NSHighResolutionCapable": True,
