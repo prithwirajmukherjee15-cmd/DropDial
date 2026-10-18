@@ -24,7 +24,7 @@ from typing import Callable
 
 from .imaging import BG_PRESETS
 from .util import (BESIDE, UserError, category, data_dir, output_dir, output_override, parse_size,
-                   unique_path)
+                   current_progress, progress_hook, unique_path)
 
 ALL_CATS = ("image", "pdf", "docx", "text", "vector", "ebook", "video", "audio")
 
@@ -505,6 +505,29 @@ class RunResult:
     steps_run: list[str] = field(default_factory=list)
 
 
+def _apply(st: StepType, params: dict, todo: list, fresh) -> list:
+    """Run one step over the files it applies to; returns the new work items."""
+    if st.multi:
+        outs = st.fn([w.path for w in todo], params)
+        first = todo[0]
+        new = []
+        for o in outs:
+            match = next((w for w in todo if w.path == o), None)
+            stem = first.stem if len(outs) == 1 else o.stem
+            new.append(match or _Work(fresh(o, stem), first.origin, stem, True))
+    else:
+        new = []
+        for w in todo:
+            outs = st.fn(w.path, params)
+            if outs == [w.path]:
+                new.append(w)
+                continue
+            for o in outs:
+                stem = w.stem if len(outs) == 1 else o.stem
+                new.append(_Work(fresh(o, stem), w.origin, stem, True))
+    return new
+
+
 def run(recipe: Recipe, srcs: list, progress: Callable[[int, int, str], None] | None = None) -> RunResult:
     """Apply `recipe` to `srcs`; return the files written (next to the originals)."""
     recipe.validate()
@@ -532,6 +555,12 @@ def run(recipe: Recipe, srcs: list, progress: Callable[[int, int, str], None] | 
     ran: list[str] = []
     try:
         items = [_Work(fresh(s, s.stem), s, s.stem) for s in srcs]
+        outer = current_progress()
+
+        def overall(f: float) -> None:
+            if outer is not None:
+                outer(max(0.0, min(1.0, f)))
+
         with output_override(BESIDE):
             for i, step in enumerate(recipe.steps):
                 st = STEPS[step["step"]]
@@ -541,26 +570,14 @@ def run(recipe: Recipe, srcs: list, progress: Callable[[int, int, str], None] | 
                     continue
                 if progress:
                     progress(i, len(recipe.steps), st.describe(params))
+                n_steps = len(recipe.steps)
+                overall(i / n_steps)
                 ran.append(st.describe(params))
                 keep = [w for w in items if w not in todo]
-                if st.multi:
-                    outs = st.fn([w.path for w in todo], params)
-                    first = todo[0]
-                    new = []
-                    for o in outs:
-                        match = next((w for w in todo if w.path == o), None)
-                        stem = first.stem if len(outs) == 1 else o.stem
-                        new.append(match or _Work(fresh(o, stem), first.origin, stem, True))
-                else:
-                    new = []
-                    for w in todo:
-                        outs = st.fn(w.path, params)
-                        if outs == [w.path]:
-                            new.append(w)
-                            continue
-                        for o in outs:
-                            stem = w.stem if len(outs) == 1 else o.stem
-                            new.append(_Work(fresh(o, stem), w.origin, stem, True))
+                # a step's own progress (e.g. ffmpeg) becomes a slice of the whole recipe
+                step_hook = progress_hook(lambda f, i=i: overall((i + f) / n_steps))
+                with step_hook:
+                    new = _apply(st, params, todo, fresh)
                 items = keep + new
         if progress:
             progress(len(recipe.steps), len(recipe.steps), "Saving")

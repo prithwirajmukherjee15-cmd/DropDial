@@ -16,7 +16,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Callable
 
-from .util import UserError, sibling
+from .util import UserError, report_progress, sibling
 
 VIDEO_TARGETS = ["MP4", "WEBM", "MOV", "GIF", "MP3"]
 AUDIO_TARGETS = ["MP3", "M4A", "WAV", "FLAC", "OGG"]
@@ -140,10 +140,11 @@ def run_ffmpeg(args: list, out: Path, duration: float = 0.0,
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                                 errors="replace", **_popen_kwargs())
         assert proc.stdout is not None
+        report = progress or report_progress
         for line in proc.stdout:
-            if progress and duration > 0 and line.startswith("out_time_us="):
+            if duration > 0 and line.startswith("out_time_us="):
                 try:
-                    progress(min(1.0, int(line.split("=", 1)[1]) / 1e6 / duration))
+                    report(min(1.0, int(line.split("=", 1)[1]) / 1e6 / duration))
                 except ValueError:
                     pass
         err = proc.stderr.read() if proc.stderr else ""

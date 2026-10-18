@@ -23,6 +23,7 @@ DEFAULTS = {
     "pdf_dpi": 200,
     "trigger": "shift",
     "welcomed": False,
+    "watch_toasts": True,
 }
 
 
@@ -200,7 +201,7 @@ class WelcomeWindow(GlassWindow):
              "in your file manager (Thunar, Nautilus…)" if IS_LINUX else "in File Explorer or on the desktop"),
             ("2", f"Press {trigger_label}", "the glass menu opens right under your cursor"),
             ("3", "Drop it on a slice", "the result is saved next to the original"),
-            ("⇄", f"Tap {trigger_label} again", "to switch between Convert and Tools"),
+            ("⇄", f"Tap {trigger_label} again", "to switch between Convert, Tools and Recipes"),
         ]
         for n, head, sub in steps:
             row = QHBoxLayout()

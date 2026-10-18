@@ -14,15 +14,16 @@ from PySide6.QtGui import (QAction, QColor, QCursor, QDesktopServices, QGuiAppli
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QSystemTrayIcon, QWidget
 
-from . import __version__, convert, glass, imaging, report, tools
+from . import __version__, convert, glass, history, imaging, media, panels, recipes, report, tools, watch
 from .radial import Item, RadialMenu
 from .settings import Settings, SettingsWindow, WelcomeWindow, TRIGGERS
 from .toasts import ToastStack
 from .trigger import DragShiftWatcher
-from .util import UserError, category, file_size, human_size, keep, release
+from .util import (UserError, category, current_progress, file_size, human_size, keep, progress_hook,
+                   release)
 
 APP_NAME = "DragShift"
-TIP_URL = "https://cash.app/$AtikaKadesha"
+PROJECT_URL = "https://github.com/prithwirajmukherjee15-cmd/dragshift"
 VERSION = __version__
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"
@@ -31,28 +32,43 @@ IPC_NAME = ipc_name()
 
 GLYPHS = {"Compress": "⇲", "Metadata": "ⓘ", "Redact": "▮", "Crop": "⌗", "Edit": "☼",
           "Annotate": "✎", "Add BG": "▣", "Resize": "⤢", "Split": "✂", "Rotate": "⟳",
-          "Merge": "⧉", "Protect": "⚿", "Extract": "⧈"}
+          "Merge": "⧉", "Protect": "⚿", "Extract": "⧈", "Watermark": "©", "Numbers": "#",
+          "Unlock": "⚷", "Audio": "♪", "Mute": "∅", "Frame": "▭", "Normalize": "≋",
+          "Trim silence": "⇥"}
 
 HINTS = {
     "Compress": "Shrink file size", "Metadata": "View · remove GPS", "Redact": "Hide private info",
     "Crop": "Trim to a ratio", "Edit": "Light · colour · rotate", "Annotate": "Arrows · text · steps",
     "Add BG": "Gradient backdrop", "Resize": "Change dimensions", "Split": "One PDF per page",
     "Rotate": "Turn pages 90°", "Merge": "Join into one PDF", "Protect": "Add a password",
-    "Extract": "Save embedded images",
+    "Extract": "Save embedded images", "Watermark": "Stamp your name", "Numbers": "Number the pages",
+    "Unlock": "Remove the password", "Audio": "Save the sound as MP3", "Mute": "Remove the sound",
+    "Frame": "Save a still image", "Normalize": "Even out loudness", "Trim silence": "Cut quiet ends",
 }
+VIDEO_HINTS = {"Compress": "Smaller MP4 · ≤1080p", "Rotate": "Turn 90° clockwise"}
+AUDIO_HINTS = {"Compress": "96 kbps MP3"}
 FORMAT_HINTS = {"JPG": "Small, universal", "PNG": "Lossless · transparency", "WEBP": "Smallest for web",
                 "HEIC": "iPhone format", "TIFF": "Print · archival", "AVIF": "Next-gen, tiny",
                 "BMP": "Uncompressed", "PDF": "Document", "ICO": "Windows icon", "GIF": "Legacy web",
-                "DOCX": "Editable Word", "TXT": "Plain text"}
+                "DOCX": "Editable Word", "TXT": "Plain text", "MP4": "Plays everywhere",
+                "WEBM": "Small web video", "MOV": "Apple · editing", "MP3": "Universal audio",
+                "M4A": "Apple audio", "WAV": "Uncompressed", "FLAC": "Lossless audio", "OGG": "Open format"}
+CAT_FORMAT_HINTS = {("video", "GIF"): "Animated · first 30 s", ("video", "MP3"): "Just the sound",
+                    ("vector", "PNG"): "Crisp 2048 px", ("vector", "PDF"): "Stays vector",
+                    ("ebook", "PDF"): "Readable anywhere"}
+RECIPE_HINTS = {"Web-ready": "WebP · no metadata", "Email size": "Fits in an email",
+                "Private": "Strip GPS · camera", "Social": "4:5 gradient post", "Scan → PDF": "Pages → one PDF",
+                "Confidential": "Stamp every page", "Share video": "720p MP4", "Podcast": "MP3 · −16 LUFS"}
 
-IMAGE_TOOLS = ["Compress", "Resize", "Crop", "Edit", "Annotate", "Redact", "Add BG", "Metadata"]
-PDF_TOOLS = ["Compress", "Split", "Rotate", "Protect", "Extract", "Metadata"]
+IMAGE_TOOLS = ["Compress", "Resize", "Crop", "Edit", "Annotate", "Redact", "Add BG", "Watermark", "Metadata"]
+PDF_TOOLS = ["Compress", "Split", "Rotate", "Numbers", "Watermark", "Protect", "Extract", "Metadata"]
 
 
 # ---------------------------------------------------------------- background jobs
 class _Sig(QObject):
     done = Signal(object)
     failed = Signal(str)
+    progress = Signal(float)
 
 
 class Job(QRunnable):
@@ -60,10 +76,20 @@ class Job(QRunnable):
         super().__init__()
         self.action, self.srcs, self.fn, self.extra = action, srcs, fn, extra
         self.sig = _Sig()
+        self._last = -1.0
+
+    def _progress(self, f: float):
+        if f - self._last >= 0.01 or f >= 1.0:   # don't flood the UI thread
+            self._last = f
+            try:
+                self.sig.progress.emit(f)
+            except RuntimeError:
+                pass
 
     def run(self):
         try:
-            outs = self.fn() or []
+            with progress_hook(self._progress):
+                outs = self.fn() or []
             self.sig.done.emit(report.summarize(self.action, self.srcs, outs, self.extra))
         except UserError as e:
             self.sig.failed.emit(str(e))
@@ -165,16 +191,25 @@ class DragShiftApp(QObject):
         self.act_enabled.toggled.connect(lambda on: setattr(self.watcher, "enabled", on))
         m.addAction(self.act_enabled)
         m.addAction("Open a file…", self.open_dialog)
+        m.addAction("History…", self.open_history)
         m.addSeparator()
+        m.addAction("Recipes…", self.open_recipes)
+        self.act_watch = m.addAction("Watch folders…", self.open_watch)
         m.addAction("Settings…", self.open_settings)
+        m.addSeparator()
         m.addAction("How to use", self.show_welcome)
-        m.addAction("Tip the developer ♥", lambda: QDesktopServices.openUrl(QUrl(TIP_URL)))
+        m.addAction(f"About {APP_NAME} {VERSION}", lambda: QDesktopServices.openUrl(QUrl(PROJECT_URL)))
         m.addSeparator()
         m.addAction(f"Quit {APP_NAME}", self.qapp.quit)
         self.tray_menu = m
         self.tray.setContextMenu(m)
         self.tray.activated.connect(self._tray_click)
         self.tray.show()
+
+        # watch folders: poll every 2 s (see watch.py for why polling)
+        self.scanners: list[watch.FolderScanner] = []
+        self.watch_timer = QTimer(self, interval=2000, timeout=self._watch_tick)
+        self.reload_watch()
 
     def trigger_label(self) -> str:
         return dict(TRIGGERS).get(self.settings.get("trigger"), "Shift")
@@ -234,30 +269,60 @@ class DragShiftApp(QObject):
         return human_size(file_size(paths[0]))
 
     def build_rings(self, paths: list[str]) -> dict[str, list[Item]]:
+        # NB: also called unbound (self=None) by the e2e scripts, so it must not touch `self`
         cat = category(paths[0])
         if cat is None:
             return {"Unsupported": []}
         ext = Path(paths[0]).suffix
         same = [p for p in paths if category(p) == cat]
+        if cat == "pdf" and imaging.pdf_is_locked(paths[0]):
+            return {"Tools": [Item("Unlock", GLYPHS["Unlock"], key="tool:Unlock", hint=HINTS["Unlock"])]}
         convert_items = []
         for t in convert.targets_for(cat, ext):
-            hint = FORMAT_HINTS.get(t, "")
+            hint = CAT_FORMAT_HINTS.get((cat, t)) or FORMAT_HINTS.get(t, "")
             if cat == "image" and t == "PDF" and len(same) > 1:
                 hint = f"{len(same)} images → 1 PDF"
             convert_items.append(Item(t, key=f"convert:{t}", hint=hint))
         rings: dict[str, list[Item]] = {"Convert": convert_items}
+
+        def tools(names, hints=None):
+            hints = hints or {}
+            return [Item(n, GLYPHS[n], key=f"tool:{n}", hint=hints.get(n) or HINTS[n]) for n in names]
+
         if cat == "image":
-            rings["Tools"] = [Item(n, GLYPHS[n], key=f"tool:{n}", hint=HINTS[n]) for n in IMAGE_TOOLS]
+            rings["Tools"] = tools(IMAGE_TOOLS)
         elif cat == "pdf":
-            names = PDF_TOOLS[:3] + (["Merge"] if len(same) > 1 else []) + PDF_TOOLS[3:]
-            rings["Tools"] = [Item(n, GLYPHS[n], key=f"tool:{n}", hint=HINTS[n]) for n in names]
+            rings["Tools"] = tools(PDF_TOOLS[:3] + (["Merge"] if len(same) > 1 else []) + PDF_TOOLS[3:])
+        elif cat == "video":
+            rings["Tools"] = tools(media.VIDEO_TOOLS, VIDEO_HINTS)
+        elif cat == "audio":
+            rings["Tools"] = tools(media.AUDIO_TOOLS, AUDIO_HINTS)
+        try:
+            menu_recipes = recipes.menu_recipes(cat)
+        except Exception:  # a broken recipes.json must never break the menu
+            traceback.print_exc()
+            menu_recipes = []
+        if menu_recipes:
+            rings["Recipes"] = [Item(r.name, r.glyph, key=f"recipe:{r.name}",
+                                     hint=RECIPE_HINTS.get(r.name) if r.builtin else
+                                     f"{len(r.flow(cat)[0])} steps")
+                                for r in menu_recipes]
         return rings
 
     # ------------------------------------------------------------ actions
     def run_item(self, item: Item, paths: list[str]):
         cat = category(paths[0])
-        paths = [p for p in paths if category(p) == cat]
         kind, name = item.key.split(":", 1)
+        if kind == "recipe":
+            self.run_recipe(name, paths)
+            return
+        paths = [p for p in paths if category(p) == cat]
+        if cat == "pdf" and name == "Unlock":
+            self.open_window(tools.UnlockWindow(paths[0], self.notify))
+            return
+        if cat in ("video", "audio") and kind == "tool":
+            self.run_media_tool(cat, name, paths)
+            return
         if kind == "convert":
             if cat == "image" and name == "PDF" and len(paths) > 1:
                 self.submit(f"convert:{name}", paths, lambda: convert.images_to_single_pdf(paths),
@@ -274,13 +339,18 @@ class DragShiftApp(QObject):
                 self.open_window(tools.MetadataWindow(paths[0], self.notify, is_pdf=True))
             elif name == "Protect":
                 self.open_window(tools.ProtectWindow(paths[0], self.notify))
+            elif name == "Watermark":
+                self.open_window(tools.WatermarkWindow(paths, self.notify, is_pdf=True))
             else:
                 fns = {"Compress": lambda p: [imaging.compress_pdf(p)], "Split": imaging.split_pdf,
-                       "Rotate": lambda p: [imaging.rotate_pdf(p)], "Extract": imaging.extract_pdf_images}
+                       "Rotate": lambda p: [imaging.rotate_pdf(p)], "Extract": imaging.extract_pdf_images,
+                       "Numbers": lambda p: [imaging.pdf_page_numbers(p)]}
                 f = fns[name]
                 self.submit(f"tool:{name}", paths, lambda: [o for p in paths for o in f(p)],
                             {"Compress": "Compressing…", "Split": "Splitting…", "Rotate": "Rotating…",
-                             "Extract": "Extracting images…"}[name])
+                             "Extract": "Extracting images…", "Numbers": "Numbering pages…"}[name])
+            return
+        if cat != "image":
             return
         windows = {"Crop": tools.CropWindow, "Add BG": tools.AddBgWindow, "Annotate": tools.AnnotateWindow,
                    "Redact": tools.RedactWindow, "Edit": tools.EditWindow, "Metadata": tools.MetadataWindow}
@@ -289,6 +359,8 @@ class DragShiftApp(QObject):
                 self.open_window(tools.CompressWindow(paths, self.notify))
             elif name == "Resize":
                 self.open_window(tools.ResizeWindow(paths, self.notify))
+            elif name == "Watermark":
+                self.open_window(tools.WatermarkWindow(paths, self.notify))
             else:
                 self.open_window(windows[name](paths[0], self.notify))
         except UserError as e:
@@ -307,24 +379,39 @@ class DragShiftApp(QObject):
         else:
             w.show()
 
-    def submit(self, action: str, srcs: list, fn, working: str = "Working…", extra: str = ""):
+    def submit(self, action: str, srcs: list, fn, working: str = "Working…", extra: str = "",
+               source: str = "menu", on_done=None, toast: bool = True):
         """Run in the background. A spinner card appears only if it takes > 150 ms."""
-        state = {"card": None, "finished": False}
+        state = {"card": None, "finished": False, "pct": None}
         names = Path(srcs[0]).name if len(srcs) == 1 else f"{len(srcs)} files"
 
         def show_spinner():
-            if not state["finished"]:
+            if not state["finished"] and toast:
                 state["card"] = self.toasts.new()
-                state["card"].working(working, names)
+                pct = state["pct"]
+                state["card"].working(working, names if pct is None else f"{pct}% · {names}")
 
         QTimer.singleShot(150, show_spinner)
         job = Job(action, srcs, fn, extra)
 
+        def progress(f):
+            state["pct"] = int(f * 100)
+            if state["card"] is not None and not state["finished"]:
+                state["card"].working(working, f"{state['pct']}% · {names}")
+
         def done(r):
             release(job)
             state["finished"] = True
-            card = state["card"] or self.toasts.new()
-            card.done(r)
+            try:
+                history.add(r, action, source)
+            except OSError:
+                traceback.print_exc()
+            if on_done:
+                on_done(r)
+            if toast or state["card"]:
+                card = state["card"] or self.toasts.new()
+                card.done(r)
+            self.history_changed()
 
         def failed(msg):
             release(job)
@@ -334,11 +421,80 @@ class DragShiftApp(QObject):
 
         job.sig.done.connect(done)
         job.sig.failed.connect(failed)
+        job.sig.progress.connect(progress)
         self.pool.start(keep(job))
 
     def notify(self, action: str, srcs: list, outs: list, extra: str = ""):
         """Called by tool windows after they save."""
-        self.toasts.new().done(report.summarize(action, srcs, outs, extra))
+        r = report.summarize(action, srcs, outs, extra)
+        try:
+            history.add(r, action)
+        except OSError:
+            traceback.print_exc()
+        self.toasts.new().done(r)
+        self.history_changed()
+
+    def history_changed(self):
+        for w in self.windows:
+            if isinstance(w, panels.HistoryWindow):
+                w.reload()
+
+    # ------------------------------------------------------------ recipes & media
+    def run_recipe(self, name: str, paths: list[str]):
+        try:
+            r = recipes.find(name)
+        except UserError as e:
+            self.toasts.error("Recipe not found", str(e))
+            return
+        todo = [p for p in paths if r.applies_to(category(p))]
+        if not todo:
+            self.toasts.error(f"“{r.name}” doesn't fit", "None of these files work with this recipe.")
+            return
+        cat = category(todo[0])
+        combine = any(s.get("step") == "combine" for s in r.steps)
+
+        def work():
+            if combine:
+                return recipes.run(r, todo).outputs
+            outs, errors = [], []
+            for i, p in enumerate(todo):
+                outer = current_progress()
+                # each file is a slice of the overall bar
+                with progress_hook(lambda f, i=i: outer and outer((i + f) / len(todo))):
+                    try:
+                        outs += recipes.run(r, [p]).outputs
+                    except UserError as e:
+                        errors.append(f"{Path(p).name}: {e}")
+            if not outs and errors:
+                raise UserError(errors[0])
+            return outs
+        self.submit(f"recipe:{r.name}", todo, work, f"{r.glyph} {r.name}…", r.summary(cat))
+
+    def run_media_tool(self, cat: str, name: str, paths: list[str]):
+        if not media.available():
+            self.toasts.error("ffmpeg is missing", "Video and audio need ffmpeg. Install it, or "
+                              "`pip install imageio-ffmpeg`, then try again.")
+            return
+        fns = {
+            ("video", "Compress"): (media.compress_video, "Compressing video…"),
+            ("video", "Audio"): (media.extract_audio, "Extracting audio…"),
+            ("video", "Mute"): (media.mute_video, "Removing sound…"),
+            ("video", "Frame"): (media.video_frame, "Grabbing a frame…"),
+            ("video", "Rotate"): (media.rotate_video, "Rotating video…"),
+            ("audio", "Normalize"): (media.normalize_audio, "Normalizing…"),
+            ("audio", "Trim silence"): (media.trim_silence, "Trimming silence…"),
+            ("audio", "Compress"): (media.compress_audio, "Compressing audio…"),
+        }
+        fn, verb = fns[(cat, name)]
+
+        def work():
+            outs = []
+            for i, p in enumerate(paths):
+                outer = current_progress()
+                with progress_hook(lambda f, i=i: outer and outer((i + f) / len(paths))):
+                    outs.append(fn(p))
+            return outs
+        self.submit(f"tool:{name}", paths, work, verb)
 
     # ------------------------------------------------------------ misc
     def _tray_click(self, reason):
@@ -368,6 +524,53 @@ class DragShiftApp(QObject):
 
     def show_welcome(self):
         self.open_window(WelcomeWindow(self.settings, self.trigger_label()))
+
+    def _single(self, cls, *args):
+        """Bring an already-open panel forward instead of opening a second copy."""
+        for w in self.windows:
+            if isinstance(w, cls):
+                w.raise_()
+                w.activateWindow()
+                return w
+        w = cls(*args)
+        self.open_window(w)
+        return w
+
+    def open_history(self):
+        self._single(panels.HistoryWindow)
+
+    def open_recipes(self):
+        self._single(panels.RecipesWindow)
+
+    def open_watch(self):
+        w = self._single(panels.WatchWindow)
+        try:
+            w.changed.connect(self.reload_watch, Qt.UniqueConnection)
+        except (RuntimeError, TypeError):
+            pass
+
+    # ------------------------------------------------------------ watch folders
+    def reload_watch(self):
+        rules = [r for r in watch.load_rules() if r.enabled and os.path.isdir(r.folder)]
+        old = {(s.rule.folder, s.rule.action, s.rule.output): s for s in self.scanners}
+        # keep existing scanners (and what they've already seen) for unchanged rules
+        self.scanners = [old.get((r.folder, r.action, r.output)) or watch.FolderScanner(r) for r in rules]
+        n = len(self.scanners)
+        self.act_watch.setText(f"Watch folders… ({n} on)" if n else "Watch folders…")
+        if n:
+            self.watch_timer.start()
+        else:
+            self.watch_timer.stop()
+
+    def _watch_tick(self):
+        for sc in list(self.scanners):
+            for f in sc.poll():
+                rule = sc.rule
+                print(f"watch: {f} → {rule.action}", flush=True)
+                self.submit(rule.action, [str(f)], lambda f=f, rule=rule: rule.process(f),
+                            f"{rule.label}…", source="watch",
+                            on_done=lambda r, sc=sc: sc.ignore(r.outs),
+                            toast=self.settings.get("watch_toasts"))
 
 
 class DragShiftQApplication(QApplication):
@@ -498,13 +701,28 @@ def selftest() -> int:
             imaging.protect_pdf(pdf, "pw")
             from . import liquid
             liquid.render(Image.new("RGB", (80, 80)), liquid.sdf_circle(80, 80, 40, 40, 30))
+            imaging.pdf_page_numbers(pdf)
+            imaging.watermark_pdf(pdf, "DRAFT")
+            svg = Path(d) / "v.svg"
+            svg.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">'
+                           '<circle cx="10" cy="10" r="8" fill="red"/></svg>')
+            convert.convert(svg, "vector", "PNG")
+            os.environ.setdefault("DRAGSHIFT_HOME", str(Path(d) / "home"))
+            recipes.run(recipes.find("Private"), [src])
+            if media.available():
+                print("selftest: ffmpeg at", media.ffmpeg_path())
+            else:
+                print("selftest: ffmpeg not found (video/audio disabled)")
             menu = RadialMenu(lambda p: {"Convert": [Item("PNG")]}, lambda p: "1 KB")
             menu._load([str(src)])
             n = lambda *a, **k: None
             for w in (tools.CropWindow(str(src), n), tools.AddBgWindow(str(src), n), tools.EditWindow(str(src), n),
                       tools.AnnotateWindow(str(src), n), tools.RedactWindow(str(src), n),
                       tools.MetadataWindow(str(src), n), tools.CompressWindow([str(src)], n),
-                      tools.ResizeWindow([str(src)], n), tools.ProtectWindow(str(pdf), n)):
+                      tools.ResizeWindow([str(src)], n), tools.ProtectWindow(str(pdf), n),
+                      tools.WatermarkWindow([str(src)], n), tools.WatermarkWindow([str(pdf)], n, is_pdf=True),
+                      tools.UnlockWindow(str(pdf), n), panels.HistoryWindow(), panels.RecipesWindow(),
+                      panels.WatchWindow()):
                 w.close()
             ToastStack().info("ok", "ok").dismiss()
         print("SELFTEST OK")

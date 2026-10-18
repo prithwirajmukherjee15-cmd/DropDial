@@ -41,6 +41,26 @@ def open_file(path: str | Path):
     QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
 
 
+def copy_files(paths: list[Path]) -> None:
+    """Put files on the clipboard: paste into Explorer/Finder, chat apps or email.
+    A single image also goes on as pixels, so it pastes into editors and documents."""
+    from PySide6.QtCore import QMimeData
+    from PySide6.QtGui import QImage
+    md = QMimeData()
+    md.setUrls([QUrl.fromLocalFile(str(Path(p).resolve())) for p in paths])
+    md.setText("\n".join(str(p) for p in paths))
+    if len(paths) == 1:
+        from .util import category
+        if category(paths[0]) == "image":
+            img = QImage(str(paths[0]))
+            if not img.isNull():
+                md.setImageData(img)
+    if sys.platform.startswith("linux"):   # GNOME/XFCE file managers want this to paste files
+        uris = "\n".join(QUrl.fromLocalFile(str(Path(p).resolve())).toString() for p in paths)
+        md.setData("x-special/gnome-copied-files", ("copy\n" + uris).encode())
+    QGuiApplication.clipboard().setMimeData(md)
+
+
 def trash(paths: list[Path]) -> int:
     n = 0
     for p in paths:
@@ -204,6 +224,11 @@ class ToastCard(QWidget):
         elif name == "Show":
             reveal(r.outs[0])
             self.dismiss()
+        elif name == "Copy":
+            copy_files(r.outs)
+            self.good = "copied"
+            self.life.start(1800)
+            self.update()
         elif name == "Undo":
             n = trash(r.outs)
             self.result = None
@@ -302,8 +327,8 @@ class ToastCard(QWidget):
         # action buttons
         self.buttons = []
         if self.state == "done" and self.result and self.result.outs:
-            names = ["Open", "Show", "Undo"]
-            labels = {"Open": "Open", "Show": "Show in folder", "Undo": "Undo"}
+            names = ["Open", "Copy", "Show", "Undo"]
+            labels = {"Open": "Open", "Copy": "Copy", "Show": "Folder", "Undo": "Undo"}
             f.setPixelSize(12)
             f.setBold(True)
             p.setFont(f)

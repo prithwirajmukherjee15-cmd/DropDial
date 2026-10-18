@@ -600,31 +600,52 @@ def _hex_rgb01(c: str) -> tuple[float, float, float]:
     return r / 255, g / 255, b / 255
 
 
+def stamp_pdf_page(page, text: str, opacity: float = 0.15, angle: float = 45.0,
+                   color: str = "#ff3d6e") -> None:
+    """Big centred text across one page (vector, so it stays sharp when zoomed)."""
+    import math
+    unit = fitz.get_text_length(text, fontname="hebo", fontsize=1) or 1
+    w, h = page.rect.width, page.rect.height
+    span = math.hypot(w, h) * 0.62 if angle % 180 else w * 0.8
+    size = max(8.0, min(span / unit, h * 0.25))
+    tw = unit * size
+    c = fitz.Point(w / 2, h / 2)
+    start = fitz.Point(c.x - tw / 2, c.y + size * 0.35)
+    m = fitz.Matrix(angle)   # `rotate=` below already accounts for the page's rotation
+    page.insert_text(_visible_point(page, start.x, start.y), text, fontsize=size,
+                     fontname="hebo", color=_hex_rgb01(color), fill_opacity=opacity,
+                     stroke_opacity=opacity, rotate=page.rotation,
+                     morph=(_visible_point(page, c.x, c.y), m), overlay=True)
+
+
 def watermark_pdf(src: str | Path, text: str, opacity: float = 0.15, angle: float = 45.0,
                   color: str = "#ff3d6e") -> Path:
-    """Big diagonal text across every page (vector, so it stays sharp when zoomed)."""
     text = text.strip()
     if not text:
         from .util import UserError
         raise UserError("Type the watermark text first.")
     out = sibling(src, "Watermarked", ".pdf")
-    import math
     with open_pdf(src) as doc:
-        unit = fitz.get_text_length(text, fontname="hebo", fontsize=1) or 1
         for page in doc:
-            w, h = page.rect.width, page.rect.height
-            span = math.hypot(w, h) * 0.62
-            size = max(8.0, min(span / unit, h * 0.25))
-            tw = unit * size
-            c = fitz.Point(w / 2, h / 2)
-            start = fitz.Point(c.x - tw / 2, c.y + size * 0.35)
-            m = fitz.Matrix(angle)   # `rotate=` below already accounts for the page's rotation
-            page.insert_text(_visible_point(page, start.x, start.y), text, fontsize=size,
-                             fontname="hebo", color=_hex_rgb01(color), fill_opacity=opacity,
-                             stroke_opacity=opacity, rotate=page.rotation,
-                             morph=(_visible_point(page, c.x, c.y), m), overlay=True)
+            stamp_pdf_page(page, text, opacity, angle, color)
         atomic_save(lambda dst: doc.save(str(dst), garbage=3, deflate=True), out)
     return out
+
+
+def watermark_pdf_preview(src: str | Path, text: str, opacity: float, angle: float, color: str,
+                          width: int = 520) -> Image.Image:
+    """Page 1 with the watermark, for the tool window's live preview."""
+    with open_pdf(src) as doc:
+        one = fitz.open()
+        one.insert_pdf(doc, from_page=0, to_page=0)
+    page = one[0]
+    if text.strip():
+        stamp_pdf_page(page, text.strip(), opacity, angle, color)
+    zoom = width / max(1.0, page.rect.width)
+    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+    im = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+    one.close()
+    return im
 
 
 def unlock_pdf(src: str | Path, password: str) -> Path:

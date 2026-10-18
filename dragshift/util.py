@@ -79,6 +79,34 @@ class output_override:
         _LOCAL.out = self.prev
 
 
+class progress_hook:
+    """Per-thread progress callback (0..1) that long jobs (ffmpeg, recipes) report to."""
+
+    def __init__(self, fn):
+        self.fn = fn
+
+    def __enter__(self):
+        self.prev = getattr(_LOCAL, "progress", None)
+        _LOCAL.progress = self.fn
+        return self
+
+    def __exit__(self, *exc):
+        _LOCAL.progress = self.prev
+
+
+def current_progress():
+    return getattr(_LOCAL, "progress", None)
+
+
+def report_progress(fraction: float) -> None:
+    fn = getattr(_LOCAL, "progress", None)
+    if fn is not None:
+        try:
+            fn(max(0.0, min(1.0, fraction)))
+        except Exception:
+            pass
+
+
 def output_dir(src: str | Path) -> Path:
     local = getattr(_LOCAL, "out", None)
     if local == BESIDE:

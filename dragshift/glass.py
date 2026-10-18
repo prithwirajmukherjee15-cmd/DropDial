@@ -169,11 +169,19 @@ QTableCornerButton::section {{ background: transparent; border: none; }}
 QHeaderView::section {{ background: rgba(255,255,255,0.10); border: none; padding: 4px; font-weight: 600; }}
 QScrollBar:vertical {{ background: transparent; width: 8px; }}
 QScrollBar::handle:vertical {{ background: rgba(255,255,255,0.3); border-radius: 4px; min-height: 30px; }}
-QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
+QScrollBar:horizontal {{ background: transparent; height: 8px; }}
+QScrollBar::handle:horizontal {{ background: rgba(255,255,255,0.3); border-radius: 4px; min-width: 30px; }}
+QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; width: 0; }}
+QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
 QToolTip {{ background: #2a2438; color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; padding: 4px; }}
 QMenu {{ background: #2a2438; border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; padding: 4px; }}
 QMenu::item {{ padding: 6px 18px; border-radius: 5px; }}
 QMenu::item:selected {{ background: rgba(255,255,255,0.15); }}
+QListWidget {{ background: rgba(0,0,0,0.14); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px;
+  padding: 4px; outline: 0; }}
+QListWidget::item {{ padding: 7px 8px; border-radius: 8px; }}
+QListWidget::item:hover {{ background: rgba(255,255,255,0.08); }}
+QListWidget::item:selected {{ background: rgba(255,255,255,0.18); color: {TEXT}; }}
 """
 
 

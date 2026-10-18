@@ -1411,3 +1411,170 @@ class ProtectWindow(ToolWindow):
     def save(self):
         pw, path = self.pw.text(), self.path
         self.run(lambda: [imaging.protect_pdf(path, pw)], "Encrypting…")
+
+
+class WatermarkWindow(ToolWindow):
+    """Text watermark for images (corner, centre or tiled) and PDFs (big diagonal stamp)."""
+    tool_name = "Watermark"
+    POS = [("↘", "bottom-right"), ("↙", "bottom-left"), ("↗", "top-right"), ("↖", "top-left"),
+           ("Centre", "center"), ("Tile", "tile")]
+    IMAGE_COLORS = ["#ffffff", "#000000", "#ffcc00", "#ff3b30"]
+    PDF_COLORS = ["#ff3d6e", "#8e8e93", "#007aff", "#000000"]
+
+    def __init__(self, paths, notify, is_pdf: bool = False):
+        super().__init__("Watermark", paths, notify, size=(820, 720))
+        from PySide6.QtCore import QSettings
+        self.is_pdf = is_pdf
+        self.store = QSettings("DragShift", "DragShift")
+        self.color = (self.PDF_COLORS if is_pdf else self.IMAGE_COLORS)[0]
+        self.small = None if is_pdf else open_preview(self.path, 900)
+
+        self.preview = QLabel()
+        self.preview.setAlignment(Qt.AlignCenter)
+        self.preview.setMinimumSize(360, 300)
+        self.body.addWidget(self.preview, 1)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(12)
+        grid.addWidget(QLabel("Text"), 0, 0)
+        default = "CONFIDENTIAL" if is_pdf else "© " + (self._user() or "Your Name")
+        self.text = QLineEdit(str(self.store.value("pdf_watermark" if is_pdf else "watermark", default)))
+        self.text.setPlaceholderText("e.g. © Jane Doe 2026")
+        grid.addWidget(self.text, 0, 1, 1, 2)
+        r = 1
+        if not is_pdf:
+            grid.addWidget(QLabel("Position"), r, 0)
+            row, self.pos_grp = toggle_row([t for t, _ in self.POS], 0)
+            grid.addLayout(row, r, 1, 1, 2)
+            r += 1
+            self.text_size = slider(2, 14, 5)
+            slider_row(grid, r, "Size", self.text_size, lambda v: f"{v}%")
+            r += 1
+        else:
+            grid.addWidget(QLabel("Angle"), r, 0)
+            row, self.angle_grp = toggle_row(["Diagonal", "Horizontal"], 0)
+            grid.addLayout(row, r, 1, 1, 2)
+            r += 1
+        self.opacity = slider(5, 100, 18 if is_pdf else 60)
+        slider_row(grid, r, "Opacity", self.opacity, lambda v: f"{v}%")
+        r += 1
+        grid.addWidget(QLabel("Colour"), r, 0)
+        sw = QHBoxLayout()
+        self.color_grp = QButtonGroup(self)
+        for i, c in enumerate(self.PDF_COLORS if is_pdf else self.IMAGE_COLORS):
+            b = QPushButton()
+            b.setObjectName("swatch")
+            b.setCheckable(True)
+            b.setChecked(i == 0)
+            b.setStyleSheet(f"QPushButton#swatch {{ background: {c}; }}")
+            b.clicked.connect(lambda _=False, c=c: self._set_color(c))
+            self.color_grp.addButton(b, i)
+            sw.addWidget(b)
+        sw.addStretch(1)
+        grid.addLayout(sw, r, 1, 1, 2)
+        grid.setColumnStretch(1, 1)
+        self.body.addLayout(grid)
+        n = len(self.paths)
+        self.body.addLayout(self.footer(f"Watermark {n} files" if n > 1 else "Save", self.save))
+
+        self.timer = QTimer(self, singleShot=True, interval=60, timeout=self.render)
+        self.text.textChanged.connect(self.timer.start)
+        self.opacity.valueChanged.connect(self.timer.start)
+        if is_pdf:
+            self.angle_grp.idClicked.connect(lambda _: self.timer.start())
+        else:
+            self.pos_grp.idClicked.connect(lambda _: self.timer.start())
+            self.text_size.valueChanged.connect(self.timer.start)
+
+    @staticmethod
+    def _user() -> str:
+        import getpass
+        try:
+            return getpass.getuser().replace(".", " ").title()
+        except Exception:
+            return ""
+
+    def _set_color(self, c):
+        self.color = c
+        self.timer.start()
+
+    def _params(self) -> dict:
+        if self.is_pdf:
+            return {"opacity": self.opacity.value() / 100,
+                    "angle": 45.0 if self.angle_grp.checkedId() == 0 else 0.0, "color": self.color}
+        return {"position": self.POS[max(0, self.pos_grp.checkedId())][1], "opacity": self.opacity.value() / 100,
+                "scale": self.text_size.value() / 100, "color": self.color}
+
+    def render(self):
+        text = self.text.text()
+        try:
+            if self.is_pdf:
+                im = imaging.watermark_pdf_preview(self.path, text, width=700, **self._params())
+            else:
+                im = imaging.watermark_image(self.small, text, **self._params())
+        except Exception as e:  # noqa: BLE001
+            self.preview.setText(f"Preview unavailable: {e}")
+            return
+        pm = QPixmap.fromImage(qimage_from_pil(im))
+        self.preview.setPixmap(pm.scaled(self.preview.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self.timer.start()
+
+    def showEvent(self, e):
+        super().showEvent(e)
+        self.render()
+
+    def save(self):
+        text = self.text.text().strip()
+        if not text:
+            self.text.setFocus()
+            return
+        self.store.setValue("pdf_watermark" if self.is_pdf else "watermark", text)
+        params, paths = self._params(), list(self.paths)
+        if self.is_pdf:
+            fn = lambda: [imaging.watermark_pdf(p, text, **params) for p in paths]
+        else:
+            fn = lambda: [imaging.watermark_image_file(p, text, **params) for p in paths]
+        self.run(fn, "Watermarking…", f"“{text}”")
+
+
+class UnlockWindow(ToolWindow):
+    tool_name = "Unlock"
+
+    def __init__(self, path, notify):
+        super().__init__("Unlock PDF", path, notify, size=(500, 280))
+        g = QGridLayout()
+        self.pw = QLineEdit()
+        self.pw.setEchoMode(QLineEdit.Password)
+        g.addWidget(QLabel("Password"), 0, 0)
+        g.addWidget(self.pw, 0, 1)
+        show = QCheckBox("Show")
+        show.toggled.connect(lambda on: self.pw.setEchoMode(QLineEdit.Normal if on else QLineEdit.Password))
+        g.addWidget(show, 0, 2)
+        self.body.addLayout(g)
+        self.msg = QLabel("Saves an unlocked copy. You need the current password: this doesn't crack PDFs.")
+        self.msg.setObjectName("dim")
+        self.msg.setWordWrap(True)
+        self.body.addWidget(self.msg)
+        self.body.addStretch(1)
+        self.body.addLayout(self.footer("Unlock", self.save))
+        self.pw.textChanged.connect(lambda t: self.primary_btn.setEnabled(bool(t)))
+        self.primary_btn.setEnabled(False)
+        QTimer.singleShot(0, self.pw.setFocus)
+
+    def save(self):
+        pw = self.pw.text()
+        from .convert import fitz
+        with fitz.open(str(self.path)) as d:
+            ok = d.authenticate(pw)
+        if not ok:   # check here so a typo keeps the window open
+            self.msg.setObjectName("warn")
+            self.msg.style().unpolish(self.msg)
+            self.msg.style().polish(self.msg)
+            self.msg.setText("That password didn't work. Try again.")
+            self.pw.selectAll()
+            return
+        path = self.path
+        self.run(lambda: [imaging.unlock_pdf(path, pw)], "Unlocking…")

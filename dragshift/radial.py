@@ -506,7 +506,7 @@ class RadialMenu(QWidget):
         items = self.items
         hov = items[self.hover] if 0 <= self.hover < len(items) else None
         if hov is not None:
-            top, sub = hov.label if not hov.glyph else hov.label.title(), hov.hint or ""
+            top, sub = hov.label, hov.hint or ""
         else:
             ring_name = self.ring_names[self.ring_idx] if self.ring_names else ""
             top = self.hub_text
