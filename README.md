@@ -8,11 +8,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-mac-apple-silicon.dmg"><img src="docs/btn-mac-arm.svg" alt="Download for macOS (Apple Silicon)" height="56"></a>
-  <a href="https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-mac-intel.dmg"><img src="docs/btn-mac-intel.svg" alt="Download for macOS (Intel)" height="56"></a>
+  <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-apple-silicon.dmg"><img src="docs/btn-mac-arm.svg" alt="Download for macOS (Apple Silicon)" height="56"></a>
+  <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-intel.dmg"><img src="docs/btn-mac-intel.svg" alt="Download for macOS (Intel)" height="56"></a>
   <br>
-  <a href="https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-Setup.exe"><img src="docs/btn-win.svg" alt="Download for Windows" height="56"></a>
-  <a href="https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-linux-amd64.deb"><img src="docs/btn-linux.svg" alt="Download for Linux" height="56"></a>
+  <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-Setup.exe"><img src="docs/btn-win.svg" alt="Download for Windows" height="56"></a>
+  <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb"><img src="docs/btn-linux.svg" alt="Download for Linux" height="56"></a>
 </p>
 
 <p align="center">
@@ -160,10 +160,10 @@ Add `--json` for machine-readable output; the exit code is 1 if any file failed.
 **Easiest:** paste this into Terminal. It picks the right build for your Mac, installs it and opens it, with no security prompt. Run it again any time to update.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/dragshift/main/install-mac.sh | bash
+curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/main/install-mac.sh | bash
 ```
 
-**Or use the .dmg:** [Apple Silicon (M1–M4)](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-mac-apple-silicon.dmg) · [Intel](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-mac-intel.dmg). Open it and drag DropDial into Applications. DropDial lives in the menu bar.
+**Or use the .dmg:** [Apple Silicon (M1–M4)](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-apple-silicon.dmg) · [Intel](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-intel.dmg). Open it and drag DropDial into Applications. DropDial lives in the menu bar.
 
 <p align="center"><img src="docs/dmg.png" alt="The DropDial installer window" width="460"></p>
 
@@ -178,9 +178,9 @@ Optional: allow **Screen Recording** when asked, so the glass can show the windo
 
 <br>
 
-[**DropDial-Setup.exe**](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-Setup.exe) installs for your user only (no admin rights) and adds a Start menu entry, *start with Windows*, a right-click **DropDial…** entry and **Send to → DropDial**. It uninstalls cleanly from Settings → Apps.
+[**DropDial-Setup.exe**](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-Setup.exe) installs for your user only (no admin rights) and adds a Start menu entry, *start with Windows*, a right-click **DropDial…** entry and **Send to → DropDial**. It uninstalls cleanly from Settings → Apps.
 
-Prefer no installer? [**DropDial.exe**](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial.exe) is portable: run it from anywhere.
+Prefer no installer? [**DropDial.exe**](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial.exe) is portable: run it from anywhere.
 
 If SmartScreen warns on first launch, click **More info → Run anyway**.
 
@@ -191,7 +191,7 @@ If SmartScreen warns on first launch, click **More info → Run anyway**.
 
 <br>
 
-Download [**DropDial-linux-amd64.deb**](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-linux-amd64.deb), then:
+Download [**DropDial-linux-amd64.deb**](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb), then:
 
 ```bash
 sudo apt install ./DropDial-linux-amd64.deb

@@ -23,7 +23,7 @@ from .util import (UserError, category, current_progress, file_size, human_size,
                    release)
 
 APP_NAME = "DropDial"
-PROJECT_URL = "https://github.com/prithwirajmukherjee15-cmd/dragshift"
+PROJECT_URL = "https://github.com/prithwirajmukherjee15-cmd/DropDial"
 VERSION = __version__
 IS_WIN = sys.platform == "win32"
 IS_MAC = sys.platform == "darwin"

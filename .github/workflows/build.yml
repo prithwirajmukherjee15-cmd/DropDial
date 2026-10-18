@@ -347,14 +347,14 @@ jobs:
 
             | Platform | Direct download |
             |---|---|
-            | 🍎 Mac (Apple Silicon: M1–M4) | [DropDial-mac-apple-silicon.dmg](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-mac-apple-silicon.dmg) |
-            | 🍎 Mac (Intel) | [DropDial-mac-intel.dmg](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-mac-intel.dmg) |
-            | 🪟 Windows installer (recommended) | [DropDial-Setup.exe](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-Setup.exe) |
-            | 🪟 Windows portable | [DropDial.exe](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial.exe) |
-            | 🐧 Linux (Debian/Ubuntu .deb) | [DropDial-linux-amd64.deb](https://github.com/prithwirajmukherjee15-cmd/dragshift/releases/latest/download/DropDial-linux-amd64.deb) |
+            | 🍎 Mac (Apple Silicon: M1–M4) | [DropDial-mac-apple-silicon.dmg](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-apple-silicon.dmg) |
+            | 🍎 Mac (Intel) | [DropDial-mac-intel.dmg](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-intel.dmg) |
+            | 🪟 Windows installer (recommended) | [DropDial-Setup.exe](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-Setup.exe) |
+            | 🪟 Windows portable | [DropDial.exe](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial.exe) |
+            | 🐧 Linux (Debian/Ubuntu .deb) | [DropDial-linux-amd64.deb](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb) |
 
             **Mac**, easiest with no security warning: paste into Terminal
-            `curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/dragshift/main/install-mac.sh | bash`
+            `curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/main/install-mac.sh | bash`
             Using the .dmg instead: open it and drag DropDial into Applications. On first launch (until DropDial is notarized by Apple) open it once and click **Done**, then **System Settings → Privacy & Security → Open Anyway**. Or in Terminal: `xattr -dr com.apple.quarantine /Applications/DropDial.app`
 
             **Windows**: run DropDial-Setup.exe (per-user, no admin). If SmartScreen warns, click **More info → Run anyway**.

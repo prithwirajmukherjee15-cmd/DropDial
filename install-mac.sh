@@ -1,13 +1,13 @@
 #!/bin/bash
 # DropDial installer for macOS.
-#   curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/dragshift/main/install-mac.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/main/install-mac.sh | bash
 # Downloads the right build for this Mac from the latest GitHub release, installs it to
 # /Applications and opens it. Files fetched by curl aren't marked "downloaded from the
 # internet", so macOS doesn't show the "could not verify" warning. Read it first if you like —
 # it's short.
 set -euo pipefail
 
-REPO="prithwirajmukherjee15-cmd/dragshift"
+REPO="prithwirajmukherjee15-cmd/DropDial"
 case "$(uname -m)" in
   arm64) ASSET="DropDial-mac-apple-silicon.dmg" ;;
   *)     ASSET="DropDial-mac-intel.dmg" ;;
