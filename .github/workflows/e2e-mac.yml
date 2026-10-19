@@ -49,15 +49,11 @@ jobs:
         if: always()
         run: cat e2e_mac_out/results.md >> $GITHUB_STEP_SUMMARY || true
 
-      - name: Save results to the e2e-mac-output branch
+      - name: Attach results to this run (screenshots, recording, table)
         if: always()
-        run: |
-          mkdir -p /tmp/o && cp -r e2e_mac_out/* /tmp/o/ || true
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git checkout --orphan e2e-mac-output
-          git rm -rfq . || true
-          cp -r /tmp/o/* . || true
-          git add -A
-          git commit -qm "macOS E2E results ${GITHUB_SHA}" || true
-          git push -f origin e2e-mac-output
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-e2e-results
+          path: e2e_mac_out/
+          if-no-files-found: ignore
+          retention-days: 30

@@ -286,21 +286,14 @@ jobs:
         if: always()
         run: cat e2e_linux_out/results.md >> $GITHUB_STEP_SUMMARY || true
 
-      - name: Save results to the e2e-linux-output branch
-        if: always() && github.event_name == 'push'
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          mkdir -p /tmp/o && cp -r e2e_linux_out/* /tmp/o/ || true
-          git config user.name "github-actions"
-          git config user.email "github-actions@users.noreply.github.com"
-          git checkout --orphan e2e-linux-output
-          git rm -rfq . || true
-          git clean -fdxq -e dist || true
-          cp -r /tmp/o/* . || true
-          echo "Run ${GITHUB_SHA}" > RUN.txt
-          git add -A -- . ':!dist'
-          git commit -qm "Debian/XFCE E2E results ${GITHUB_SHA}"
-          git push -f origin e2e-linux-output
+      - name: Attach results to this run (screenshots, recording, table)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-e2e-results
+          path: e2e_linux_out/
+          if-no-files-found: ignore
+          retention-days: 30
 
       - uses: actions/upload-artifact@v4
         if: always()
