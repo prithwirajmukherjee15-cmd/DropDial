@@ -1265,19 +1265,20 @@ class CompressWindow(ToolWindow):
             limit = self.TARGETS[self.tgrp.checkedId()][1]
             label = self.TARGETS[self.tgrp.checkedId()][0]
 
+            def one(p):
+                im = open_image(p)
+                if side and max(im.size) > side:
+                    im.thumbnail((side, side), Image.LANCZOS)
+                q, s2 = imaging.plan_target_size(im, target, limit)
+                return imaging.compress_to(p, q, min(x for x in (side, s2) if x) if (side or s2) else None, target)
+
             def work():
-                outs = []
-                for p in paths:
-                    im = open_image(p)
-                    if side and max(im.size) > side:
-                        im.thumbnail((side, side), Image.LANCZOS)
-                    q, s2 = imaging.plan_target_size(im, target, limit)
-                    outs.append(imaging.compress_to(p, q, min(x for x in (side, s2) if x) if (side or s2) else None, target))
-                return outs
+                return imaging.compress_each(paths, one)
             self.run(work, "Compressing…", f"target {label}")
         else:
             q = self.q.value()
-            self.run(lambda: [imaging.compress_to(p, q, side, target) for p in paths], "Compressing…", f"quality {q}")
+            self.run(lambda: imaging.compress_each(paths, lambda p: imaging.compress_to(p, q, side, target)),
+                     "Compressing…", f"quality {q}")
 
 
 # ================================================================ RESIZE

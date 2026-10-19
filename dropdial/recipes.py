@@ -128,6 +128,14 @@ def _resize(path: Path, p: dict) -> list[Path]:
 
 def _compress(path: Path, p: dict) -> list[Path]:
     from . import imaging
+    try:
+        return _compress_inner(path, p)
+    except imaging.NotSmaller:
+        return _same(path)          # already as small as this step can make it
+
+
+def _compress_inner(path: Path, p: dict) -> list[Path]:
+    from . import imaging
     cat = category(path)
     q = int(p.get("quality", 75))
     if cat == "image":

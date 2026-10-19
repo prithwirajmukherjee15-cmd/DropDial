@@ -16,7 +16,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Callable
 
-from .util import UserError, report_progress, sibling
+from .util import NotSmaller, UserError, report_progress, sibling
 
 VIDEO_TARGETS = ["MP4", "WEBM", "MOV", "GIF", "MP3"]
 AUDIO_TARGETS = ["MP3", "M4A", "WAV", "FLAC", "OGG"]
@@ -73,6 +73,7 @@ class MediaInfo:
     vcodec: str = ""
     acodec: str = ""
     rotation: int = 0
+    hdr: bool = False               # HLG or PQ (iPhone HDR, HDR10): needs tone mapping for normal screens
 
     @property
     def has_video(self) -> bool:
@@ -105,6 +106,7 @@ def parse_probe(text: str) -> MediaInfo:
         f = _FPS.search(line)
         if f:
             info.fps = float(f.group(1))
+        info.hdr = "arib-std-b67" in line or "smpte2084" in line
         if codec not in ("mjpeg", "png"):
             break
     m = _AUD.search(text)
@@ -161,6 +163,57 @@ def run_ffmpeg(args: list, out: Path, duration: float = 0.0,
                 pass
 
 
+@lru_cache(maxsize=1)
+def _can_tonemap() -> bool:
+    try:
+        r = subprocess.run([_need(), "-hide_banner", "-filters"], capture_output=True, text=True,
+                           errors="replace", **_popen_kwargs())
+        return " zscale " in r.stdout and " tonemap " in r.stdout
+    except Exception:
+        return False
+
+
+TONEMAP = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable:desat=0,"
+           "zscale=t=bt709:m=bt709:r=tv,format=yuv420p")
+SDR_TAGS = ["-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709"]
+
+
+def _video_filters(info: MediaInfo, *extra: str) -> str:
+    """Filter chain: HDR -> SDR tone mapping (iPhone HDR would look washed out otherwise),
+    then any extra steps, then even dimensions (H.264 / yuv420p need them)."""
+    chain = []
+    if info.hdr and _can_tonemap():
+        chain.append(TONEMAP)
+    chain += [e for e in extra if e]
+    chain.append(_EVEN)
+    return ",".join(chain)
+
+
+def _limit_short_side(info: MediaInfo, limit: int | None) -> str:
+    """Scale so the *shorter* side is at most `limit`: '1080p' then means 1920x1080 or
+    1080x1920, and portrait phone videos aren't shrunk to 608 px wide."""
+    if not limit or min(info.width, info.height) <= limit:
+        return ""
+    return f"scale='if(gt(iw,ih),-2,min(iw,{limit}))':'if(gt(iw,ih),min(ih,{limit}),-2)'"
+
+
+def _mp4_audio(info: MediaInfo) -> list:
+    """Copy audio that MP4 players understand; re-encode the rest (PCM, Opus, Vorbis…) to AAC."""
+    if not info.has_audio:
+        return ["-an"]
+    if info.acodec in ("aac", "mp3", "alac", "ac3", "eac3"):
+        return ["-c:a", "copy"]
+    return ["-c:a", "aac", "-b:a", "192k"]
+
+
+def _ensure_smaller(src, out: Path) -> Path:
+    if out.stat().st_size >= Path(src).stat().st_size:
+        out.unlink()
+        raise NotSmaller(f"{Path(src).name} is already well compressed: a smaller copy would look worse. "
+                         "Nothing was saved.")
+    return out
+
+
 def _audio_args(target: str) -> list:
     return {
         "MP3": ["-c:a", "libmp3lame", "-q:a", "2"],
@@ -181,7 +234,9 @@ def gif_from_video(src: str | Path, fps: int = 12, width: int = 640,
     """Two-pass palette in one filter graph: far better colours than a plain GIF encode."""
     info = probe(src)
     out = sibling(src, ext=".gif")
-    vf = (f"fps={fps},scale='min({width},iw)':-2:flags=lanczos,split[a][b];"
+    pre = (TONEMAP + ",") if info.hdr and _can_tonemap() else ""
+    size = (f"scale='if(gt(iw,ih),min({width},iw),-1)':'if(gt(iw,ih),-1,min({width},ih))':flags=lanczos")
+    vf = (f"{pre}fps={fps},{size},split[a][b];"
           f"[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4")
     args = ["-i", src]
     dur = info.duration
@@ -203,12 +258,13 @@ def convert_video(src: str | Path, target: str, progress=None) -> list[Path]:
         return [run_ffmpeg(["-i", src, "-vn", *_audio_args("MP3")], out, info.duration, progress)]
     out = sibling(src, ext="." + target.lower())
     args: list = ["-i", src]
+    sdr = SDR_TAGS if info.hdr and _can_tonemap() else []
     if target == "WEBM":
-        args += ["-c:v", "libvpx-vp9", "-crf", "33", "-b:v", "0", "-row-mt", "1",
-                 "-deadline", "good", "-cpu-used", "4"]
+        args += ["-vf", _video_filters(info), "-pix_fmt", "yuv420p", "-c:v", "libvpx-vp9", "-crf", "33",
+                 "-b:v", "0", "-row-mt", "1", "-deadline", "good", "-cpu-used", "4", *sdr]
         args += ["-c:a", "libopus", "-b:a", "128k"] if info.has_audio else ["-an"]
     else:  # MP4 / MOV
-        args += _h264() + ["-vf", _EVEN]
+        args += _h264() + ["-vf", _video_filters(info), *sdr]
         args += ["-c:a", "aac", "-b:a", "160k"] if info.has_audio else ["-an"]
         args += ["-movflags", "+faststart"]
     return [run_ffmpeg(args, out, info.duration, progress)]
@@ -240,12 +296,12 @@ def compress_video(src: str | Path, crf: int = 28, max_height: int | None = 1080
     """H.264 at a higher CRF, optionally downscaled. Output is always .mp4 (plays everywhere)."""
     info = probe(src)
     out = sibling(src, "Compressed", ".mp4")
-    vf = _EVEN
-    if max_height and info.height > max_height:
-        vf = f"scale=-2:{max_height}"
-    args = ["-i", src, *_h264(crf, "medium"), "-vf", vf]
+    vf = _video_filters(info, _limit_short_side(info, max_height))
+    sdr = SDR_TAGS if info.hdr and _can_tonemap() else []
+    args = ["-i", src, *_h264(crf, "medium"), "-vf", vf, *sdr]
     args += ["-c:a", "aac", "-b:a", "128k"] if info.has_audio else ["-an"]
-    return run_ffmpeg(args + ["-movflags", "+faststart"], out, info.duration, progress)
+    run_ffmpeg(args + ["-movflags", "+faststart"], out, info.duration, progress)
+    return _ensure_smaller(src, out)
 
 
 def extract_audio(src: str | Path, progress=None) -> Path:
@@ -267,15 +323,16 @@ def video_frame(src: str | Path, at: float | None = None) -> Path:
     info = probe(src)
     t = at if at is not None else info.duration * 0.1
     out = sibling(src, "Frame", ".jpg")
-    return run_ffmpeg(["-ss", f"{max(0.0, t):.3f}", "-i", src, "-frames:v", "1", "-q:v", "2"], out)
+    vf = ["-vf", TONEMAP] if info.hdr and _can_tonemap() else []
+    return run_ffmpeg(["-ss", f"{max(0.0, t):.3f}", "-i", src, *vf, "-frames:v", "1", "-q:v", "2"], out)
 
 
 def rotate_video(src: str | Path, degrees: int = 90, progress=None) -> Path:
     info = probe(src)
-    vf = {90: "transpose=1", 180: "transpose=1,transpose=1", 270: "transpose=2"}[degrees % 360]
+    turn = {90: "transpose=1", 180: "transpose=1,transpose=1", 270: "transpose=2"}[degrees % 360]
     out = sibling(src, "Rotated", ".mp4")
-    args = ["-i", src, *_h264(20), "-vf", vf]
-    args += ["-c:a", "copy"] if info.has_audio else ["-an"]
+    sdr = SDR_TAGS if info.hdr and _can_tonemap() else []
+    args = ["-i", src, *_h264(20), "-vf", _video_filters(info, turn), *sdr, *_mp4_audio(info)]
     return run_ffmpeg(args + ["-movflags", "+faststart"], out, info.duration, progress)
 
 
@@ -308,8 +365,9 @@ def trim_silence(src: str | Path, threshold_db: int = -50, progress=None) -> Pat
 def compress_audio(src: str | Path, kbps: int = 96, progress=None) -> Path:
     info = probe(src)
     out = sibling(src, "Compressed", ".mp3")
-    return run_ffmpeg(["-i", src, "-vn", "-c:a", "libmp3lame", "-b:a", f"{kbps}k"],
-                      out, info.duration, progress)
+    run_ffmpeg(["-i", src, "-vn", "-map_metadata", "0", "-c:a", "libmp3lame", "-b:a", f"{kbps}k"],
+               out, info.duration, progress)
+    return _ensure_smaller(src, out)
 
 
 def describe(src: str | Path) -> str:

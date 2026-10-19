@@ -22,6 +22,12 @@ try:
     import pymupdf as fitz
 except ImportError:  # pragma: no cover
     import fitz  # type: ignore
+try:
+    # colour-manage PDFs: photos and CMYK artwork inside PDFs keep their real colours
+    # (off by default in some PyMuPDF versions, which badly shifts them)
+    fitz.TOOLS.set_icc(True)
+except Exception:  # pragma: no cover
+    pass
 
 IMAGE_TARGETS = ["PNG", "JPG", "WEBP", "HEIC", "TIFF", "AVIF", "BMP", "PDF", "ICO", "GIF"]
 PDF_TARGETS = ["JPG", "PNG", "DOCX", "TXT"]
@@ -36,28 +42,75 @@ NO_ALPHA = {"JPG", "PDF", "BMP"}
 
 
 # ---------------------------------------------------------------- images
+_SRGB = None
+
+
+def _srgb_profile():
+    global _SRGB
+    if _SRGB is None:
+        from PIL import ImageCms
+        _SRGB = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB"))
+    return _SRGB
+
+
+def _to_8bit(im: Image.Image) -> Image.Image:
+    """16-bit and 32-bit greyscale (I;16, I, F) -> 8-bit L. A plain convert() clips them to white."""
+    import numpy as np
+    a = np.asarray(im, dtype=np.float64)
+    if im.mode == "F":
+        scale = 255.0 if a.max(initial=0) <= 1.0 else 1.0
+    else:
+        scale = 1 / 257 if a.max(initial=0) > 255 else 1.0
+    return Image.fromarray(np.clip(a * scale + 0.5, 0, 255).astype(np.uint8), "L")
+
+
+def to_srgb(im: Image.Image, icc: bytes | None) -> Image.Image:
+    """Convert pixels from the file's own colour profile (Display P3 from iPhones and Macs,
+    Adobe RGB, ProPhoto, CMYK print profiles…) to standard sRGB, so every output looks
+    like the original no matter which format it's saved in. Returns RGB, RGBA or L."""
+    if im.mode in ("I;16", "I;16B", "I;16L", "I;16N", "I", "F"):
+        im = _to_8bit(im)
+    if im.mode in ("P", "PA", "LA", "La", "RGBa"):
+        im = im.convert("RGBA")
+    if icc and im.mode in ("RGB", "RGBA", "CMYK"):
+        try:
+            from PIL import ImageCms
+            src = ImageCms.ImageCmsProfile(io.BytesIO(icc))
+            alpha = im.getchannel("A") if im.mode == "RGBA" else None
+            base = im.convert("RGB") if im.mode == "RGBA" else im
+            base = ImageCms.profileToProfile(base, src, _srgb_profile(),
+                                             renderingIntent=ImageCms.Intent.RELATIVE_COLORIMETRIC,
+                                             outputMode="RGB")   # same as PDF viewers (MuPDF)
+            if alpha is not None:
+                base = base.convert("RGBA")
+                base.putalpha(alpha)
+            im = base
+        except Exception:
+            pass   # a broken or unusual profile: fall back to the raw pixels below
+    if im.mode not in ("RGB", "RGBA", "L"):
+        im = im.convert("RGB")
+    im.info.pop("icc_profile", None)   # pixels are sRGB now: never carry the old profile along
+    return im
+
+
 def open_image(path: str | Path) -> Image.Image:
+    """Decode an image upright (camera rotation applied) and in sRGB."""
     im = Image.open(path)
     im.seek(0)
-    im = ImageOps.exif_transpose(im)  # honour camera rotation
-    if im.mode in ("P", "LA", "PA"):
-        im = im.convert("RGBA")
-    elif im.mode not in ("RGB", "RGBA", "L"):
-        im = im.convert("RGB")
-    return im
+    icc = im.info.get("icc_profile")
+    im = ImageOps.exif_transpose(im)
+    return to_srgb(im, icc)
 
 
 def open_preview(path: str | Path, max_side: int = 1400) -> Image.Image:
     """Fast, reduced-size decode for on-screen previews (JPEG decodes at 1/2, 1/4, 1/8 scale)."""
     im = Image.open(path)
     im.seek(0)
+    icc = im.info.get("icc_profile")
     if im.format == "JPEG":
-        im.draft("RGB", (max_side, max_side))
+        im.draft(im.mode if im.mode in ("RGB", "L", "CMYK") else "RGB", (max_side, max_side))
     im = ImageOps.exif_transpose(im)
-    if im.mode in ("P", "LA", "PA"):
-        im = im.convert("RGBA")
-    elif im.mode not in ("RGB", "RGBA", "L"):
-        im = im.convert("RGB")
+    im = to_srgb(im, icc)
     if max(im.size) > max_side:
         im.thumbnail((max_side, max_side), Image.LANCZOS)
     return im
@@ -91,6 +144,8 @@ def save_image(im: Image.Image, out: Path, target: str, quality: int | None = No
         kw["quality"] = quality
     if target == "JPG":
         kw.update(optimize=True, progressive=True)
+        if quality >= 90:
+            kw["subsampling"] = 0   # 4:4:4: no colour bleeding around text and fine detail
     if target == "PNG":
         kw["optimize"] = True
     if target == "ICO":
@@ -98,7 +153,10 @@ def save_image(im: Image.Image, out: Path, target: str, quality: int | None = No
         im = ImageOps.contain(im.convert("RGBA"), (side, side))
         kw["sizes"] = [(s, s) for s in (16, 24, 32, 48, 64, 128, 256) if s <= side]
     if target == "PDF":
-        kw["resolution"] = 150.0
+        if not isinstance(out, (str, Path)):
+            raise ValueError("PDF output needs a file path")
+        write_images_pdf([im], out)
+        return
     if exif and target in ("JPG", "WEBP", "PNG", "TIFF"):
         kw["exif"] = exif
     atomic_save(lambda dst: im.save(dst, fmt, **kw), out)
@@ -125,17 +183,66 @@ def atomic_save(write, out):
 
 def image_to(src: str | Path, target: str) -> list[Path]:
     target = target.upper()
-    im = open_image(src)
     out = sibling(src, ext="." + target.lower())
-    save_image(im, out, target)
+    if target == "PDF":
+        write_images_pdf([src], out)
+        return [out]
+    save_image(open_image(src), out, target)
     return [out]
 
 
 def images_to_single_pdf(srcs: list[str | Path]) -> list[Path]:
-    pages = [flatten(open_image(s)) for s in srcs]
     out = sibling(srcs[0], "Combined", ".pdf")
-    pages[0].save(out, "PDF", resolution=150.0, save_all=True, append_images=pages[1:])
+    write_images_pdf(list(srcs), out)
     return [out]
+
+
+LOSSY_SOURCES = {"JPEG", "MPO", "HEIF", "WEBP", "AVIF"}
+
+
+def _pdf_image_bytes(item) -> tuple[bytes, tuple[int, int], float]:
+    """(encoded image, pixel size, dpi) for one PDF page.
+
+    A plain sRGB JPEG that needs no rotation is embedded byte-for-byte (no quality loss).
+    Everything else is converted to sRGB and embedded as PNG (lossless) or, for photos
+    that were lossy to begin with, as a high-quality 4:4:4 JPEG."""
+    if isinstance(item, Image.Image):
+        im, fmt, raw, dpi = item, None, None, 150.0
+    else:
+        src = Image.open(item)
+        fmt = src.format
+        dpi = float((src.info.get("dpi") or (0, 0))[0] or 0)
+        orient = src.getexif().get(0x0112, 1)
+        icc = src.info.get("icc_profile")
+        # cameras and screenshots say 72/96/144 dpi, which would make a 12 MP photo a 56-inch
+        # page; only trust values that look like a real scan or print
+        dpi = dpi if 150 <= dpi <= 1200 else 150.0
+        if fmt == "JPEG" and src.mode in ("RGB", "L") and orient in (0, 1) and not icc:
+            return Path(item).read_bytes(), src.size, dpi
+        raw = item
+        im = open_image(item)
+    im = flatten(im) if im.mode == "RGBA" else im
+    buf = io.BytesIO()
+    if fmt in LOSSY_SOURCES:
+        im.convert("RGB").save(buf, "JPEG", quality=95, subsampling=0, optimize=True)
+    else:
+        im.save(buf, "PNG", compress_level=6)
+    del raw
+    return buf.getvalue(), im.size, dpi
+
+
+def write_images_pdf(items: list, out: str | Path) -> None:
+    """One page per image, each page exactly the image's size at its own DPI (150 if unknown)."""
+    doc = fitz.open()
+    try:
+        for item in items:
+            data, (w, h), dpi = _pdf_image_bytes(item)
+            k = 72.0 / dpi
+            page = doc.new_page(width=w * k, height=h * k)
+            page.insert_image(page.rect, stream=data)
+        atomic_save(lambda dst: doc.save(str(dst), garbage=3, deflate=True), Path(out))
+    finally:
+        doc.close()
 
 
 # ---------------------------------------------------------------- PDF
@@ -198,7 +305,13 @@ def _doc_to_docx(doc, out: Path) -> None:
                 if txt:
                     items.append((y, "text", (txt, size, bold)))
             elif b.get("type") == 1 and b.get("image"):
-                items.append((y, "img", (b["image"], b["bbox"])))
+                raw = b["image"]
+                if b.get("colorspace") not in (1, 3) or b.get("mask") or b.get("ext") not in ("png", "jpeg", "jpg"):
+                    # CMYK, transparency or odd encodings: Word would show them wrong, so use
+                    # exactly what the page shows (colour-managed, on white)
+                    pix = page.get_pixmap(clip=fitz.Rect(b["bbox"]), dpi=200, alpha=False)
+                    raw = pix.tobytes("png")
+                items.append((y, "img", (raw, b["bbox"])))
         items.sort(key=lambda t: t[0])
         for _, kind, data in items:
             if kind == "text":
@@ -359,6 +472,41 @@ def text_to_docx(src: str | Path) -> list[Path]:
 
 
 # ---------------------------------------------------------------- SVG
+# Qt's SVG renderer handles gradients, percentage sizes and text; MuPDF draws gradients as
+# solid black, so it's only the fallback.
+_QT_APP = None
+
+
+def _qt_svg(src: str | Path):
+    """A valid QSvgRenderer for the file, or None (Qt SVG unavailable or the file is odd)."""
+    global _QT_APP
+    try:
+        import threading
+        from PySide6.QtCore import QByteArray
+        from PySide6.QtGui import QGuiApplication
+        from PySide6.QtSvg import QSvgRenderer
+        if QGuiApplication.instance() is None:
+            if threading.current_thread() is not threading.main_thread():
+                return None
+            import os
+            os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")   # command line / tests
+            _QT_APP = QGuiApplication([sys.argv[0] if sys.argv and sys.argv[0] else "dropdial"])
+        r = QSvgRenderer(QByteArray(Path(src).read_bytes()))
+        return r if r.isValid() else None
+    except Exception:
+        return None
+
+
+def _svg_size(r) -> tuple[float, float]:
+    ds = r.defaultSize()
+    if ds.width() > 0 and ds.height() > 0:
+        return float(ds.width()), float(ds.height())
+    vb = r.viewBoxF()
+    if vb.width() > 0 and vb.height() > 0:
+        return vb.width(), vb.height()
+    return 512.0, 512.0
+
+
 def _open_svg(src: str | Path):
     try:
         return fitz.open(str(src))
@@ -368,6 +516,21 @@ def _open_svg(src: str | Path):
 
 def svg_to_image(src: str | Path, long_side: int = 2048) -> Image.Image:
     """Render an SVG to pixels; small icons are scaled up so the result stays crisp."""
+    r = _qt_svg(src)
+    if r is not None:
+        from PySide6.QtCore import QRectF, Qt
+        from PySide6.QtGui import QImage, QPainter
+        w, h = _svg_size(r)
+        zoom = max(1.0, long_side / max(w, h))
+        img = QImage(max(1, round(w * zoom)), max(1, round(h * zoom)), QImage.Format_ARGB32_Premultiplied)
+        img.fill(Qt.transparent)
+        p = QPainter(img)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.setRenderHint(QPainter.SmoothPixmapTransform)
+        r.render(p, QRectF(0, 0, img.width(), img.height()))
+        p.end()
+        img = img.convertToFormat(QImage.Format_RGBA8888)
+        return Image.frombuffer("RGBA", (img.width(), img.height()), bytes(img.constBits()), "raw", "RGBA", 0, 1).copy()
     with _open_svg(src) as doc:
         page = doc[0]
         w, h = page.rect.width or 1, page.rect.height or 1
@@ -377,12 +540,33 @@ def svg_to_image(src: str | Path, long_side: int = 2048) -> Image.Image:
         return Image.frombytes(mode, (pix.width, pix.height), pix.samples)
 
 
+def _svg_to_pdf_qt(r, out: Path) -> None:
+    from PySide6.QtCore import QMarginsF, QRectF, QSizeF
+    from PySide6.QtGui import QPageLayout, QPageSize, QPainter, QPdfWriter
+    w, h = _svg_size(r)
+
+    def write(dst):
+        pw = QPdfWriter(str(dst))
+        pw.setResolution(72)
+        pw.setPageLayout(QPageLayout(QPageSize(QSizeF(w, h), QPageSize.Point), QPageLayout.Portrait,
+                                     QMarginsF(0, 0, 0, 0)))
+        pw.setCreator("DropDial")
+        p = QPainter(pw)
+        r.render(p, QRectF(0, 0, w, h))
+        p.end()
+    atomic_save(write, out)
+
+
 def svg_to(src: str | Path, target: str) -> list[Path]:
     target = target.upper()
     if target == "PDF":
         out = sibling(src, ext=".pdf")
+        r = _qt_svg(src)
+        if r is not None:
+            _svg_to_pdf_qt(r, out)          # stays vector, gradients included
+            return [out]
         with _open_svg(src) as doc:
-            pdf = fitz.open("pdf", doc.convert_to_pdf())   # stays vector
+            pdf = fitz.open("pdf", doc.convert_to_pdf())
             atomic_save(lambda dst: pdf.save(str(dst), garbage=3, deflate=True), out)
             pdf.close()
         return [out]

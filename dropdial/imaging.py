@@ -9,7 +9,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOp
 from PIL.ExifTags import GPSTAGS, TAGS
 
 from .convert import atomic_save, fitz, flatten, open_image, open_pdf, save_image
-from .util import sibling
+from .util import NotSmaller, UserError, sibling
 
 EXT_TARGET = {".jpg": "JPG", ".jpeg": "JPG", ".png": "PNG", ".webp": "WEBP", ".tif": "TIFF",
               ".tiff": "TIFF", ".bmp": "BMP", ".heic": "HEIC", ".heif": "HEIC",
@@ -53,9 +53,47 @@ def compress_image(src: str | Path, quality: int = 72, max_side: int | None = No
     return out
 
 
+def _normalize_pdf_images(doc) -> int:
+    """Convert CMYK and colour-profiled images (Display P3, Adobe RGB…) to plain sRGB before
+    compressing. PyMuPDF's re-encoder turns their pixels into sRGB but keeps the old colour
+    label, so viewers convert them twice: CMYK art comes out garbled and photos oversaturated.
+    Plain sRGB images are left alone. Returns how many images were converted."""
+    done = 0
+    seen: set[int] = set()
+    for page in doc:
+        for img in page.get_images(full=True):
+            xref, smask = img[0], img[1]
+            if xref in seen:
+                continue
+            seen.add(xref)
+            try:
+                pix = fitz.Pixmap(doc, xref)
+                cs = str(pix.colorspace)
+                if pix.colorspace is None or (pix.n - pix.alpha < 4 and ("ICC" not in cs or "sRGB" in cs)):
+                    continue
+                gray = pix.colorspace.n == 1
+                pix = fitz.Pixmap(fitz.csGRAY if gray else fitz.csRGB, pix)
+                if pix.alpha:
+                    pix = fitz.Pixmap(pix, 0)      # transparency lives in the separate mask
+                if img[8] in ("DCTDecode", "JPXDecode"):
+                    im = Image.frombytes("L" if gray else "RGB", (pix.width, pix.height), pix.samples)
+                    buf = io.BytesIO()
+                    im.save(buf, "JPEG", quality=92, subsampling=0)
+                    page.replace_image(xref, stream=buf.getvalue())
+                else:
+                    page.replace_image(xref, pixmap=pix)
+                if smask:
+                    doc.xref_set_key(xref, "SMask", f"{smask} 0 R")   # replace_image drops it
+                done += 1
+            except Exception:
+                continue
+    return done
+
+
 def compress_pdf(src: str | Path, image_dpi: int = 150, quality: int = 70) -> Path:
     out = sibling(src, "Compressed", ".pdf")
     with open_pdf(src) as doc:
+        _normalize_pdf_images(doc)
         try:
             doc.rewrite_images(dpi_threshold=image_dpi + 10, dpi_target=image_dpi,
                                quality=quality, lossy=True, lossless=True, bitonal=True,
@@ -108,9 +146,34 @@ def plan_target_size(im: Image.Image, target: str, max_bytes: int) -> tuple[int,
     return 30, side
 
 
+def ensure_smaller(src: str | Path, out: Path, resized: bool = False) -> Path:
+    """A 'compressed' copy that's bigger than the original is worse than none: remove it."""
+    same_format = Path(src).suffix.lower().replace("jpeg", "jpg") == out.suffix.lower().replace("jpeg", "jpg")
+    if not resized and same_format and out.stat().st_size >= Path(src).stat().st_size:
+        out.unlink()
+        raise NotSmaller(f"{Path(src).name} is already compressed as far as this setting goes. "
+                         "Try a lower quality, a target size or WebP.")
+    return out
+
+
+def compress_each(srcs: list, fn) -> list[Path]:
+    """Run fn(src) for each file; skip the ones that can't get smaller, fail only if all do."""
+    outs, skipped = [], []
+    for s in srcs:
+        try:
+            outs.append(fn(s))
+        except NotSmaller as e:
+            skipped.append(e)
+    if not outs and skipped:
+        raise skipped[0] if len(skipped) == 1 else NotSmaller(
+            f"None of the {len(skipped)} files could get smaller with this setting.")
+    return outs
+
+
 def compress_to(src: str | Path, quality: int, max_side: int | None, target: str) -> Path:
     im = open_image(src)
-    if max_side and max(im.size) > max_side:
+    resized = bool(max_side and max(im.size) > max_side)
+    if resized:
         im.thumbnail((max_side, max_side), Image.LANCZOS)
     out = sibling(src, "Compressed", "." + ("jpg" if target == "JPG" else target.lower()))
     if target == "PNG":
@@ -120,7 +183,7 @@ def compress_to(src: str | Path, quality: int, max_side: int | None, target: str
         atomic_save(lambda dst: q.save(dst, "PNG", optimize=True), out)
     else:
         save_image(im, out, target, quality=quality)
-    return out
+    return ensure_smaller(src, out, resized)
 
 
 # ---------------------------------------------------------------- resize
@@ -339,20 +402,52 @@ def extract_pdf_images(src: str | Path) -> list[Path]:
                     continue
                 folder.mkdir(exist_ok=True)
                 ext = info.get("ext", "png")
-                if ext not in ("jpg", "jpeg", "png"):
-                    pix = fitz.Pixmap(doc, xref)
-                    if pix.n - pix.alpha >= 4:
-                        pix = fitz.Pixmap(fitz.csRGB, pix)
-                    p = folder / f"page {pno + 1} image {len(outs) + 1}.png"
-                    pix.save(p)
+                name = f"page {pno + 1} image {len(outs) + 1}"
+                if _raw_image_ok(info, img[1]):
+                    p = folder / f"{name}.{'jpg' if ext == 'jpeg' else ext}"
+                    p.write_bytes(info["image"])      # untouched original bytes
                 else:
-                    p = folder / f"page {pno + 1} image {len(outs) + 1}.{ext}"
-                    p.write_bytes(info["image"])
+                    p = _decode_pdf_image(doc, xref, img[1], folder / name, lossy=ext in ("jpg", "jpeg", "jpx"))
                 outs.append(p)
     if not outs:
-        from .util import UserError
         raise UserError("No images found in this PDF.")
     return outs
+
+
+def _raw_image_ok(info: dict, smask: int) -> bool:
+    """Can the image's stored bytes be saved as-is and still look right?"""
+    if info.get("ext") not in ("jpg", "jpeg", "png") or info.get("colorspace") not in (1, 3) or smask:
+        return False
+    if "ICC" in str(info.get("cs-name") or ""):
+        # the colour profile may live in the PDF rather than in the image file itself
+        try:
+            with Image.open(io.BytesIO(info["image"])) as im:
+                return bool(im.info.get("icc_profile"))
+        except Exception:
+            return False
+    return True
+
+
+def _decode_pdf_image(doc, xref: int, smask: int, base: Path, lossy: bool) -> Path:
+    """Decode exactly as a viewer would (CMYK, inverted decode arrays, colour profiles,
+    transparency masks) into sRGB, then save as PNG (or JPEG for photos without alpha)."""
+    pix = fitz.Pixmap(doc, xref)
+    if smask:
+        try:
+            pix = fitz.Pixmap(pix, fitz.Pixmap(doc, smask))
+        except Exception:
+            pass
+    cs = pix.colorspace
+    if cs is not None and (cs.n not in (1, 3) or "ICC" in str(cs)):
+        pix = fitz.Pixmap(fitz.csRGB, pix)   # CMYK / ICC-based -> sRGB, colour-managed
+    im = Image.frombytes("RGBA" if pix.alpha else ("L" if pix.n == 1 else "RGB"), (pix.width, pix.height), pix.samples)
+    if lossy and not pix.alpha:
+        out = base.with_suffix(".jpg")
+        im.save(out, "JPEG", quality=95, subsampling=0)
+    else:
+        out = base.with_suffix(".png")
+        im.save(out, "PNG")
+    return out
 
 
 def pdf_page_count(src: str | Path) -> int:
@@ -622,7 +717,6 @@ def watermark_pdf(src: str | Path, text: str, opacity: float = 0.15, angle: floa
                   color: str = "#ff3d6e") -> Path:
     text = text.strip()
     if not text:
-        from .util import UserError
         raise UserError("Type the watermark text first.")
     out = sibling(src, "Watermarked", ".pdf")
     with open_pdf(src) as doc:
@@ -649,7 +743,6 @@ def watermark_pdf_preview(src: str | Path, text: str, opacity: float, angle: flo
 
 
 def unlock_pdf(src: str | Path, password: str) -> Path:
-    from .util import UserError
     out = sibling(src, "Unlocked", ".pdf")
     doc = fitz.open(str(src))
     try:

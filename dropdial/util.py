@@ -49,6 +49,10 @@ class UserError(Exception):
     """An error with a message that's fine to show the user as-is."""
 
 
+class NotSmaller(UserError):
+    """Compressing produced a file that isn't smaller than the original (it was removed)."""
+
+
 # Runtime options (filled from Settings at start-up; plain values so worker threads can read them)
 CONFIG = {
     "output": "next",        # "next" = beside the original, "folder" = a "DropDial" subfolder

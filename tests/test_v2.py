@@ -71,7 +71,7 @@ def clip(tmp_path_factory) -> Path:
     d = tmp_path_factory.mktemp("media")
     out = d / "Clip.mov"
     media.run_ffmpeg(["-f", "lavfi", "-i", "testsrc=size=320x240:rate=15", "-f", "lavfi", "-i",
-                      "sine=frequency=440", "-t", "2", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+                      "sine=frequency=440", "-t", "2", "-c:v", "libx264", "-crf", "8", "-pix_fmt", "yuv420p",
                       "-c:a", "aac", "-shortest"], out)
     return out
 
@@ -200,7 +200,7 @@ def test_video_conversions_and_tools(clip):
     gif = clip.with_suffix(".gif")
     assert Image.open(gif).is_animated
     assert media.probe(clip.with_suffix(".mp3")).has_audio
-    assert media.probe(media.compress_video(clip)).vcodec == "h264"
+    assert media.probe(media.compress_video(clip, crf=40)).vcodec == "h264"
     assert not media.probe(media.mute_video(clip)).has_audio
     assert Image.open(media.video_frame(clip)).size == (320, 240)
     rot = media.probe(media.rotate_video(clip))
@@ -215,11 +215,11 @@ def test_audio_conversions_and_tools(clip):
     mp3 = media.extract_audio(clip)
     for t in media.targets_for("audio", ".mp3"):
         assert media.probe(convert.convert(mp3, "audio", t)[0]).has_audio
-    for fn in (media.normalize_audio, media.trim_silence, media.compress_audio):
+    for fn in (media.normalize_audio, media.trim_silence, lambda p: media.compress_audio(p, kbps=32)):
         assert media.probe(fn(mp3)).has_audio
     seen = []
     with progress_hook(seen.append):
-        media.compress_audio(mp3, kbps=64)
+        media.normalize_audio(mp3)
     assert seen and seen[-1] > 0.5
 
 

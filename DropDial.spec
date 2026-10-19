@@ -11,7 +11,7 @@ a = Analysis(
     ["run.py"],
     datas=[("dropdial/assets", "dropdial/assets"), ("LICENSE", ".")] + heif_datas + ff_datas,
     binaries=heif_bins + ff_bins,
-    hiddenimports=["win32com.client", "PySide6.QtNetwork", "AppKit", "Quartz", "objc"] + heif_hidden + ff_hidden,
+    hiddenimports=["win32com.client", "PySide6.QtNetwork", "PySide6.QtSvg", "AppKit", "Quartz", "objc"] + heif_hidden + ff_hidden,
     excludes=["tkinter", "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtQml",
               "PySide6.QtQuick", "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtCharts",
               "PySide6.QtDataVisualization", "PySide6.QtPdf", "pandas", "yaml", "PySide6.QtSql", "PySide6.QtTest",
@@ -22,7 +22,7 @@ DROP = ("Qt6Quick", "Qt6Qml", "Qt6Pdf", "Qt6WebEngine", "Qt63D", "Qt6Multimedia"
         "Qt6VirtualKeyboard", "Qt6Designer", "Qt6ShaderTools", "Qt6Sql", "Qt6Test", "opengl32sw",
         "Qt6OpenGL", "Qt6DataVisualization", "Qt6Positioning", "Qt6Sensors", "Qt6SerialPort",
         "Qt6Bluetooth", "Qt6Nfc", "Qt6RemoteObjects", "Qt6Scxml", "Qt6SpatialAudio", "Qt6TextToSpeech",
-        "Qt6WebChannel", "Qt6WebSockets", "Qt6Svg", "qtquick", "qml",
+        "Qt6WebChannel", "Qt6WebSockets", "Qt6SvgWidgets", "qtquick", "qml",
         "libgtk-3", "libgdk-3", "libqgtk3", "libatk-")
 a.binaries = [b for b in a.binaries if not any(d.lower() in b[0].lower() for d in DROP)]
 a.datas = [d for d in a.datas if "translations" not in d[0].replace("\\", "/")]
