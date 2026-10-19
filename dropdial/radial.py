@@ -133,7 +133,10 @@ class RadialMenu(QWidget):
         self.frame = QTimer(self, interval=16, timeout=self._tick)   # 60 fps springs
 
     # ------------------------------------------------------------ show / hide
-    def popup(self, pos: QPoint | None = None, paths: list[str] | None = None):
+    def popup(self, pos: QPoint | None = None, paths: list[str] | None = None,
+              drag_paths: list[str] | None = None):
+        """paths: open in click mode for these files. drag_paths: a drag is in progress and
+        the OS already told us what it carries (macOS), so show its slices straight away."""
         pos = pos or QCursor.pos()
         tl = pos - QPoint(SIZE // 2, SIZE // 2)
         scr = QGuiApplication.screenAt(pos) or QGuiApplication.primaryScreen()
@@ -189,11 +192,20 @@ class RadialMenu(QWidget):
         self.click_mode = paths is not None
         if paths is not None:
             self._load(paths)
+        elif drag_paths:
+            print(f"menu: {len(drag_paths)} file(s) read from the drag", flush=True)
+            self._load(drag_paths)
+            self.got_drag = True
         else:
             self.paths, self.rings, self.ring_names = [], {}, []
             self.hub_text = "Drop here"
             for n in (4, 7):  # most common rings: render speculatively
                 self._render(n)
+            if sys.platform != "darwin":
+                # Windows and X11 only tell a window about a drag once the mouse moves over
+                # it: hop the cursor 1 px and back so the slices appear even if it's held still
+                for ms in (40, 220):
+                    QTimer.singleShot(ms, self._nudge)
         self._t = 0.0
         self._shape()
         self.show()
@@ -203,6 +215,15 @@ class RadialMenu(QWidget):
         if self.click_mode:
             # behave like a popup: a click anywhere outside dismisses it
             QTimer.singleShot(0, self.grabMouse)
+
+    def _nudge(self):
+        if self.got_drag or self.click_mode or not self.isVisible():
+            return
+        at = QCursor.pos()
+        if not self.geometry().contains(at):
+            return
+        QCursor.setPos(at + QPoint(1, 0))
+        QTimer.singleShot(16, lambda: QCursor.pos() == at + QPoint(1, 0) and QCursor.setPos(at))
 
     def close_menu(self):
         if self.isVisible():

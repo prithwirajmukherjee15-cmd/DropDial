@@ -170,7 +170,7 @@ class DropDialApp(QObject):
         self.watcher = DropDialWatcher(lambda: self.menu.isVisible() and not self.menu.click_mode,
                                         lambda: self.menu.got_drag, self)
         self.watcher.set_key(self.settings.get("trigger"))
-        self.watcher.show_menu.connect(lambda pos: self.menu.popup(pos))
+        self.watcher.show_menu.connect(lambda pos, files: self.menu.popup(pos, drag_paths=files))
         self.watcher.toggle_ring.connect(self.menu.next_ring)
         self.watcher.hide_menu.connect(self.menu.close_menu)
         self.watcher.start()

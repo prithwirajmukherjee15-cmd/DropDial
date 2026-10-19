@@ -45,6 +45,36 @@ def escape_down() -> bool:
         return False
 
 
+# ---------------------------------------------------------------- the file being dragged
+def _drag_pasteboard():
+    name = getattr(AppKit, "NSPasteboardNameDrag", None) or getattr(AppKit, "NSDragPboard", "Apple CFPasteboard drag")
+    return AppKit.NSPasteboard.pasteboardWithName_(name)
+
+
+def drag_change_count() -> int:
+    """Bumps every time any app starts a drag; lets us tell a fresh drag from an old one."""
+    if not OK:
+        return -1
+    try:
+        return int(_drag_pasteboard().changeCount())
+    except Exception:
+        return -1
+
+
+def drag_files() -> list[str]:
+    """Files on the system drag pasteboard (what Finder is dragging right now).
+    macOS only tells a window about a drag when the mouse moves over it; reading this lets
+    the menu show its slices the moment it opens, even if the cursor is held still."""
+    if not OK:
+        return []
+    try:
+        urls = _drag_pasteboard().readObjectsForClasses_options_(
+            [AppKit.NSURL], {AppKit.NSPasteboardURLReadingFileURLsOnlyKey: True}) or []
+        return [str(u.path()) for u in urls if u.path()]
+    except Exception:
+        return []
+
+
 # ---------------------------------------------------------------- app behaviour
 def become_accessory():
     """Menu-bar app: no Dock icon (the bundle also sets LSUIElement)."""

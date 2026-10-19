@@ -201,6 +201,7 @@ def run(name: str, where: str, files: list[str], ring: str, label: str, verify, 
         dy = 260 if src_xy[1] < 300 else (60 if src_xy[1] < sh - 400 else -260)
         nudge = (min(640, sw - src_xy[0] - 260), dy)
         c = wk.drag_open_menu(src_xy, nudge)
+        wk.shot(OUT / "shots" / f"{len(RESULTS) + 1:02d}_{safe(name)}_still.png")
         if ring_i == 1:
             wk.switch_ring()
         target = wk.petal_xy(c, n, idx)

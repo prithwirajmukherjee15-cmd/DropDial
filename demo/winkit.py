@@ -259,12 +259,9 @@ def drag_open_menu(src, nudge=(620, 40), key="shift"):
     glide(src[0] + nudge[0], src[1] + nudge[1], 0.55)
     time.sleep(0.15)
     pyautogui.keyDown(key)
-    time.sleep(0.3)
+    # hold the mouse still: the dial must fill in by itself (no wiggle to wake the drag)
+    time.sleep(0.7)
     cur = pyautogui.position()
-    pyautogui.moveTo(cur[0] + 3, cur[1] + 3)
-    time.sleep(0.08)
-    pyautogui.moveTo(cur[0], cur[1])
-    time.sleep(0.3)
     return menu_center(cur)
 
 

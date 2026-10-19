@@ -17,7 +17,7 @@ NO_DRAG_TIMEOUT = 50  # ticks (≈ 0.75 s) to wait for a file drag to enter befo
 
 
 class DropDialWatcher(QObject):
-    show_menu = Signal(QPoint)
+    show_menu = Signal(QPoint, list)   # cursor, files being dragged (if the OS can tell us)
     toggle_ring = Signal()
     hide_menu = Signal()
 
@@ -33,6 +33,7 @@ class DropDialWatcher(QObject):
         self._fired = False
         self._idle_ticks = 0
         self._shown_at = QPoint()
+        self._drag_cc = -1
         self._user32 = ctypes.windll.user32 if sys.platform == "win32" else None
         self._mac = None
         if sys.platform == "darwin":
@@ -62,6 +63,20 @@ class DropDialWatcher(QObject):
             return m.left_button_down(), m.key_down(self.key_name), m.escape_down()
         return self._down(VK_LBUTTON), self._down(self.vk), self._down(VK_ESCAPE)
 
+    def _drag_count(self) -> int:
+        f = getattr(self._mac, "drag_change_count", None)
+        return f() if f else -1
+
+    def _dragged_files(self) -> list[str]:
+        """Files of the drag that started after this mouse press (macOS), else []."""
+        f = getattr(self._mac, "drag_files", None)
+        if f is None or self._drag_cc < 0 or self._drag_count() == self._drag_cc:
+            return []   # no new drag since the button went down: an old pasteboard, not this drag
+        try:
+            return [p for p in f() if p]
+        except Exception:
+            return []
+
     def _tick(self):
         lbtn, shift, esc = self._state()
         pos = QCursor.pos()
@@ -83,12 +98,13 @@ class DropDialWatcher(QObject):
                 if self._down_at is None:
                     self._down_at = pos
                     self._fired = False
+                    self._drag_cc = self._drag_count()
                 moved = (pos - self._down_at).manhattanLength() >= DRAG_THRESHOLD
                 if self.enabled and moved and shift and not self._fired:
                     self._fired = True
                     self._idle_ticks = 0
                     self._shown_at = pos
-                    self.show_menu.emit(pos)
+                    self.show_menu.emit(pos, self._dragged_files())
             else:
                 self._down_at = None
                 self._fired = False
