@@ -285,8 +285,12 @@ def test_compress_limits_the_short_side_for_portrait_video(tmp_path):
     src = tmp_path / "land.mp4"
     _ff("-f", "lavfi", "-i", "testsrc2=size=1280x720:rate=10", "-t", "1", "-c:v", "libx264", "-crf", "10", "-pix_fmt", "yuv420p", src)
     portrait = tmp_path / "portrait.mov"
-    _ff("-display_rotation:v:0", "90", "-i", src, "-c", "copy", portrait)
-    assert _streams(portrait)["h"] > _streams(portrait)["w"]
+    try:
+        _ff("-display_rotation:v:0", "90", "-i", src, "-c", "copy", portrait)     # ffmpeg 6.1+
+    except subprocess.CalledProcessError:
+        _ff("-i", src, "-c", "copy", "-metadata:s:v:0", "rotate=90", portrait)    # older ffmpeg (Debian 12)
+    if _streams(portrait)["h"] <= _streams(portrait)["w"]:
+        pytest.skip("this ffmpeg can't write a rotated test clip")
     s = _streams(media.compress_video(portrait, max_height=360))
     assert (s["w"], s["h"]) == (360, 640)                     # not 202x360
     gif = media.gif_from_video(portrait, width=320)
