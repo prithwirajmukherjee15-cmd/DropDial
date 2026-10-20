@@ -19,6 +19,9 @@
   <sub>Free · Works offline · Your originals are never touched · <a href="#install">Install help</a> · <a href="../../releases">All releases</a></sub>
 </p>
 
+> [!IMPORTANT]
+> **Opening DropDial for the first time?** Windows and macOS show a one-time security warning because the app isn't code-signed yet. It's safe, and it takes 10 seconds to get past. **[See First launch ↓](#first-launch)**
+
 <br>
 
 <p align="center">
@@ -167,9 +170,7 @@ curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/
 
 <p align="center"><img src="docs/dmg.png" alt="The DropDial installer window" width="460"></p>
 
-The first time you open it, macOS may say it *“could not verify DropDial”*, because the app isn't notarized by Apple yet. Click **Done**, then go to **System Settings → Privacy & Security** and click **Open Anyway**. You only do this once. (Or run `xattr -dr com.apple.quarantine /Applications/DropDial.app`.)
-
-Optional: allow **Screen Recording** when asked, so the glass can show the windows behind it. Nothing is ever recorded or sent anywhere.
+macOS will warn the first time you open the .dmg version: see **[First launch on Mac](#mac-apple-could-not-verify-dropdial)**.
 
 </details>
 
@@ -182,7 +183,7 @@ Optional: allow **Screen Recording** when asked, so the glass can show the windo
 
 Prefer no installer? [**DropDial.exe**](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial.exe) is portable: run it from anywhere.
 
-If SmartScreen warns on first launch, click **More info → Run anyway**.
+If SmartScreen warns on first launch, see **[First launch on Windows](#windows-windows-protected-your-pc)**.
 
 </details>
 
@@ -202,6 +203,46 @@ Open DropDial from the app menu; it sits in the panel's notification area. It wo
 The Shift-while-dragging trigger needs an X11 session (XFCE, MATE, Cinnamon, or “Ubuntu on Xorg”). On Wayland, right-click a file → **Open With → DropDial** works everywhere.
 
 </details>
+
+## First launch
+
+DropDial isn't code-signed yet (signing certificates cost money every year), so Windows and macOS show a warning the **first time only**. All of DropDial's code is public in this repository, and the downloads are built from it automatically by GitHub.
+
+### Windows: “Windows protected your PC”
+
+SmartScreen may show this the first time you run `DropDial-Setup.exe` or `DropDial.exe`.
+
+1. Click **More info**.
+2. Click **Run anyway**.
+
+That's it. Windows won't ask again.
+
+### Mac: “Apple could not verify DropDial…”
+
+If you installed with the Terminal line above, you can skip this: there's no warning. With the **.dmg**, macOS says *“Apple could not verify ‘DropDial’ is free of malware that may harm your Mac or compromise your privacy.”* It says this about any app that hasn't been through Apple's paid notarization. To open it:
+
+1. Open **DropDial** from Applications once, and click **Done** on the warning.
+2. Open the **Apple menu → System Settings → Privacy & Security**. Scroll down to **“DropDial” was blocked to protect your Mac** and click **Open Anyway**.
+3. Enter your password and click **Open Anyway** again to confirm.
+
+Done. macOS remembers the choice, so you only do this once.
+
+<details>
+<summary>Prefer Terminal? One command does the same thing</summary>
+
+```bash
+xattr -dr com.apple.quarantine /Applications/DropDial.app
+```
+
+Then open DropDial normally.
+</details>
+
+> [!NOTE]
+> On macOS 15 (Sequoia) and later, the old **right-click → Open** shortcut no longer gets past this warning. Use the steps above.
+
+### Mac, optional: Screen Recording
+
+DropDial may ask for **Screen Recording** permission. Allowing it lets the glass dial show the windows behind it. If you don't allow it, everything still works and the glass shows your wallpaper instead. **Nothing is ever recorded, saved or sent anywhere.** You can change this any time in **System Settings → Privacy & Security → Screen & System Audio Recording**.
 
 ## Good to know
 
