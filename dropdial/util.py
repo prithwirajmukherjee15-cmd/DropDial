@@ -21,6 +21,11 @@ CATEGORIES = (("image", IMAGE_EXTS), ("pdf", PDF_EXTS), ("docx", DOCX_EXTS), ("t
 
 
 def category(path: str | Path) -> str | None:
+    """'image', 'pdf', … or a plug-in family ('sheet', 'archive', …; see dropdial/formats)."""
+    from . import formats       # plug-in families win: they handle e.g. .csv and .json better
+    fam = formats.family_for(path)
+    if fam is not None:
+        return fam.category
     ext = Path(path).suffix.lower()
     for name, exts in CATEGORIES:
         if ext in exts:
@@ -29,7 +34,11 @@ def category(path: str | Path) -> str | None:
 
 
 def all_extensions() -> set[str]:
-    return set().union(*(exts for _, exts in CATEGORIES))
+    from . import formats
+    exts = set().union(*(exts for _, exts in CATEGORIES))
+    for fam in formats.all_families():
+        exts |= fam.exts
+    return exts
 
 
 def unique_path(path: str | Path) -> Path:

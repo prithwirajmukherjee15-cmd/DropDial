@@ -328,17 +328,30 @@ def cmd_info(a, out: Out) -> None:
 
 
 def cmd_formats(a, out: Out) -> None:
-    from . import convert, media
-    from .util import CATEGORIES
-    rows = []
+    from . import convert, formats, media
+    from .util import CATEGORIES, category
+    groups: dict[str, set[str]] = {}
     for cat, exts in CATEGORIES:
+        groups.setdefault(cat, set())
+    for fam in formats.all_families():
+        groups.setdefault(fam.category, set())
+    for cat, exts in CATEGORIES:
+        for e in exts:
+            groups[category("x" + e) or cat].add(e)
+    for fam in formats.all_families():
+        for e in fam.exts:
+            groups[category("x" + e) or fam.category].add(e)
+    rows = []
+    for cat, exts in groups.items():
+        if not exts:
+            continue
         targets = sorted({t for e in exts for t in convert.targets_for(cat, e)})
         rows.append((cat, " ".join(sorted(e.lstrip(".") for e in exts)), ", ".join(targets)))
     if out.as_json:
         out.records = [{"type": c, "extensions": e.split(), "targets": t.split(", ")} for c, e, t in rows]
         return
     for c, e, t in rows:
-        print(f"{c:<7} {e}\n        → {t}\n")
+        print(f"{c:<8} {e}\n         → {t}\n")
     if not media.available():
         print("(video/audio need ffmpeg: pip install imageio-ffmpeg)")
 

@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QColorDialog, QComboBox,
                                QPushButton, QSlider, QSpinBox, QTableWidget, QTableWidgetItem,
                                QVBoxLayout, QWidget)
 
-from . import imaging
+from . import glass, imaging
 from .convert import open_image, open_preview
 from .glass import pil_from_qimage, qimage_from_pil
 from .util import file_size, human_size, sibling
@@ -253,7 +253,7 @@ class CropView(ImageView):
             p.drawLine(QPointF(x, r.top()), QPointF(x, r.bottom()))
             p.drawLine(QPointF(r.left(), y), QPointF(r.right(), y))
         p.setPen(Qt.NoPen)
-        p.setBrush(QColor("#e3be7a"))
+        p.setBrush(glass.accent("gold"))
         for pt in (r.topLeft(), r.topRight(), r.bottomLeft(), r.bottomRight()):
             p.drawEllipse(pt, 5.5, 5.5)
         # live output size badge
@@ -801,7 +801,7 @@ class RedactView(ImageView):
 
     def paint_overlay(self, p, t):
         if self.cur is not None:
-            p.setPen(QPen(QColor("#e3be7a"), 1.5, Qt.DashLine))
+            p.setPen(QPen(glass.accent("gold"), 1.5, Qt.DashLine))
             p.setBrush(QColor(0, 0, 0, 90))
             p.drawRect(self.rect_to_widget(self.cur))
 

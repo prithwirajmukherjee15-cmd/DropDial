@@ -7,7 +7,7 @@ from PySide6.QtCore import QSettings, Qt, Signal
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QHBoxLayout, QLabel,
                                QPushButton, QSlider, QVBoxLayout)
 
-from . import CREDIT, __version__
+from . import CREDIT, __version__, glass
 from .util import CONFIG
 from .window import GlassWindow
 
@@ -24,6 +24,9 @@ DEFAULTS = {
     "trigger": "shift",
     "welcomed": False,
     "watch_toasts": True,
+    "check_updates": True,
+    "accent": "champagne",
+    "update_seen": "",
 }
 
 
@@ -109,7 +112,7 @@ class SettingsWindow(GlassWindow):
     changed = Signal()
 
     def __init__(self, settings: Settings):
-        super().__init__("Settings", size=(520, 470))
+        super().__init__("Settings", size=(540, 540))
         self.s = settings
         grid = QGridLayout()
         grid.setHorizontalSpacing(14)
@@ -160,12 +163,38 @@ class SettingsWindow(GlassWindow):
         grid.addWidget(self.dpi, r, 1)
         r += 1
 
+        grid.addWidget(QLabel("Accent colour"), r, 0)
+        sw_row = QHBoxLayout()
+        sw_row.setSpacing(8)
+        self.swatches = []
+        for key, (hi, mid, deep, _gold, _on) in glass.ACCENTS.items():
+            b = QPushButton()
+            b.setObjectName("swatch")
+            b.setCheckable(True)
+            b.setChecked(key == self.s.get("accent"))
+            b.setToolTip(glass.ACCENT_NAMES[key])
+            b.setStyleSheet(f"QPushButton#swatch {{ background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
+                            f" stop:0 {hi}, stop:0.5 {mid}, stop:1 {deep}); }}")
+            b.clicked.connect(lambda _=False, k=key: self._accent(k))
+            sw_row.addWidget(b)
+            self.swatches.append((key, b))
+        sw_row.addStretch(1)
+        grid.addLayout(sw_row, r, 1)
+        r += 1
+
         if IS_WIN or IS_MAC or IS_LINUX:
             self.auto = QCheckBox("Start DropDial with Windows" if IS_WIN else "Open DropDial at login")
             self.auto.setChecked(autostart_enabled())
             self.auto.toggled.connect(set_autostart)
             grid.addWidget(self.auto, r, 1)
             r += 1
+        self.upd = QCheckBox("Check for updates automatically")
+        self.upd.setToolTip("Asks GitHub once every few hours whether a newer DropDial exists. "
+                            "Nothing about you or your files is sent.")
+        self.upd.setChecked(self.s.get("check_updates"))
+        self.upd.toggled.connect(lambda on: self._save("check_updates", on))
+        grid.addWidget(self.upd, r, 1)
+        r += 1
         if IS_MAC:
             from . import platform_mac
             if not platform_mac.has_screen_recording():
@@ -191,6 +220,13 @@ class SettingsWindow(GlassWindow):
         self.s.set(key, value)
         self.changed.emit()
 
+    def _accent(self, key: str):
+        for k, b in self.swatches:
+            b.setChecked(k == key)
+        glass.set_accent(key)
+        self.setStyleSheet(glass.QSS)       # this window updates at once; others as they open
+        self._save("accent", key)
+
 
 class WelcomeWindow(GlassWindow):
     def __init__(self, settings: Settings, trigger_label: str = "Shift"):
@@ -201,15 +237,16 @@ class WelcomeWindow(GlassWindow):
              "in your file manager (Thunar, Nautilus…)" if IS_LINUX else "in File Explorer or on the desktop"),
             ("2", f"Press {trigger_label}", "the glass menu opens right under your cursor"),
             ("3", "Drop it on a slice", "the result is saved next to the original"),
-            ("⇄", f"Tap {trigger_label} again", "to switch between Convert, Tools and Recipes"),
+            ("⇄", f"Tap {trigger_label} again", "or turn the mouse wheel, to flip to More formats, Tools, Recipes"),
         ]
         for n, head, sub in steps:
             row = QHBoxLayout()
             badge = QLabel(n)
             badge.setAlignment(Qt.AlignCenter)
             badge.setFixedSize(34, 34)
-            badge.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 #f7e7c1, stop:0.5 #d8ad62,"
-                                " stop:1 #a87a34); color: #1a1408; border: 1px solid rgba(255,240,210,0.7);"
+            badge.setStyleSheet(f"background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 {glass.ACCENT_A},"
+                                f" stop:0.5 {glass.ACCENT_B}, stop:1 {glass.ACCENT_C}); color: {glass.ON_ACCENT};"
+                                " border: 1px solid rgba(255,255,255,0.6);"
                                 "border-radius: 17px; font-weight: 700; font-size: 12pt;")
             row.addWidget(badge)
             col = QVBoxLayout()

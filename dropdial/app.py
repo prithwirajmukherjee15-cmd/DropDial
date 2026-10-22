@@ -14,7 +14,7 @@ from PySide6.QtGui import (QAction, QColor, QCursor, QDesktopServices, QGuiAppli
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QSystemTrayIcon, QWidget
 
-from . import CREDIT, __version__, convert, glass, history, imaging, media, panels, recipes, report, tools, watch
+from . import CREDIT, __version__, convert, formats, glass, history, imaging, media, panels, recipes, report, tools, watch
 from .radial import Item, RadialMenu
 from .settings import Settings, SettingsWindow, WelcomeWindow, TRIGGERS
 from .toasts import ToastStack
@@ -64,6 +64,36 @@ IMAGE_TOOLS = ["Compress", "Resize", "Crop", "Edit", "Annotate", "Redact", "Add 
 PDF_TOOLS = ["Compress", "Split", "Rotate", "Numbers", "Watermark", "Protect", "Extract", "Metadata"]
 
 
+def run_each(srcs: list, fn) -> list:
+    """fn(src) for every file, with the progress bar split between them. Keeps going past a
+    file that fails and only gives up if every file did."""
+    outs, errors = [], []
+    for i, p in enumerate(srcs):
+        outer = current_progress()
+        with progress_hook(lambda f, i=i: outer and outer((i + f) / len(srcs))):
+            try:
+                outs += fn(p)
+            except UserError as e:
+                if len(srcs) == 1:
+                    raise
+                errors.append(f"{Path(p).name}: {e}")
+    if not outs and errors:
+        raise UserError(errors[0])
+    return outs
+
+
+MAX_SLICES = 8
+ZIP_GLYPH = "▤"
+
+
+def can_zip() -> bool:
+    try:
+        from .formats import archives  # noqa: F401
+        return hasattr(archives, "zip_paths")
+    except Exception:  # noqa: BLE001
+        return False
+
+
 # ---------------------------------------------------------------- background jobs
 class _Sig(QObject):
     done = Signal(object)
@@ -72,9 +102,10 @@ class _Sig(QObject):
 
 
 class Job(QRunnable):
-    def __init__(self, action: str, srcs: list, fn, extra: str = ""):
+    def __init__(self, action: str, srcs: list, fn, extra: str = "", raw: bool = False):
         super().__init__()
         self.action, self.srcs, self.fn, self.extra = action, srcs, fn, extra
+        self.raw = raw      # True: hand fn()'s return value over as-is (no report)
         self.sig = _Sig()
         self._last = -1.0
 
@@ -90,7 +121,7 @@ class Job(QRunnable):
         try:
             with progress_hook(self._progress):
                 outs = self.fn() or []
-            self.sig.done.emit(report.summarize(self.action, self.srcs, outs, self.extra))
+            self.sig.done.emit(outs if self.raw else report.summarize(self.action, self.srcs, outs, self.extra))
         except UserError as e:
             self.sig.failed.emit(str(e))
         except Exception as e:  # noqa: BLE001
@@ -159,11 +190,12 @@ class DropDialApp(QObject):
         self.qapp = qapp
         self.settings = Settings()
         self.settings.apply()
+        glass.set_accent(self.settings.get("accent"))
         self.pool = QThreadPool.globalInstance()
         self.windows: list[QWidget] = []
         self.toasts = ToastStack()
         self.menu = RadialMenu(self.build_rings, self.describe)
-        self.menu.activated.connect(self.run_item)
+        self.menu.activated.connect(self.activate)
 
         # the watcher only manages menus it opened (drag mode); click-mode menus (tray, right-click,
         # Send To) must not be closed just because no mouse button is held
@@ -193,6 +225,7 @@ class DropDialApp(QObject):
         self.act_enabled = QAction("Enabled", m, checkable=True, checked=True)
         self.act_enabled.toggled.connect(lambda on: setattr(self.watcher, "enabled", on))
         m.addAction(self.act_enabled)
+        m.addAction("Home…", self.open_home)
         m.addAction("Open a file…", self.open_dialog)
         m.addAction("History…", self.open_history)
         m.addSeparator()
@@ -202,6 +235,8 @@ class DropDialApp(QObject):
         m.addSeparator()
         m.addAction("How to use", self.show_welcome)
         m.addAction(f"About {APP_NAME}…", lambda: QDesktopServices.openUrl(QUrl(PROJECT_URL)))
+        self.act_update = m.addAction("Update available", self._open_update)
+        self.act_update.setVisible(False)
         m.addSeparator()
         m.addAction(f"Quit {APP_NAME}", self.qapp.quit)
         self.tray_menu = m
@@ -213,6 +248,12 @@ class DropDialApp(QObject):
         self.scanners: list[watch.FolderScanner] = []
         self.watch_timer = QTimer(self, interval=2000, timeout=self._watch_tick)
         self.reload_watch()
+
+        # new releases: a quiet check shortly after start, then every 6 hours
+        self.update = None
+        self.update_timer = QTimer(self, interval=6 * 3600 * 1000, timeout=self.check_updates)
+        self.update_timer.start()
+        QTimer.singleShot(45_000, self.check_updates)
 
     def trigger_label(self) -> str:
         return dict(TRIGGERS).get(self.settings.get("trigger"), "Shift")
@@ -242,8 +283,7 @@ class DropDialApp(QObject):
             if files:
                 self.queue_files(files)
             elif data.get("show"):
-                self.toasts.info("DropDial is already running",
-                                 f"Drag any file and press {self.trigger_label()}. It lives in the tray.")
+                self.open_home()        # launched again from the Start menu / Applications
             sock.disconnectFromServer()
             sock.deleteLater()
 
@@ -273,20 +313,35 @@ class DropDialApp(QObject):
 
     def build_rings(self, paths: list[str]) -> dict[str, list[Item]]:
         # NB: also called unbound (self=None) by the e2e scripts, so it must not touch `self`
+        zip_item = Item("ZIP", ZIP_GLYPH, key="zip:ZIP",
+                        hint="Folder → 1 ZIP" if len(paths) == 1 else f"{len(paths)} items → 1 ZIP")
+        if any(os.path.isdir(p) for p in paths):
+            return {"Convert": [zip_item]} if can_zip() else {"Unsupported": []}
         cat = category(paths[0])
         if cat is None:
-            return {"Unsupported": []}
+            return {"Convert": [zip_item]} if can_zip() and len(paths) > 1 else {"Unsupported": []}
         ext = Path(paths[0]).suffix
         same = [p for p in paths if category(p) == cat]
-        if cat == "pdf" and imaging.pdf_is_locked(paths[0]):
+        if cat == "pdf" and os.path.exists(paths[0]) and imaging.pdf_is_locked(paths[0]):
             return {"Tools": [Item("Unlock", GLYPHS["Unlock"], key="tool:Unlock", hint=HINTS["Unlock"])]}
+        fam = formats.family(cat)
         convert_items = []
         for t in convert.targets_for(cat, ext):
-            hint = CAT_FORMAT_HINTS.get((cat, t)) or FORMAT_HINTS.get(t, "")
+            hint = ((fam.hints.get(t) if fam else None) or CAT_FORMAT_HINTS.get((cat, t))
+                    or FORMAT_HINTS.get(t, ""))
             if cat == "image" and t == "PDF" and len(same) > 1:
                 hint = f"{len(same)} images → 1 PDF"
             convert_items.append(Item(t, key=f"convert:{t}", hint=hint))
-        rings: dict[str, list[Item]] = {"Convert": convert_items}
+        if len(paths) > 1 and cat != "archive" and can_zip():
+            convert_items.append(zip_item)
+        # a dial reads well up to ~9 slices: the rest go on the other side ("More formats")
+        rings: dict[str, list[Item]] = {"Convert": convert_items[:MAX_SLICES]}
+        if len(convert_items) > MAX_SLICES:
+            if len(convert_items) - MAX_SLICES < 3:      # don't make a 1–2 slice ring
+                rings["Convert"] = convert_items[:-3]
+                rings["More formats"] = convert_items[-3:]
+            else:
+                rings["More formats"] = convert_items[MAX_SLICES:]
 
         def tools(names, hints=None):
             hints = hints or {}
@@ -300,6 +355,8 @@ class DropDialApp(QObject):
             rings["Tools"] = tools(media.VIDEO_TOOLS, VIDEO_HINTS)
         elif cat == "audio":
             rings["Tools"] = tools(media.AUDIO_TOOLS, AUDIO_HINTS)
+        elif fam is not None and fam.tools:
+            rings["Tools"] = [Item(t.name, t.glyph, key=f"tool:{t.name}", hint=t.hint) for t in fam.tools]
         try:
             menu_recipes = recipes.menu_recipes(cat)
         except Exception:  # a broken recipes.json must never break the menu
@@ -313,9 +370,48 @@ class DropDialApp(QObject):
         return rings
 
     # ------------------------------------------------------------ actions
+    def activate(self, item: Item, paths: list[str]):
+        """A slice was picked. Files dragged from a browser are downloaded first."""
+        web_items = {p: self.menu.web_items[p] for p in paths if p in self.menu.web_items}
+        if not web_items:
+            self.run_item(item, paths)
+            return
+        from . import web
+
+        def fetch_all():
+            return [web.fetch(web_items[p]) for p in paths if p in web_items]
+
+        def fetched(got):
+            self.run_item(item, [str(g) for g in got])
+
+        self.submit_plain(fetch_all, fetched, "Downloading…", paths)
+
+    def submit_plain(self, fn, on_done, working: str, srcs: list):
+        """Run fn() in the background and hand its return value to on_done (no history entry)."""
+        card = self.toasts.new()
+        card.working(working, Path(srcs[0]).name if len(srcs) == 1 else f"{len(srcs)} files")
+        job = Job("plain", srcs, fn, raw=True)
+
+        def done(r):
+            release(job)
+            card.dismiss()
+            on_done(r)
+
+        def failed(msg):
+            release(job)
+            card.error("Couldn't download", msg)
+
+        job.sig.done.connect(done)
+        job.sig.failed.connect(failed)
+        self.pool.start(keep(job))
+
     def run_item(self, item: Item, paths: list[str]):
-        cat = category(paths[0])
         kind, name = item.key.split(":", 1)
+        if kind == "zip":
+            from .formats import archives
+            self.submit("tool:ZIP", paths, lambda: [archives.zip_paths([Path(p) for p in paths])], "Zipping…")
+            return
+        cat = category(paths[0])
         if kind == "recipe":
             self.run_recipe(name, paths)
             return
@@ -325,6 +421,10 @@ class DropDialApp(QObject):
             return
         if cat in ("video", "audio") and kind == "tool":
             self.run_media_tool(cat, name, paths)
+            return
+        fam = formats.family(cat)
+        if fam is not None:
+            self.run_family(fam, kind, name, paths)
             return
         if kind == "convert":
             if cat == "image" and name == "PDF" and len(paths) > 1:
@@ -438,8 +538,9 @@ class DropDialApp(QObject):
         self.history_changed()
 
     def history_changed(self):
+        from .home import HomeWindow
         for w in self.windows:
-            if isinstance(w, panels.HistoryWindow):
+            if isinstance(w, (panels.HistoryWindow, HomeWindow)):
                 w.reload()
 
     # ------------------------------------------------------------ recipes & media
@@ -473,6 +574,22 @@ class DropDialApp(QObject):
             return outs
         self.submit(f"recipe:{r.name}", todo, work, f"{r.glyph} {r.name}…", r.summary(cat))
 
+    def run_family(self, fam, kind: str, name: str, paths: list[str]):
+        """Convert or run a tool of a plug-in family (dropdial/formats)."""
+        srcs = [Path(p) for p in paths]
+        if kind == "convert":
+            if len(srcs) > 1 and name in fam.combine:
+                fn, verb = (lambda: fam.combine[name](srcs)), f"Combining {len(srcs)} files…"
+            else:
+                fn, verb = (lambda: run_each(srcs, lambda p: fam.convert(p, name))), f"Converting to {name}…"
+            self.submit(f"convert:{name}", paths, fn, verb)
+            return
+        tool = next((t for t in fam.tools if t.name == name), None)
+        if tool is None:
+            return
+        fn = (lambda: tool.run(srcs)) if tool.multi else (lambda: run_each(srcs, lambda p: tool.run([p])))
+        self.submit(f"tool:{name}", paths, fn, tool.working)
+
     def run_media_tool(self, cat: str, name: str, paths: list[str]):
         if not media.available():
             self.toasts.error("ffmpeg is missing", "Video and audio need ffmpeg. Install it, or "
@@ -503,7 +620,53 @@ class DropDialApp(QObject):
     def _tray_click(self, reason):
         # macOS: a click on the menu-bar icon shows the menu; Windows: click opens a file
         if not IS_MAC and reason in (QSystemTrayIcon.DoubleClick, QSystemTrayIcon.Trigger):
-            self.open_dialog()
+            self.open_home()
+
+    def open_home(self):
+        from .home import HomeWindow
+        self._single(HomeWindow, self)
+
+    def open_web_drop(self, md):
+        """Something dragged from a browser onto Home: download it, then show the dial."""
+        from . import web
+        items = web.from_mime(md)
+        if not items:
+            self.toasts.error("Nothing to convert", "Drop a file, a picture or a link to a file.")
+            return
+        self.submit_plain(lambda: [web.fetch(i) for i in items],
+                          lambda got: self.show_click_menu([str(g) for g in got]),
+                          "Downloading…", [i.name for i in items])
+
+    # ------------------------------------------------------------ updates
+    def check_updates(self):
+        if os.environ.get("DROPDIAL_NO_UPDATE_CHECK") or not self.settings.get("check_updates"):
+            return
+        from . import updates
+        job = Job("plain", [], lambda: [updates.check()], raw=True)
+
+        def got(r):
+            release(job)
+            upd = r[0] if r else None
+            if upd is None:
+                return
+            self.update = upd
+            self.act_update.setText(f"Update available: DropDial {upd.version}…")
+            self.act_update.setVisible(True)
+            for w in self.windows:
+                if hasattr(w, "show_update"):
+                    w.show_update(upd)
+            if self.settings.get("update_seen") != upd.version:
+                self.settings.set("update_seen", upd.version)
+                self.toasts.info(f"DropDial {upd.version} is available",
+                                 "Open DropDial's menu → Update available, to download it.")
+
+        job.sig.done.connect(got)
+        job.sig.failed.connect(lambda *_: release(job))
+        self.pool.start(keep(job))
+
+    def _open_update(self):
+        if self.update is not None:
+            QDesktopServices.openUrl(QUrl(self.update.url))
 
     def open_dialog(self):
         files, _ = QFileDialog.getOpenFileNames(None, "Choose file(s) for DropDial", QDir.homePath())

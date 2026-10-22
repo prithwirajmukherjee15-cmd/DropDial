@@ -309,7 +309,7 @@ class ToastCard(QWidget):
                 p.setBrush(glass.gold(48))
                 p.drawRoundedRect(chip, 9, 9)
                 p.setFont(f2)
-                p.setPen(QColor("#f7e7c1"))
+                p.setPen(glass.accent("hi"))
                 p.drawText(chip, Qt.AlignCenter, self.good)
         f.setPixelSize(12)
         f.setBold(False)

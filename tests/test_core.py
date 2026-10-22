@@ -39,7 +39,9 @@ def pdf(tmp_path, img) -> Path:
 def test_image_targets(img, target):
     out = convert.convert(img, "image", target)[0]
     assert out.exists() and out.stat().st_size > 0
-    if target != "PDF":
+    if target == "SVG":
+        assert convert.svg_to_image(out).size[0] > 0
+    elif target != "PDF":
         Image.open(out).load()
 
 
@@ -99,4 +101,4 @@ def test_paths(tmp_path):
     f = tmp_path / "a.jpg"
     f.write_bytes(b"x")
     assert sibling(f, ext=".jpg").name == "a (1).jpg"
-    assert category("x.HEIC") == "image" and category("x.pdf") == "pdf" and category("x.zip") is None
+    assert category("x.HEIC") == "image" and category("x.pdf") == "pdf" and category("x.unknownext") is None

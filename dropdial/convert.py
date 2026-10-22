@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import io
+import re
 import sys
 from pathlib import Path
 
@@ -29,7 +30,8 @@ try:
 except Exception:  # pragma: no cover
     pass
 
-IMAGE_TARGETS = ["PNG", "JPG", "WEBP", "HEIC", "TIFF", "AVIF", "BMP", "PDF", "ICO", "GIF"]
+# most-used first: the dial shows the first 8, the rest go on its "More formats" side
+IMAGE_TARGETS = ["PNG", "JPG", "WEBP", "PDF", "HEIC", "AVIF", "TIFF", "GIF", "BMP", "ICO", "SVG"]
 PDF_TARGETS = ["JPG", "PNG", "DOCX", "TXT"]
 DOCX_TARGETS = ["PDF", "TXT"]
 TEXT_TARGETS = ["PDF", "DOCX"]
@@ -187,8 +189,41 @@ def image_to(src: str | Path, target: str) -> list[Path]:
     if target == "PDF":
         write_images_pdf([src], out)
         return [out]
+    if target == "SVG":
+        svg = trace_svg(open_image(src))
+        atomic_save(lambda dst: Path(dst).write_text(svg, encoding="utf-8"), out)
+        return [out]
     save_image(open_image(src), out, target)
     return [out]
+
+
+def can_trace() -> bool:
+    try:
+        import vtracer  # noqa: F401
+        return True
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def trace_svg(im: Image.Image, max_side: int = 2000) -> str:
+    """Trace a picture into vector shapes (logos, icons, drawings trace best; photos get large)."""
+    import numpy as np
+    import vtracer
+    im = im.convert("RGBA")
+    w, h = im.size
+    k = min(1.0, max_side / max(w, h))
+    if k < 1:
+        im = im.resize((max(1, round(w * k)), max(1, round(h * k))), Image.LANCZOS)
+    px = [tuple(int(c) for c in row) for row in np.asarray(im).reshape(-1, 4)]
+    svg = vtracer.convert_pixels_to_svg(
+        px, size=im.size, colormode="color", hierarchical="stacked", mode="spline",
+        filter_speckle=4, color_precision=6, layer_difference=16, corner_threshold=60,
+        length_threshold=4.0, max_iterations=10, splice_threshold=45, path_precision=3)
+    svg = re.sub(r"<!--.*?-->\s*", "", svg, flags=re.S)       # drop the generator comment
+    if k < 1:   # keep the original's size: scale the traced shapes back up
+        svg = svg.replace(f'width="{im.width}" height="{im.height}"',
+                          f'width="{w}" height="{h}" viewBox="0 0 {im.width} {im.height}"', 1)
+    return svg
 
 
 def images_to_single_pdf(srcs: list[str | Path]) -> list[Path]:
@@ -622,10 +657,16 @@ def targets_for(cat: str, src_ext: str) -> list[str]:
         t = [x for x in IMAGE_TARGETS if x != cur]
         if not HEIF_OK:
             t = [x for x in t if x != "HEIC"]
+        if not can_trace():
+            t = [x for x in t if x != "SVG"]
         return t
     if cat in ("video", "audio"):
         from . import media
         return media.targets_for(cat, src_ext)
+    from . import formats
+    fam = formats.family(cat)
+    if fam is not None:
+        return fam.targets(src_ext)
     return {"pdf": PDF_TARGETS, "docx": DOCX_TARGETS, "text": TEXT_TARGETS,
             "vector": VECTOR_TARGETS, "ebook": EBOOK_TARGETS}.get(cat, [])
 
@@ -655,4 +696,8 @@ def convert(src: str | Path, cat: str, target: str) -> list[Path]:
     if cat == "audio":
         from . import media
         return media.convert_audio(src, target)
+    from . import formats
+    fam = formats.family(cat)
+    if fam is not None:
+        return fam.convert(Path(src), target)
     raise ValueError(f"Can't convert {cat} to {target}")

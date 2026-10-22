@@ -154,6 +154,8 @@ def pdf_pages(p: Path) -> int:
 def ring_index(paths: list[str], ring: str, label: str) -> tuple[int, int, int]:
     from dropdial.app import DropDialApp
     rings = DropDialApp.build_rings(None, paths)
+    if label not in [i.label for i in rings.get(ring, [])]:
+        ring = next(r for r, items in rings.items() if label in [i.label for i in items])
     names = list(rings)
     items = rings[ring]
     labels = [i.label for i in items]
@@ -202,7 +204,7 @@ def run(name: str, where: str, files: list[str], ring: str, label: str, verify, 
         nudge = (min(640, sw - src_xy[0] - 260), dy)
         c = wk.drag_open_menu(src_xy, nudge)
         wk.shot(OUT / "shots" / f"{len(RESULTS) + 1:02d}_{safe(name)}_still.png")
-        if ring_i == 1:
+        for _ in range(ring_i):
             wk.switch_ring()
         target = wk.petal_xy(c, n, idx)
         wk.glide(*target, 0.4)

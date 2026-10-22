@@ -198,6 +198,8 @@ def calibrate(pos: dict, empty: Image.Image, full: Image.Image):
 def ring_index(paths, ring, label):
     from dropdial.app import DropDialApp
     rings = DropDialApp.build_rings(None, paths)
+    if label not in [i.label for i in rings.get(ring, [])]:
+        ring = next(r for r, items in rings.items() if label in [i.label for i in items])
     items = rings[ring]
     return list(rings).index(ring), [i.label for i in items].index(label), len(items)
 
@@ -267,7 +269,7 @@ def run(name, files, ring, label, verify, after_drop=None, multi=False):
         cur = cursor()
         shot(f"{len(RESULTS) + 1:02d}_{''.join(ch if ch.isalnum() else '_' for ch in name)}_still")
         c = menu_center(cur)
-        if ring_i == 1:
+        for _ in range(ring_i):
             post_key(SHIFT_KEY, False)
             time.sleep(0.25)
             post_key(SHIFT_KEY, True, Quartz.kCGEventFlagMaskShift)

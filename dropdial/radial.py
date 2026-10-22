@@ -6,6 +6,7 @@ a cheap frosted version is drawn, so the menu still appears instantly."""
 from __future__ import annotations
 
 import math
+from pathlib import Path
 import sys
 from dataclasses import dataclass
 from typing import Callable
@@ -104,6 +105,8 @@ class RadialMenu(QWidget):
         self.resize(SIZE, SIZE)
 
         self.paths: list[str] = []
+        self.web_items: dict = {}          # placeholder path -> web.WebItem (browser drags)
+        self._wheel = 0
         self.rings: dict[str, list[Item]] = {}
         self.ring_names: list[str] = []
         self.ring_idx = 0
@@ -186,6 +189,7 @@ class RadialMenu(QWidget):
             self.backdrop = None
             self._raw_backdrop = None
         self.move(tl)
+        self.web_items = {}
         self.hover = -1
         self.got_drag = False
         self.hub_armed = False  # drags start on the hub; don't flip until they leave it
@@ -258,7 +262,10 @@ class RadialMenu(QWidget):
         self.rings = {k: v for k, v in self.build_rings(paths).items() if v}
         self.ring_names = list(self.rings)
         self.ring_idx = 0
-        self.hub_text = self.describe(paths)
+        if paths and all(p in self.web_items for p in paths):
+            self.hub_text = "From the web" if len(paths) == 1 else f"{len(paths)} from web"
+        else:
+            self.hub_text = self.describe(paths)
         for items in self.rings.values():
             self._render(len(items))
         self.spring = [0.0] * len(self.items)
@@ -283,9 +290,9 @@ class RadialMenu(QWidget):
             path = path.united(outer)       # united, not added: odd-even fill would punch a hole
         glass.apply_shape(self, path)
 
-    def next_ring(self):
+    def next_ring(self, step: int = 1):
         if len(self.ring_names) > 1:
-            self.ring_idx = (self.ring_idx + 1) % len(self.ring_names)
+            self.ring_idx = (self.ring_idx + step) % len(self.ring_names)
             self.hover = -1
             self.spring = [0.0] * len(self.items)
             self._swap = 0.0
@@ -365,8 +372,34 @@ class RadialMenu(QWidget):
             return []
         return [u.toLocalFile() for u in md.urls() if u.isLocalFile() and u.toLocalFile()]
 
+    def _web_paths(self, md) -> list[str]:
+        """Browser drags (a picture, a link, a download): placeholder paths named like the file
+        they'll become, so the dial can show the right slices before anything is downloaded."""
+        from . import web
+        import tempfile
+        items = web.from_mime(md)
+        base = Path(tempfile.gettempdir()) / "DropDial web"
+        paths = []
+        for i, it in enumerate(items):
+            p = str(base / str(i) / it.name)
+            self.web_items[p] = it
+            paths.append(p)
+        return paths
+
     def dragEnterEvent(self, e):
-        paths = self._local_paths(e.mimeData())
+        md = e.mimeData()
+        paths = self._local_paths(md)
+        if not paths:
+            if self.paths and all(p in self.web_items for p in self.paths):
+                paths = self.paths            # same browser drag re-entering: keep its slices
+            else:
+                self.web_items = {}
+                try:
+                    paths = self._web_paths(md)
+                except Exception:  # noqa: BLE001 - never let an odd drag break the menu
+                    paths = []
+        else:
+            self.web_items = {}
         if not paths:
             e.ignore()
             return
@@ -424,6 +457,16 @@ class RadialMenu(QWidget):
             self.close_menu()
         elif e.key() in (Qt.Key_Tab, Qt.Key_Shift):
             self.next_ring()
+        elif e.key() == Qt.Key_Backtab:
+            self.next_ring(-1)
+
+    def wheelEvent(self, e):
+        """Turn the mouse wheel to flip through Convert / More / Tools / Recipes."""
+        self._wheel += e.angleDelta().y() or e.angleDelta().x()
+        if abs(self._wheel) >= 120:
+            self.next_ring(-1 if self._wheel > 0 else 1)
+            self._wheel = 0
+        e.accept()
 
     def leaveEvent(self, e):
         if self.click_mode:
@@ -433,7 +476,7 @@ class RadialMenu(QWidget):
     def _text_colors(self) -> tuple[QColor, QColor, QColor]:
         if self.is_light:
             return QColor(24, 20, 14), QColor(24, 20, 14, 170), QColor(255, 255, 255, 120)
-        return QColor(247, 244, 238), QColor(227, 190, 122, 220), QColor(0, 0, 0, 120)
+        return QColor(247, 244, 238), glass.accent("gold", 220), QColor(0, 0, 0, 120)
 
     def paintEvent(self, e):
         p = QPainter(self)
@@ -500,12 +543,12 @@ class RadialMenu(QWidget):
         # warm champagne light blooming up from underneath the cursor
         glow_c = self.cursor_pos - off
         g = QRadialGradient(glow_c, 130)
-        g.setColorAt(0.0, QColor(255, 236, 196, int(150 * h)))
-        g.setColorAt(0.4, QColor(216, 173, 98, int(105 * h)))
-        g.setColorAt(1.0, QColor(120, 86, 40, int(45 * h)))
+        g.setColorAt(0.0, glass.accent("hi", int(150 * h)))
+        g.setColorAt(0.4, glass.accent("mid", int(105 * h)))
+        g.setColorAt(1.0, glass.accent("deep", int(45 * h)))
         p.fillPath(path, g)
         # gold specular rim + pearl edge while hovered
-        p.setPen(QPen(QColor(255, 240, 210, int(190 * h)), 1.3))
+        p.setPen(QPen(glass.accent("hi", int(190 * h)), 1.3))
         p.drawPath(path)
         p.setPen(glass.iridescent_pen(c, 2.2, int(230 * h), angle=(a0 + a1) / 2))
         p.drawPath(path)
@@ -515,8 +558,8 @@ class RadialMenu(QWidget):
         hs = self.hub_spring
         if hs > 0.001:
             g = QRadialGradient(c, R_HUB)
-            g.setColorAt(0, QColor(255, 236, 196, int(70 * hs)))
-            g.setColorAt(1, QColor(216, 173, 98, int(24 * hs)))
+            g.setColorAt(0, glass.accent("hi", int(70 * hs)))
+            g.setColorAt(1, glass.accent("mid", int(24 * hs)))
             p.setPen(Qt.NoPen)
             p.setBrush(g)
             p.drawEllipse(c, R_HUB, R_HUB)

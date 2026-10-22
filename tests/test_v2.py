@@ -429,7 +429,7 @@ def test_menu_rings(tmp_path):
     from dropdial.app import DropDialApp
     rings = lambda p: {k: [i.label for i in v] for k, v in DropDialApp.build_rings(None, [str(p)]).items()}
     img = rings(photo(tmp_path, size=(100, 80)))
-    assert list(img) == ["Convert", "Tools", "Recipes"] and "Watermark" in img["Tools"]
+    assert list(img)[0] == "Convert" and list(img)[-2:] == ["Tools", "Recipes"] and "Watermark" in img["Tools"]
     doc = pdf(tmp_path)
     assert {"Numbers", "Watermark"} <= set(rings(doc)["Tools"])
     assert rings(imaging.protect_pdf(doc, "pw12")) == {"Tools": ["Unlock"]}
@@ -437,4 +437,4 @@ def test_menu_rings(tmp_path):
     assert rings(epub(tmp_path))["Convert"] == ["PDF", "DOCX", "TXT"]
     vid = rings(tmp_path / "x.mp4")
     assert vid["Tools"] == media.VIDEO_TOOLS and "GIF" in vid["Convert"] and "Share video" in vid["Recipes"]
-    assert rings(tmp_path / "x.zip") == {"Unsupported": []}
+    assert rings(tmp_path / "x.unknownext") == {"Unsupported": []}

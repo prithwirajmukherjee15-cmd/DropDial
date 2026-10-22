@@ -13,6 +13,7 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QImage, QLinearGrad
 # "Midnight & Champagne": graphite glass, champagne-gold accents, a pearl/gold rim
 # instead of a rainbow. Every colour in the UI comes from here.
 IRIDESCENT = ["#f4dfb2", "#fffaf0", "#cfd6e4", "#e6c27e", "#fff3dc", "#b8c1d6", "#f4dfb2"]
+_CHAMPAGNE_RIM = list(IRIDESCENT)
 
 TEXT = "#f7f4ee"
 TEXT_DIM = "rgba(247,244,238,0.62)"
@@ -23,6 +24,39 @@ ON_ACCENT = "#1a1408"     # text on gold
 GOLD = "#e3be7a"
 SURFACE = "#14151c"       # menus, popups
 MIDNIGHT = (13, 14, 20)   # glass tint base
+
+
+# accent palettes: (highlight, mid, deep, text-accent, text on accent)
+ACCENTS = {
+    "champagne": ("#f7e7c1", "#d8ad62", "#a87a34", "#e3be7a", "#1a1408"),
+    "rose": ("#ffdbe3", "#e88ba1", "#b4506b", "#f2a5b7", "#2a0d16"),
+    "ocean": ("#d6ecff", "#62a9e9", "#2f6fb3", "#8fc5f3", "#061a2c"),
+    "emerald": ("#d8f6e6", "#4fc48e", "#1f8a5c", "#82d8aa", "#06200f"),
+    "violet": ("#e8deff", "#9d86f1", "#6a4fc9", "#baa8f8", "#140a2e"),
+    "silver": ("#f5f7fb", "#c5cbd6", "#8b94a4", "#d9dee8", "#12151b"),
+}
+ACCENT_NAMES = {"champagne": "Champagne", "rose": "Rose", "ocean": "Ocean", "emerald": "Emerald",
+                "violet": "Violet", "silver": "Silver"}
+ACCENT = "champagne"
+
+
+def set_accent(name: str) -> None:
+    """Switch the accent colour. Windows opened afterwards (and the dial) use it."""
+    global ACCENT, ACCENT_A, ACCENT_B, ACCENT_C, GOLD, ON_ACCENT, IRIDESCENT, QSS
+    if name not in ACCENTS:
+        name = "champagne"
+    ACCENT = name
+    ACCENT_A, ACCENT_B, ACCENT_C, GOLD, ON_ACCENT = ACCENTS[name]
+    IRIDESCENT = (_CHAMPAGNE_RIM if name == "champagne" else
+                  [ACCENT_A, "#fffaf0", "#cfd6e4", ACCENT_B, "#fff3dc", "#b8c1d6", ACCENT_A])
+    QSS = build_qss()
+
+
+def accent(which: str = "gold", alpha: int = 255) -> QColor:
+    """The current accent as a QColor: 'hi' (light), 'mid', 'deep' or 'gold' (text accent)."""
+    c = QColor({"hi": ACCENT_A, "mid": ACCENT_B, "deep": ACCENT_C, "gold": GOLD}[which])
+    c.setAlpha(alpha)
+    return c
 
 
 def glass_tint(alpha: int, lift: int = 0) -> QColor:
@@ -132,32 +166,38 @@ def paint_glass(p: QPainter, path: QPainterPath, backdrop: QPixmap | None = None
 
 
 # ---------------------------------------------------------------- Qt stylesheet
-QSS = f"""
+def _rgba(hex_color: str, a: float) -> str:
+    c = QColor(hex_color)
+    return f"rgba({c.red()},{c.green()},{c.blue()},{a})"
+
+
+def build_qss() -> str:
+    return f"""
 * {{ color: {TEXT}; font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif; font-size: 10pt; }}
 QWidget#glassRoot {{ background: transparent; }}
 QLabel#title {{ font-size: 11pt; font-weight: 600; letter-spacing: 0.3px; }}
 QLabel#dim, QLabel.dim {{ color: {TEXT_DIM}; font-size: 9pt; }}
 QLabel#section {{ color: {GOLD}; font-size: 8pt; font-weight: 700; letter-spacing: 1.6px; }}
-QLabel#credit {{ color: rgba(227,190,122,0.85); font-size: 8.5pt; letter-spacing: 0.6px; }}
+QLabel#credit {{ color: {_rgba(GOLD, 0.85)}; font-size: 8.5pt; letter-spacing: 0.6px; }}
 QPushButton {{
   background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.16);
   border-top-color: rgba(255,255,255,0.30); border-bottom-color: rgba(255,255,255,0.08);
   border-radius: 15px; padding: 6px 15px; min-height: 18px;
 }}
-QPushButton:hover {{ background: rgba(255,255,255,0.13); border-color: rgba(227,190,122,0.55); }}
+QPushButton:hover {{ background: rgba(255,255,255,0.13); border-color: {_rgba(GOLD, 0.55)}; }}
 QPushButton:pressed {{ background: rgba(255,255,255,0.04); }}
 QPushButton:disabled {{ color: rgba(247,244,238,0.35); border-color: rgba(255,255,255,0.08); }}
 QPushButton:checked {{
   background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 {ACCENT_A}, stop:0.5 {ACCENT_B}, stop:1 {ACCENT_C});
-  color: {ON_ACCENT}; font-weight: 600; border: 1px solid rgba(255,240,210,0.75);
+  color: {ON_ACCENT}; font-weight: 600; border: 1px solid {_rgba(ACCENT_A, 0.75)};
 }}
 QPushButton#primary {{
   background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 {ACCENT_A}, stop:0.45 {ACCENT_B}, stop:1 {ACCENT_C});
-  color: {ON_ACCENT}; border: 1px solid rgba(255,240,210,0.7); border-top-color: rgba(255,250,235,0.95);
+  color: {ON_ACCENT}; border: 1px solid {_rgba(ACCENT_A, 0.7)}; border-top-color: rgba(255,250,235,0.95);
   font-weight: 700; padding: 7px 22px; border-radius: 16px; letter-spacing: 0.3px;
 }}
 QPushButton#primary:hover {{ border: 1px solid #fff6e2; }}
-QPushButton#primary:disabled {{ background: rgba(216,173,98,0.30); color: rgba(26,20,8,0.55); }}
+QPushButton#primary:disabled {{ background: {_rgba(ACCENT_B, 0.30)}; color: {_rgba(ON_ACCENT, 0.55)}; }}
 QPushButton#chrome {{ background: transparent; border: none; padding: 2px 8px; font-size: 11pt; border-radius: 6px; }}
 QPushButton#chrome:hover {{ background: rgba(255,255,255,0.12); color: {GOLD}; }}
 QPushButton#swatch {{ border-radius: 12px; padding: 0; min-width: 24px; max-width: 24px; min-height: 24px; max-height: 24px; }}
@@ -168,22 +208,22 @@ QSlider::sub-page:horizontal {{
 }}
 QSlider::handle:horizontal {{
   background: qradialgradient(cx:0.4, cy:0.35, radius:0.8, stop:0 #ffffff, stop:1 #e9dcc4);
-  width: 14px; height: 14px; margin: -6px 0; border-radius: 7px; border: 1px solid rgba(168,122,52,0.6);
+  width: 14px; height: 14px; margin: -6px 0; border-radius: 7px; border: 1px solid {_rgba(ACCENT_C, 0.6)};
 }}
 QSpinBox, QLineEdit, QComboBox {{
   background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.12);
   border-bottom-color: rgba(255,255,255,0.22);
   border-radius: 10px; padding: 4px 8px; selection-background-color: {ACCENT_B}; selection-color: {ON_ACCENT};
 }}
-QLineEdit:focus, QSpinBox:focus, QComboBox:focus {{ border: 1px solid rgba(227,190,122,0.75); }}
+QLineEdit:focus, QSpinBox:focus, QComboBox:focus {{ border: 1px solid {_rgba(GOLD, 0.75)}; }}
 QFrame#card {{ background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10); border-radius: 14px; }}
 QLabel#big {{ font-size: 17pt; font-weight: 700; }}
 QLabel#good {{ color: {GOLD}; font-weight: 600; }}
 QLabel#warn {{ color: #f0b46a; font-weight: 600; }}
-QComboBox QAbstractItemView {{ background: {SURFACE}; border: 1px solid rgba(227,190,122,0.35);
-  selection-background-color: rgba(216,173,98,0.28); selection-color: {TEXT}; }}
+QComboBox QAbstractItemView {{ background: {SURFACE}; border: 1px solid {_rgba(GOLD, 0.35)};
+  selection-background-color: {_rgba(ACCENT_B, 0.28)}; selection-color: {TEXT}; }}
 QCheckBox::indicator {{ width: 16px; height: 16px; border-radius: 5px; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.06); }}
-QCheckBox::indicator:checked {{ background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 {ACCENT_A}, stop:1 {ACCENT_C}); border: 1px solid rgba(255,240,210,0.7); }}
+QCheckBox::indicator:checked {{ background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 {ACCENT_A}, stop:1 {ACCENT_C}); border: 1px solid {_rgba(ACCENT_A, 0.7)}; }}
 QTableWidget {{ background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; gridline-color: rgba(255,255,255,0.06); }}
 QHeaderView {{ background: transparent; }}
 QTableCornerButton::section {{ background: transparent; border: none; }}
@@ -194,18 +234,21 @@ QScrollBar:horizontal {{ background: transparent; height: 8px; }}
 QScrollBar::handle:horizontal {{ background: rgba(255,255,255,0.22); border-radius: 4px; min-width: 30px; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; width: 0; }}
 QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
-QToolTip {{ background: {SURFACE}; color: {TEXT}; border: 1px solid rgba(227,190,122,0.4); border-radius: 6px; padding: 4px; }}
-QMenu {{ background: {SURFACE}; border: 1px solid rgba(227,190,122,0.28); border-radius: 10px; padding: 5px; }}
+QToolTip {{ background: {SURFACE}; color: {TEXT}; border: 1px solid {_rgba(GOLD, 0.4)}; border-radius: 6px; padding: 4px; }}
+QMenu {{ background: {SURFACE}; border: 1px solid {_rgba(GOLD, 0.28)}; border-radius: 10px; padding: 5px; }}
 QMenu::item {{ padding: 6px 18px; border-radius: 6px; }}
-QMenu::item:selected {{ background: rgba(216,173,98,0.22); color: #fff6e2; }}
-QMenu::item:disabled {{ color: rgba(227,190,122,0.75); }}
+QMenu::item:selected {{ background: {_rgba(ACCENT_B, 0.22)}; color: #fff6e2; }}
+QMenu::item:disabled {{ color: {_rgba(GOLD, 0.75)}; }}
 QMenu::separator {{ height: 1px; background: rgba(255,255,255,0.08); margin: 4px 8px; }}
 QListWidget {{ background: rgba(0,0,0,0.22); border: 1px solid rgba(255,255,255,0.10); border-radius: 12px;
   padding: 4px; outline: 0; }}
 QListWidget::item {{ padding: 7px 8px; border-radius: 8px; }}
 QListWidget::item:hover {{ background: rgba(255,255,255,0.05); }}
-QListWidget::item:selected {{ background: rgba(216,173,98,0.20); color: {TEXT}; border: 1px solid rgba(227,190,122,0.35); }}
+QListWidget::item:selected {{ background: {_rgba(ACCENT_B, 0.20)}; color: {TEXT}; border: 1px solid {_rgba(GOLD, 0.35)}; }}
 """
+
+
+QSS = build_qss()
 
 
 # ---------------------------------------------------------------- Windows acrylic

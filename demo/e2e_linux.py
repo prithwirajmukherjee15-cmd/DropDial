@@ -167,6 +167,8 @@ def find_icons(empty: Image.Image, full: Image.Image, n: int) -> list[tuple[int,
 def ring_index(paths, ring, label):
     from dropdial.app import DropDialApp
     rings = DropDialApp.build_rings(None, paths)
+    if label not in [i.label for i in rings.get(ring, [])]:
+        ring = next(r for r, items in rings.items() if label in [i.label for i in items])
     items = rings[ring]
     return list(rings).index(ring), [i.label for i in items].index(label), len(items)
 
@@ -229,7 +231,7 @@ def run(name, files, ring, label, verify, after_drop=None):
         cur = cursor()
         shot(f"{tag}_still")
         c = menu_center(cur)
-        if ring_i == 1:              # tap Shift again: Convert → Tools
+        for _ in range(ring_i):      # tap Shift again: Convert → More → Tools
             xdo("keyup", "shift")
             time.sleep(0.25)
             xdo("keydown", "shift")
