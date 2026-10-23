@@ -55,7 +55,13 @@ def unique_path(path: str | Path) -> Path:
 
 
 class UserError(Exception):
-    """An error with a message that's fine to show the user as-is."""
+    """An error with a message that's fine to show the user as-is. Values go in as named fields
+    so the sentence stays translatable (i18n.error_text):
+    UserError("Recipe “{name}” has no steps.", name=r.name)."""
+
+    def __init__(self, message: str = "", **fmt):
+        self.template, self.fmt = message, fmt
+        super().__init__(message.format(**fmt) if fmt else message)
 
 
 class NotSmaller(UserError):
@@ -167,7 +173,7 @@ def parse_size(text: str) -> int:
     try:
         n = float(t)
     except ValueError:
-        raise UserError(f"Can't read the size {text!r}. Try something like 500KB or 2MB.") from None
+        raise UserError("Can't read the size {size}. Try something like 500KB or 2MB.", size=repr(text)) from None
     if n <= 0:
         raise UserError("The size must be bigger than zero.")
     return int(n * mult)

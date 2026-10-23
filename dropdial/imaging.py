@@ -9,6 +9,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOp
 from PIL.ExifTags import GPSTAGS, TAGS
 
 from .convert import atomic_save, fitz, flatten, open_image, open_pdf, save_image
+from .i18n import N_
 from .util import NotSmaller, UserError, sibling
 
 EXT_TARGET = {".jpg": "JPG", ".jpeg": "JPG", ".png": "PNG", ".webp": "WEBP", ".tif": "TIFF",
@@ -151,8 +152,8 @@ def ensure_smaller(src: str | Path, out: Path, resized: bool = False) -> Path:
     same_format = Path(src).suffix.lower().replace("jpeg", "jpg") == out.suffix.lower().replace("jpeg", "jpg")
     if not resized and same_format and out.stat().st_size >= Path(src).stat().st_size:
         out.unlink()
-        raise NotSmaller(f"{Path(src).name} is already compressed as far as this setting goes. "
-                         "Try a lower quality, a target size or WebP.")
+        raise NotSmaller("{name} is already compressed as far as this setting goes. "
+                         "Try a lower quality, a target size or WebP.", name=Path(src).name)
     return out
 
 
@@ -166,7 +167,7 @@ def compress_each(srcs: list, fn) -> list[Path]:
             skipped.append(e)
     if not outs and skipped:
         raise skipped[0] if len(skipped) == 1 else NotSmaller(
-            f"None of the {len(skipped)} files could get smaller with this setting.")
+            "None of the {n} files could get smaller with this setting.", n=len(skipped))
     return outs
 
 
@@ -601,16 +602,16 @@ def rounded_mask(size: tuple[int, int], radius: int) -> Image.Image:
 
 
 BG_PRESETS = [
-    ("Sunset", ["#ffb36b", "#ff5f6d", "#a24bff"]),
-    ("Prism", ["#ff6b9d", "#ffb36b", "#ffe66b", "#7dffb0", "#6bd5ff", "#8a7bff"]),
-    ("Peach", ["#ffd6a5", "#ff9a8b"]),
-    ("Aurora", ["#00d2ff", "#7a5cff", "#ff5fd2"]),
-    ("Mint", ["#a8ffce", "#3ad6c6"]),
-    ("Ocean", ["#43cbff", "#2058d6"]),
-    ("Dusk", ["#2b1055", "#d53a9d"]),
-    ("Lemon", ["#fff59d", "#ffb74d"]),
-    ("Night", ["#0f2027", "#2c5364"]),
-    ("Rose", ["#ffdde1", "#ee9ca7"]),
+    (N_("Sunset"), ["#ffb36b", "#ff5f6d", "#a24bff"]),
+    (N_("Prism"), ["#ff6b9d", "#ffb36b", "#ffe66b", "#7dffb0", "#6bd5ff", "#8a7bff"]),
+    (N_("Peach"), ["#ffd6a5", "#ff9a8b"]),
+    (N_("Aurora"), ["#00d2ff", "#7a5cff", "#ff5fd2"]),
+    (N_("Mint"), ["#a8ffce", "#3ad6c6"]),
+    (N_("Ocean"), ["#43cbff", "#2058d6"]),
+    (N_("Dusk"), ["#2b1055", "#d53a9d"]),
+    (N_("Lemon"), ["#fff59d", "#ffb74d"]),
+    (N_("Night"), ["#0f2027", "#2c5364"]),
+    (N_("Rose"), ["#ffdde1", "#ee9ca7"]),
 ]
 BG_SOLIDS = ["#ffffff", "#f2f2f7", "#d1d1d6", "#8e8e93", "#1c1c1e", "#000000", "#ff3b30",
           "#ff9500", "#ffcc00", "#34c759", "#00c7be", "#007aff", "#5856d6", "#af52de"]

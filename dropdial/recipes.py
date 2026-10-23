@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from .i18n import N_, tr
 from .imaging import BG_PRESETS
 from .util import (BESIDE, UserError, category, data_dir, output_dir, output_override, parse_size,
                    current_progress, progress_hook, unique_path)
@@ -63,7 +64,7 @@ class StepType:
 
     def describe(self, params: dict) -> str:
         merged = {**self.defaults(), **params}
-        return self.summary(merged) if self.summary else self.label
+        return self.summary(merged) if self.summary else tr(self.label)
 
 
 def _same(path: Path) -> list[Path]:
@@ -268,54 +269,59 @@ def _frame(path: Path, p: dict) -> list[Path]:
 _CONVERT_TO = ("JPG", "PNG", "WEBP", "AVIF", "HEIC", "TIFF", "GIF", "PDF", "DOCX", "TXT",
                "MP4", "WEBM", "MOV", "MP3", "M4A", "WAV", "FLAC", "OGG")
 _POS = ("bottom-right", "bottom-left", "top-right", "top-left", "center", "tile")
+RESIZE_BY = {"long": N_("resize long {value} px"), "w": N_("resize w {value} px"),
+             "h": N_("resize h {value} px")}       # long = longest side, w = width, h = height
 
 STEPS: dict[str, StepType] = {s.key: s for s in [
-    StepType("convert", "Convert", ALL_CATS,
-             [Param("to", "choice", "WEBP", "Format", _CONVERT_TO),
-              Param("quality", "int", 0, "Quality (0 = Settings)", lo=0, hi=100)],
-             _convert, out_cat=_convert_out, summary=lambda p: f"save as {p['to']}",
+    StepType("convert", N_("Convert"), ALL_CATS,
+             [Param("to", "choice", "WEBP", N_("Format"), _CONVERT_TO),
+              Param("quality", "int", 0, N_("Quality (0 = Settings)"), lo=0, hi=100)],
+             _convert, out_cat=_convert_out, summary=lambda p: tr("save as {fmt}", fmt=p["to"]),
              accepts=lambda c, p: str(p["to"]).upper() in _targets(c)),
-    StepType("resize", "Resize", ("image",),
-             [Param("mode", "choice", "long", "By", ("long", "pct", "w", "h")),
-              Param("value", "int", 2048, "Value", lo=1, hi=20000),
-              Param("only_shrink", "bool", True, "Never enlarge")],
-             _resize, summary=lambda p: (f"resize {p['value']}%" if p["mode"] == "pct" else
-                                         f"resize {p['mode']} {p['value']} px")),
-    StepType("compress", "Compress", ("image", "pdf", "video", "audio"),
-             [Param("quality", "int", 75, "Quality", lo=1, hi=100),
-              Param("target", "size", "", "Images: under (e.g. 500KB)"),
-              Param("max_height", "int", 1080, "Videos: max height", lo=0, hi=4320)],
-             _compress, summary=lambda p: "compress" + (f" (photos under {p['target']})" if p["target"] else "")),
-    StepType("strip_metadata", "Remove metadata", ("image", "pdf"),
-             [Param("location_only", "bool", False, "Only remove location")],
-             _strip, summary=lambda p: "remove location" if p["location_only"] else "remove metadata"),
-    StepType("watermark", "Watermark", ("image", "pdf"),
-             [Param("text", "text", "© Your Name", "Text"),
-              Param("position", "choice", "bottom-right", "Position", _POS),
-              Param("opacity", "int", 55, "Opacity %", lo=5, hi=100)],
-             _watermark, summary=lambda p: f"watermark “{p['text']}”"),
-    StepType("add_bg", "Add background", ("image",),
-             [Param("preset", "choice", "Sunset", "Gradient", tuple(n for n, _ in BG_PRESETS)),
-              Param("aspect", "choice", "Auto", "Aspect", ("Auto", "1:1", "4:3", "16:9", "9:16", "4:5")),
-              Param("padding", "int", 12, "Padding %", lo=0, hi=40)],
-             _add_bg, summary=lambda p: f"{p['preset'].lower()} background {p['aspect']}"),
-    StepType("auto_enhance", "Auto enhance", ("image",), [], _enhance),
-    StepType("grayscale", "Black & white", ("image",), [], _grayscale),
-    StepType("rotate", "Rotate", ("image", "pdf", "video"),
-             [Param("degrees", "choice", "90", "Degrees", ("90", "180", "270"))],
-             _rotate, summary=lambda p: f"rotate {p['degrees']}°"),
-    StepType("page_numbers", "Page numbers", ("pdf",),
-             [Param("style", "choice", "1 / N", "Style", ("1", "1 / N", "Page 1", "Page 1 of N")),
-              Param("position", "choice", "bottom-center", "Position",
+    StepType("resize", N_("Resize"), ("image",),
+             [Param("mode", "choice", "long", N_("By"), ("long", "pct", "w", "h")),
+              Param("value", "int", 2048, N_("Value"), lo=1, hi=20000),
+              Param("only_shrink", "bool", True, N_("Never enlarge"))],
+             _resize, summary=lambda p: (tr("resize {pct}%", pct=p["value"]) if p["mode"] == "pct" else
+                                         tr(RESIZE_BY[p["mode"]], value=p["value"]) if p["mode"] in RESIZE_BY
+                                         else f"resize {p['mode']} {p['value']} px")),
+    StepType("compress", N_("Compress"), ("image", "pdf", "video", "audio"),
+             [Param("quality", "int", 75, N_("Quality"), lo=1, hi=100),
+              Param("target", "size", "", N_("Images: under (e.g. 500KB)")),
+              Param("max_height", "int", 1080, N_("Videos: max height"), lo=0, hi=4320)],
+             _compress, summary=lambda p: (tr("compress (photos under {size})", size=p["target"]) if p["target"]
+                                   else tr("compress"))),
+    StepType("strip_metadata", N_("Remove metadata"), ("image", "pdf"),
+             [Param("location_only", "bool", False, N_("Only remove location"))],
+             _strip, summary=lambda p: tr("remove location") if p["location_only"] else tr("remove metadata")),
+    StepType("watermark", N_("Watermark"), ("image", "pdf"),
+             [Param("text", "text", "© Your Name", N_("Text")),
+              Param("position", "choice", "bottom-right", N_("Position"), _POS),
+              Param("opacity", "int", 55, N_("Opacity %"), lo=5, hi=100)],
+             _watermark, summary=lambda p: tr("watermark “{text}”", text=p["text"])),
+    StepType("add_bg", N_("Add background"), ("image",),
+             [Param("preset", "choice", "Sunset", N_("Gradient"), tuple(n for n, _ in BG_PRESETS)),
+              Param("aspect", "choice", "Auto", N_("Aspect"), ("Auto", "1:1", "4:3", "16:9", "9:16", "4:5")),
+              Param("padding", "int", 12, N_("Padding %"), lo=0, hi=40)],
+             _add_bg, summary=lambda p: tr("{preset} background {aspect}", preset=tr(p["preset"]).lower(),
+                                                 aspect=tr(p["aspect"]))),
+    StepType("auto_enhance", N_("Auto enhance"), ("image",), [], _enhance),
+    StepType("grayscale", N_("Black & white"), ("image",), [], _grayscale),
+    StepType("rotate", N_("Rotate"), ("image", "pdf", "video"),
+             [Param("degrees", "choice", "90", N_("Degrees"), ("90", "180", "270"))],
+             _rotate, summary=lambda p: tr("rotate {deg}°", deg=p["degrees"])),
+    StepType("page_numbers", N_("Page numbers"), ("pdf",),
+             [Param("style", "choice", "1 / N", N_("Style"), ("1", "1 / N", "Page 1", "Page 1 of N")),
+              Param("position", "choice", "bottom-center", N_("Position"),
                     ("bottom-center", "bottom-right", "bottom-left", "top-center", "top-right", "top-left"))],
-             _numbers, summary=lambda p: "page numbers"),
-    StepType("combine", "Combine into one PDF", ("image", "pdf"), [], _combine, multi=True,
-             out_cat=lambda c, p: "pdf", summary=lambda p: "combine into one PDF"),
-    StepType("extract_audio", "Extract audio", ("video",), [], _extract_audio,
+             _numbers, summary=lambda p: tr("page numbers")),
+    StepType("combine", N_("Combine into one PDF"), ("image", "pdf"), [], _combine, multi=True,
+             out_cat=lambda c, p: "pdf", summary=lambda p: tr("combine into one PDF")),
+    StepType("extract_audio", N_("Extract audio"), ("video",), [], _extract_audio,
              out_cat=lambda c, p: "audio"),
-    StepType("normalize", "Normalize loudness", ("audio",), [], _normalize),
-    StepType("trim_silence", "Trim silence", ("audio",), [], _trim),
-    StepType("frame", "Grab a frame", ("video",), [], _frame, out_cat=lambda c, p: "image"),
+    StepType("normalize", N_("Normalize loudness"), ("audio",), [], _normalize),
+    StepType("trim_silence", N_("Trim silence"), ("audio",), [], _trim),
+    StepType("frame", N_("Grab a frame"), ("video",), [], _frame, out_cat=lambda c, p: "image"),
 ]}
 
 
@@ -337,11 +343,11 @@ class Recipe:
         if not self.name.strip():
             raise UserError("Give the recipe a name.")
         if not self.steps:
-            raise UserError(f"Recipe “{self.name}” has no steps.")
+            raise UserError("Recipe “{name}” has no steps.", name=self.name)
         for s in self.steps:
             if s.get("step") not in STEPS:
-                raise UserError(f"Recipe “{self.name}”: unknown step {s.get('step')!r}. "
-                                f"Known steps: {', '.join(STEPS)}.")
+                raise UserError("Recipe “{name}”: unknown step {step}. Known steps: {known}.",
+                                name=self.name, step=repr(s.get("step")), known=", ".join(STEPS))
 
     def flow(self, cat: str) -> tuple[list[str], str]:
         """(labels of the steps that would run for a file of `cat`, final category)."""
@@ -388,31 +394,49 @@ class Recipe:
 
 
 BUILTIN: list[Recipe] = [
-    Recipe("Web-ready", [{"step": "resize", "mode": "long", "value": 2048, "only_shrink": True},
+    Recipe(N_("Web-ready"), [{"step": "resize", "mode": "long", "value": 2048, "only_shrink": True},
                          {"step": "strip_metadata"},
                          {"step": "convert", "to": "WEBP", "quality": 82}],
-           "⚡", True, "Resize to 2048 px, remove metadata, save as WebP", ["image"]),
-    Recipe("Email size", [{"step": "resize", "mode": "long", "value": 1600, "only_shrink": True},
+           "⚡", True, N_("Resize to 2048 px, remove metadata, save as WebP"), ["image"]),
+    Recipe(N_("Email size"), [{"step": "resize", "mode": "long", "value": 1600, "only_shrink": True},
                           {"step": "compress", "quality": 60, "target": "900KB", "max_height": 720}],
-           "✉", True, "Small enough to attach: photos under 900 KB, PDFs and videos squeezed",
+           "✉", True, N_("Small enough to attach: photos under 900 KB, PDFs and videos squeezed"),
            ["image", "pdf", "video"]),
-    Recipe("Private", [{"step": "strip_metadata"}],
-           "⛨", True, "Remove camera, GPS location and author details"),
-    Recipe("Social", [{"step": "add_bg", "preset": "Sunset", "aspect": "4:5", "padding": 10},
+    Recipe(N_("Private"), [{"step": "strip_metadata"}],
+           "⛨", True, N_("Remove camera, GPS location and author details")),
+    Recipe(N_("Social"), [{"step": "add_bg", "preset": "Sunset", "aspect": "4:5", "padding": 10},
                       {"step": "resize", "mode": "long", "value": 1350, "only_shrink": True},
                       {"step": "convert", "to": "JPG", "quality": 90}],
-           "♥", True, "Gradient backdrop at 4:5, sized for Instagram", ["image"]),
-    Recipe("Scan → PDF", [{"step": "auto_enhance"}, {"step": "combine"},
+           "♥", True, N_("Gradient backdrop at 4:5, sized for Instagram"), ["image"]),
+    Recipe(N_("Scan → PDF"), [{"step": "auto_enhance"}, {"step": "combine"},
                           {"step": "compress", "quality": 70}],
-           "⎙", True, "Enhance photos of pages and combine them into one compact PDF", ["image"]),
-    Recipe("Confidential", [{"step": "watermark", "text": "CONFIDENTIAL", "position": "tile", "opacity": 30},
+           "⎙", True, N_("Enhance photos of pages and combine them into one compact PDF"), ["image"]),
+    Recipe(N_("Confidential"), [{"step": "watermark", "text": "CONFIDENTIAL", "position": "tile", "opacity": 30},
                             {"step": "page_numbers", "style": "Page 1 of N"}],
-           "⚠", True, "Stamp CONFIDENTIAL across every page or image"),
-    Recipe("Share video", [{"step": "compress", "quality": 50, "max_height": 720}],
-           "▶", True, "720p H.264 MP4: small, plays everywhere", ["video"]),
-    Recipe("Podcast", [{"step": "convert", "to": "MP3"}, {"step": "trim_silence"}, {"step": "normalize"}],
-           "♫", True, "MP3, silence trimmed, loudness at -16 LUFS", ["video", "audio"]),
+           "⚠", True, N_("Stamp CONFIDENTIAL across every page or image")),
+    Recipe(N_("Share video"), [{"step": "compress", "quality": 50, "max_height": 720}],
+           "▶", True, N_("720p H.264 MP4: small, plays everywhere"), ["video"]),
+    Recipe(N_("Podcast"), [{"step": "convert", "to": "MP3"}, {"step": "trim_silence"}, {"step": "normalize"}],
+           "♫", True, N_("MP3, silence trimmed, loudness at -16 LUFS"), ["video", "audio"]),
 ]
+
+
+_BUILTIN_NAMES = {r.name for r in BUILTIN}
+
+
+def display_name(r: "Recipe | str") -> str:
+    """A recipe's name as shown: built-in names are translated, the user's own are kept."""
+    name = r if isinstance(r, str) else r.name
+    return tr(name) if name in _BUILTIN_NAMES else name
+
+
+def builtin_name(shown: str) -> str:
+    """Inverse of display_name for built-ins (so editing "Web-ready" in another language keeps it)."""
+    return next((n for n in _BUILTIN_NAMES if tr(n) == shown), shown)
+
+
+def display_description(r: "Recipe") -> str:
+    return tr(r.description) if r.name in _BUILTIN_NAMES and r.description else r.description
 
 
 # ---------------------------------------------------------------- storage
@@ -489,7 +513,8 @@ def find(name: str) -> Recipe:
     for r in all_recipes():
         if slug(r.name) == slug(name):
             return r
-    raise UserError(f"No recipe called “{name}”. Try: {', '.join(r.name for r in all_recipes())}.")
+    raise UserError("No recipe called “{name}”. Try: {names}.", name=name,
+                    names=", ".join(r.name for r in all_recipes()))
 
 
 def menu_recipes(cat: str | None, limit: int = 8) -> list[Recipe]:
@@ -542,9 +567,10 @@ def run(recipe: Recipe, srcs: list, progress: Callable[[int, int, str], None] | 
     srcs = [Path(s) for s in srcs]
     for s in srcs:
         if not s.is_file():
-            raise UserError(f"{s.name} was moved or deleted.")
+            raise UserError("{name} was moved or deleted.", name=s.name)
     if not any(recipe.applies_to(category(s)) for s in srcs):
-        raise UserError(f"“{recipe.name}” doesn't apply to {srcs[0].suffix or 'this'} files.")
+        raise UserError("“{name}” doesn't apply to {ext} files.", name=recipe.name, ext=srcs[0].suffix) \
+            if srcs[0].suffix else UserError("“{name}” doesn't apply to this file.", name=recipe.name)
     root = Path(tempfile.mkdtemp(prefix="dropdial-recipe-"))
     counter = [0]
 
@@ -591,7 +617,7 @@ def run(recipe: Recipe, srcs: list, progress: Callable[[int, int, str], None] | 
             progress(len(recipe.steps), len(recipe.steps), "Saving")
         done = [w for w in items if w.changed]
         if not done:
-            raise UserError(f"Nothing to change: already fits “{recipe.name}”.")
+            raise UserError("Nothing to change: already fits “{name}”.", name=recipe.name)
         label = re.sub(r'[\\/:*?"<>|]', "-", recipe.name.replace("→", "to"))
         results = []
         for w in done:

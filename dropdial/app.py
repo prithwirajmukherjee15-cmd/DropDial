@@ -14,7 +14,9 @@ from PySide6.QtGui import (QAction, QColor, QCursor, QDesktopServices, QGuiAppli
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QSystemTrayIcon, QWidget
 
-from . import CREDIT, __version__, convert, formats, glass, history, imaging, media, panels, recipes, report, tools, watch
+from . import __version__, convert, formats, glass, history, imaging, media, panels, recipes, report, tools, watch
+from . import i18n
+from .i18n import N_, credit, error_text, tr, trn
 from .radial import Item, RadialMenu
 from .settings import Settings, SettingsWindow, WelcomeWindow, TRIGGERS
 from .toasts import ToastStack
@@ -30,35 +32,35 @@ IS_MAC = sys.platform == "darwin"
 from .handoff import ipc_name
 IPC_NAME = ipc_name()
 
-GLYPHS = {"Compress": "⇲", "Metadata": "ⓘ", "Redact": "▮", "Crop": "⌗", "Edit": "☼",
-          "Annotate": "✎", "Add BG": "▣", "Resize": "⤢", "Split": "✂", "Rotate": "⟳",
-          "Merge": "⧉", "Protect": "⚿", "Extract": "⧈", "Watermark": "©", "Numbers": "#",
-          "Unlock": "⚷", "Audio": "♪", "Mute": "∅", "Frame": "▭", "Normalize": "≋",
-          "Trim silence": "⇥"}
+GLYPHS = {N_("Compress"): "⇲", N_("Metadata"): "ⓘ", N_("Redact"): "▮", N_("Crop"): "⌗", N_("Edit"): "☼",
+          N_("Annotate"): "✎", N_("Add BG"): "▣", N_("Resize"): "⤢", N_("Split"): "✂", N_("Rotate"): "⟳",
+          N_("Merge"): "⧉", N_("Protect"): "⚿", N_("Extract"): "⧈", N_("Watermark"): "©", N_("Numbers"): "#",
+          N_("Unlock"): "⚷", N_("Audio"): "♪", N_("Mute"): "∅", N_("Frame"): "▭", N_("Normalize"): "≋",
+          N_("Trim silence"): "⇥"}
 
 HINTS = {
-    "Compress": "Shrink file size", "Metadata": "View · remove GPS", "Redact": "Hide private info",
-    "Crop": "Trim to a ratio", "Edit": "Light · colour · rotate", "Annotate": "Arrows · text · steps",
-    "Add BG": "Gradient backdrop", "Resize": "Change dimensions", "Split": "One PDF per page",
-    "Rotate": "Turn pages 90°", "Merge": "Join into one PDF", "Protect": "Add a password",
-    "Extract": "Save embedded images", "Watermark": "Stamp your name", "Numbers": "Number the pages",
-    "Unlock": "Remove the password", "Audio": "Save the sound as MP3", "Mute": "Remove the sound",
-    "Frame": "Save a still image", "Normalize": "Even out loudness", "Trim silence": "Cut quiet ends",
+    "Compress": N_("Shrink file size"), "Metadata": N_("View · remove GPS"), "Redact": N_("Hide private info"),
+    "Crop": N_("Trim to a ratio"), "Edit": N_("Light · colour · rotate"), "Annotate": N_("Arrows · text · steps"),
+    "Add BG": N_("Gradient backdrop"), "Resize": N_("Change dimensions"), "Split": N_("One PDF per page"),
+    "Rotate": N_("Turn pages 90°"), "Merge": N_("Join into one PDF"), "Protect": N_("Add a password"),
+    "Extract": N_("Save embedded images"), "Watermark": N_("Stamp your name"), "Numbers": N_("Number the pages"),
+    "Unlock": N_("Remove the password"), "Audio": N_("Save the sound as MP3"), "Mute": N_("Remove the sound"),
+    "Frame": N_("Save a still image"), "Normalize": N_("Even out loudness"), "Trim silence": N_("Cut quiet ends"),
 }
-VIDEO_HINTS = {"Compress": "Smaller MP4 · ≤1080p", "Rotate": "Turn 90° clockwise"}
-AUDIO_HINTS = {"Compress": "96 kbps MP3"}
-FORMAT_HINTS = {"JPG": "Small, universal", "PNG": "Lossless · transparency", "WEBP": "Smallest for web",
-                "HEIC": "iPhone format", "TIFF": "Print · archival", "AVIF": "Next-gen, tiny",
-                "BMP": "Uncompressed", "PDF": "Document", "ICO": "Windows icon", "GIF": "Legacy web",
-                "DOCX": "Editable Word", "TXT": "Plain text", "MP4": "Plays everywhere",
-                "WEBM": "Small web video", "MOV": "Apple · editing", "MP3": "Universal audio",
-                "M4A": "Apple audio", "WAV": "Uncompressed", "FLAC": "Lossless audio", "OGG": "Open format"}
-CAT_FORMAT_HINTS = {("video", "GIF"): "Animated · first 30 s", ("video", "MP3"): "Just the sound",
-                    ("vector", "PNG"): "Crisp 2048 px", ("vector", "PDF"): "Stays vector",
-                    ("ebook", "PDF"): "Readable anywhere"}
-RECIPE_HINTS = {"Web-ready": "WebP · no metadata", "Email size": "Fits in an email",
-                "Private": "Strip GPS · camera", "Social": "4:5 gradient post", "Scan → PDF": "Pages → one PDF",
-                "Confidential": "Stamp every page", "Share video": "720p MP4", "Podcast": "MP3 · −16 LUFS"}
+VIDEO_HINTS = {"Compress": N_("Smaller MP4 · ≤1080p"), "Rotate": N_("Turn 90° clockwise")}
+AUDIO_HINTS = {"Compress": N_("96 kbps MP3")}
+FORMAT_HINTS = {"JPG": N_("Small, universal"), "PNG": N_("Lossless · transparency"), "WEBP": N_("Smallest for web"),
+                "HEIC": N_("iPhone format"), "TIFF": N_("Print · archival"), "AVIF": N_("Next-gen, tiny"),
+                "BMP": N_("Uncompressed"), "PDF": N_("Document"), "ICO": N_("Windows icon"), "GIF": N_("Legacy web"),
+                "DOCX": N_("Editable Word"), "TXT": N_("Plain text"), "MP4": N_("Plays everywhere"),
+                "WEBM": N_("Small web video"), "MOV": N_("Apple · editing"), "MP3": N_("Universal audio"),
+                "M4A": N_("Apple audio"), "WAV": N_("Uncompressed"), "FLAC": N_("Lossless audio"), "OGG": N_("Open format")}
+CAT_FORMAT_HINTS = {("video", "GIF"): N_("Animated · first 30 s"), ("video", "MP3"): N_("Just the sound"),
+                    ("vector", "PNG"): N_("Crisp 2048 px"), ("vector", "PDF"): N_("Stays vector"),
+                    ("ebook", "PDF"): N_("Readable anywhere")}
+RECIPE_HINTS = {"Web-ready": N_("WebP · no metadata"), "Email size": N_("Fits in an email"),
+                "Private": N_("Strip GPS · camera"), "Social": N_("4:5 gradient post"), "Scan → PDF": N_("Pages → one PDF"),
+                "Confidential": N_("Stamp every page"), "Share video": N_("720p MP4"), "Podcast": N_("MP3 · −16 LUFS")}
 
 IMAGE_TOOLS = ["Compress", "Resize", "Crop", "Edit", "Annotate", "Redact", "Add BG", "Watermark", "Metadata"]
 PDF_TOOLS = ["Compress", "Split", "Rotate", "Numbers", "Watermark", "Protect", "Extract", "Metadata"]
@@ -76,7 +78,7 @@ def run_each(srcs: list, fn) -> list:
             except UserError as e:
                 if len(srcs) == 1:
                     raise
-                errors.append(f"{Path(p).name}: {e}")
+                errors.append(f"{Path(p).name}: {error_text(e)}")
     if not outs and errors:
         raise UserError(errors[0])
     return outs
@@ -123,7 +125,7 @@ class Job(QRunnable):
                 outs = self.fn() or []
             self.sig.done.emit(outs if self.raw else report.summarize(self.action, self.srcs, outs, self.extra))
         except UserError as e:
-            self.sig.failed.emit(str(e))
+            self.sig.failed.emit(error_text(e))
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
             self.sig.failed.emit(friendly_error(e))
@@ -133,12 +135,13 @@ def friendly_error(e: Exception) -> str:
     msg = str(e) or e.__class__.__name__
     low = msg.lower()
     if isinstance(e, PermissionError) or "permission denied" in low:
-        return "No permission to write next to this file. Try a folder you own, or set Settings → Save results → subfolder."
+        return tr("No permission to write next to this file. Try a folder you own, "
+                  "or set Settings → Save results → subfolder.")
     if "cannot identify image" in low:
-        return "This file doesn't look like an image DropDial can read."
+        return tr("This file doesn't look like an image DropDial can read.")
     if isinstance(e, FileNotFoundError):
-        return "The file was moved or deleted."
-    return msg
+        return tr("The file was moved or deleted.")
+    return tr(msg)
 
 
 # ---------------------------------------------------------------- icon
@@ -216,29 +219,29 @@ class DropDialApp(QObject):
         self.server.newConnection.connect(self._ipc)
 
         self.tray = QSystemTrayIcon(make_tray_icon(), self)
-        self.tray.setToolTip(f"{APP_NAME} — press {self.trigger_label()} while dragging a file")
+        self.tray.setToolTip(self._tray_tip())
         m = QMenu()
         m.setStyleSheet(glass.QSS)
-        credit = m.addAction(f"{APP_NAME} {VERSION}  ·  {CREDIT}")
+        credit = m.addAction(f"{APP_NAME} {VERSION}  ·  {credit()}")
         credit.setEnabled(False)          # a signature line, styled gold by the stylesheet
         m.addSeparator()
-        self.act_enabled = QAction("Enabled", m, checkable=True, checked=True)
+        self.act_enabled = QAction(tr("Enabled"), m, checkable=True, checked=True)
         self.act_enabled.toggled.connect(lambda on: setattr(self.watcher, "enabled", on))
         m.addAction(self.act_enabled)
-        m.addAction("Home…", self.open_home)
-        m.addAction("Open a file…", self.open_dialog)
-        m.addAction("History…", self.open_history)
+        m.addAction(tr("Home…"), self.open_home)
+        m.addAction(tr("Open a file…"), self.open_dialog)
+        m.addAction(tr("History…"), self.open_history)
         m.addSeparator()
-        m.addAction("Recipes…", self.open_recipes)
-        self.act_watch = m.addAction("Watch folders…", self.open_watch)
-        m.addAction("Settings…", self.open_settings)
+        m.addAction(tr("Recipes…"), self.open_recipes)
+        self.act_watch = m.addAction(tr("Watch folders…"), self.open_watch)
+        m.addAction(tr("Settings…"), self.open_settings)
         m.addSeparator()
-        m.addAction("How to use", self.show_welcome)
-        m.addAction(f"About {APP_NAME}…", lambda: QDesktopServices.openUrl(QUrl(PROJECT_URL)))
-        self.act_update = m.addAction("Update available", self._open_update)
+        m.addAction(tr("How to use"), self.show_welcome)
+        m.addAction(tr("About {app}…", app=APP_NAME), lambda: QDesktopServices.openUrl(QUrl(PROJECT_URL)))
+        self.act_update = m.addAction(tr("Update available"), self._open_update)
         self.act_update.setVisible(False)
         m.addSeparator()
-        m.addAction(f"Quit {APP_NAME}", self.qapp.quit)
+        m.addAction(tr("Quit {app}", app=APP_NAME), self.qapp.quit)
         self.tray_menu = m
         self.tray.setContextMenu(m)
         self.tray.activated.connect(self._tray_click)
@@ -257,6 +260,9 @@ class DropDialApp(QObject):
 
     def trigger_label(self) -> str:
         return dict(TRIGGERS).get(self.settings.get("trigger"), "Shift")
+
+    def _tray_tip(self) -> str:
+        return tr("{app} — press {key} while dragging a file", app=APP_NAME, key=self.trigger_label())
 
     # ------------------------------------------------------------ IPC
     def _ipc(self):
@@ -308,13 +314,13 @@ class DropDialApp(QObject):
     # ------------------------------------------------------------ menu contents
     def describe(self, paths: list[str]) -> str:
         if len(paths) > 1:
-            return f"{len(paths)} files"
+            return trn("{n} file", "{n} files", len(paths))
         return human_size(file_size(paths[0]))
 
     def build_rings(self, paths: list[str]) -> dict[str, list[Item]]:
         # NB: also called unbound (self=None) by the e2e scripts, so it must not touch `self`
         zip_item = Item("ZIP", ZIP_GLYPH, key="zip:ZIP",
-                        hint="Folder → 1 ZIP" if len(paths) == 1 else f"{len(paths)} items → 1 ZIP")
+                        hint=tr("Folder → 1 ZIP") if len(paths) == 1 else tr("{n} items → 1 ZIP", n=len(paths)))
         if any(os.path.isdir(p) for p in paths):
             return {"Convert": [zip_item]} if can_zip() else {"Unsupported": []}
         cat = category(paths[0])
@@ -323,15 +329,15 @@ class DropDialApp(QObject):
         ext = Path(paths[0]).suffix
         same = [p for p in paths if category(p) == cat]
         if cat == "pdf" and os.path.exists(paths[0]) and imaging.pdf_is_locked(paths[0]):
-            return {"Tools": [Item("Unlock", GLYPHS["Unlock"], key="tool:Unlock", hint=HINTS["Unlock"])]}
+            return {"Tools": [Item(tr("Unlock"), GLYPHS["Unlock"], key="tool:Unlock", hint=tr(HINTS["Unlock"]))]}
         fam = formats.family(cat)
         convert_items = []
         for t in convert.targets_for(cat, ext):
-            hint = ((fam.hints.get(t) if fam else None) or CAT_FORMAT_HINTS.get((cat, t))
-                    or FORMAT_HINTS.get(t, ""))
+            hint = tr((fam.hints.get(t) if fam else None) or CAT_FORMAT_HINTS.get((cat, t))
+                      or FORMAT_HINTS.get(t, ""))
             if cat == "image" and t == "PDF" and len(same) > 1:
-                hint = f"{len(same)} images → 1 PDF"
-            convert_items.append(Item(t, key=f"convert:{t}", hint=hint))
+                hint = tr("{n} images → 1 PDF", n=len(same))
+            convert_items.append(Item(tr(t), key=f"convert:{t}", hint=hint))
         if len(paths) > 1 and cat != "archive" and can_zip():
             convert_items.append(zip_item)
         # a dial reads well up to ~9 slices: the rest go on the other side ("More formats")
@@ -345,7 +351,7 @@ class DropDialApp(QObject):
 
         def tools(names, hints=None):
             hints = hints or {}
-            return [Item(n, GLYPHS[n], key=f"tool:{n}", hint=hints.get(n) or HINTS[n]) for n in names]
+            return [Item(tr(n), GLYPHS[n], key=f"tool:{n}", hint=tr(hints.get(n) or HINTS[n])) for n in names]
 
         if cat == "image":
             rings["Tools"] = tools(IMAGE_TOOLS)
@@ -356,16 +362,16 @@ class DropDialApp(QObject):
         elif cat == "audio":
             rings["Tools"] = tools(media.AUDIO_TOOLS, AUDIO_HINTS)
         elif fam is not None and fam.tools:
-            rings["Tools"] = [Item(t.name, t.glyph, key=f"tool:{t.name}", hint=t.hint) for t in fam.tools]
+            rings["Tools"] = [Item(tr(t.name), t.glyph, key=f"tool:{t.name}", hint=tr(t.hint)) for t in fam.tools]
         try:
             menu_recipes = recipes.menu_recipes(cat)
         except Exception:  # a broken recipes.json must never break the menu
             traceback.print_exc()
             menu_recipes = []
         if menu_recipes:
-            rings["Recipes"] = [Item(r.name, r.glyph, key=f"recipe:{r.name}",
-                                     hint=RECIPE_HINTS.get(r.name) if r.builtin else
-                                     f"{len(r.flow(cat)[0])} steps")
+            rings["Recipes"] = [Item(recipes.display_name(r), r.glyph, key=f"recipe:{r.name}",
+                                     hint=tr(RECIPE_HINTS.get(r.name, "")) if r.builtin else
+                                     trn("{n} step", "{n} steps", len(r.flow(cat)[0])))
                                 for r in menu_recipes]
         return rings
 
@@ -384,12 +390,12 @@ class DropDialApp(QObject):
         def fetched(got):
             self.run_item(item, [str(g) for g in got])
 
-        self.submit_plain(fetch_all, fetched, "Downloading…", paths)
+        self.submit_plain(fetch_all, fetched, tr("Downloading…"), paths)
 
     def submit_plain(self, fn, on_done, working: str, srcs: list):
         """Run fn() in the background and hand its return value to on_done (no history entry)."""
         card = self.toasts.new()
-        card.working(working, Path(srcs[0]).name if len(srcs) == 1 else f"{len(srcs)} files")
+        card.working(working, Path(srcs[0]).name if len(srcs) == 1 else trn("{n} file", "{n} files", len(srcs)))
         job = Job("plain", srcs, fn, raw=True)
 
         def done(r):
@@ -399,7 +405,7 @@ class DropDialApp(QObject):
 
         def failed(msg):
             release(job)
-            card.error("Couldn't download", msg)
+            card.error(tr("Couldn't download"), msg)
 
         job.sig.done.connect(done)
         job.sig.failed.connect(failed)
@@ -409,7 +415,7 @@ class DropDialApp(QObject):
         kind, name = item.key.split(":", 1)
         if kind == "zip":
             from .formats import archives
-            self.submit("tool:ZIP", paths, lambda: [archives.zip_paths([Path(p) for p in paths])], "Zipping…")
+            self.submit("tool:ZIP", paths, lambda: [archives.zip_paths([Path(p) for p in paths])], tr("Zipping…"))
             return
         cat = category(paths[0])
         if kind == "recipe":
@@ -429,15 +435,15 @@ class DropDialApp(QObject):
         if kind == "convert":
             if cat == "image" and name == "PDF" and len(paths) > 1:
                 self.submit(f"convert:{name}", paths, lambda: convert.images_to_single_pdf(paths),
-                            f"Combining {len(paths)} images…")
+                            tr("Combining {n} images…", n=len(paths)))
             else:
-                verb = f"Converting to {name}…"
+                verb = tr("Converting to {fmt}…", fmt=name)
                 self.submit(f"convert:{name}", paths,
                             lambda: [o for p in paths for o in convert.convert(p, cat, name)], verb)
             return
         if cat == "pdf":
             if name == "Merge":
-                self.submit("tool:Merge", paths, lambda: [imaging.merge_pdfs(paths)], "Merging…")
+                self.submit("tool:Merge", paths, lambda: [imaging.merge_pdfs(paths)], tr("Merging…"))
             elif name == "Metadata":
                 self.open_window(tools.MetadataWindow(paths[0], self.notify, is_pdf=True))
             elif name == "Protect":
@@ -450,8 +456,8 @@ class DropDialApp(QObject):
                        "Numbers": lambda p: [imaging.pdf_page_numbers(p)]}
                 f = fns[name]
                 self.submit(f"tool:{name}", paths, lambda: [o for p in paths for o in f(p)],
-                            {"Compress": "Compressing…", "Split": "Splitting…", "Rotate": "Rotating…",
-                             "Extract": "Extracting images…", "Numbers": "Numbering pages…"}[name])
+                            {"Compress": tr("Compressing…"), "Split": tr("Splitting…"), "Rotate": tr("Rotating…"),
+                             "Extract": tr("Extracting images…"), "Numbers": tr("Numbering pages…")}[name])
             return
         if cat != "image":
             return
@@ -467,10 +473,10 @@ class DropDialApp(QObject):
             else:
                 self.open_window(windows[name](paths[0], self.notify))
         except UserError as e:
-            self.toasts.error(f"Couldn't open {name}", str(e))
+            self.toasts.error(tr("Couldn't open {tool}", tool=tr(name)), error_text(e))
         except Exception as e:  # noqa: BLE001
             traceback.print_exc()
-            self.toasts.error(f"Couldn't open {name}", friendly_error(e))
+            self.toasts.error(tr("Couldn't open {tool}", tool=tr(name)), friendly_error(e))
 
     def open_window(self, w: QWidget):
         if hasattr(w, "submit"):
@@ -482,11 +488,12 @@ class DropDialApp(QObject):
         else:
             w.show()
 
-    def submit(self, action: str, srcs: list, fn, working: str = "Working…", extra: str = "",
+    def submit(self, action: str, srcs: list, fn, working: str = "", extra: str = "",
                source: str = "menu", on_done=None, toast: bool = True):
         """Run in the background. A spinner card appears only if it takes > 150 ms."""
         state = {"card": None, "finished": False, "pct": None}
-        names = Path(srcs[0]).name if len(srcs) == 1 else f"{len(srcs)} files"
+        working = working or tr("Working…")
+        names = Path(srcs[0]).name if len(srcs) == 1 else trn("{n} file", "{n} files", len(srcs))
 
         def show_spinner():
             if not state["finished"] and toast:
@@ -520,7 +527,7 @@ class DropDialApp(QObject):
             release(job)
             state["finished"] = True
             card = state["card"] or self.toasts.new()
-            card.error("Couldn't finish", msg)
+            card.error(tr("Couldn't finish"), msg)
 
         job.sig.done.connect(done)
         job.sig.failed.connect(failed)
@@ -548,11 +555,12 @@ class DropDialApp(QObject):
         try:
             r = recipes.find(name)
         except UserError as e:
-            self.toasts.error("Recipe not found", str(e))
+            self.toasts.error(tr("Recipe not found"), error_text(e))
             return
         todo = [p for p in paths if r.applies_to(category(p))]
         if not todo:
-            self.toasts.error(f"“{r.name}” doesn't fit", "None of these files work with this recipe.")
+            self.toasts.error(tr("“{name}” doesn't fit", name=recipes.display_name(r)),
+                              tr("None of these files work with this recipe."))
             return
         cat = category(todo[0])
         combine = any(s.get("step") == "combine" for s in r.steps)
@@ -568,42 +576,42 @@ class DropDialApp(QObject):
                     try:
                         outs += recipes.run(r, [p]).outputs
                     except UserError as e:
-                        errors.append(f"{Path(p).name}: {e}")
+                        errors.append(f"{Path(p).name}: {error_text(e)}")
             if not outs and errors:
                 raise UserError(errors[0])
             return outs
-        self.submit(f"recipe:{r.name}", todo, work, f"{r.glyph} {r.name}…", r.summary(cat))
+        self.submit(f"recipe:{r.name}", todo, work, f"{r.glyph} {recipes.display_name(r)}…", r.summary(cat))
 
     def run_family(self, fam, kind: str, name: str, paths: list[str]):
         """Convert or run a tool of a plug-in family (dropdial/formats)."""
         srcs = [Path(p) for p in paths]
         if kind == "convert":
             if len(srcs) > 1 and name in fam.combine:
-                fn, verb = (lambda: fam.combine[name](srcs)), f"Combining {len(srcs)} files…"
+                fn, verb = (lambda: fam.combine[name](srcs)), tr("Combining {n} files…", n=len(srcs))
             else:
-                fn, verb = (lambda: run_each(srcs, lambda p: fam.convert(p, name))), f"Converting to {name}…"
+                fn, verb = (lambda: run_each(srcs, lambda p: fam.convert(p, name))), tr("Converting to {fmt}…", fmt=tr(name))
             self.submit(f"convert:{name}", paths, fn, verb)
             return
         tool = next((t for t in fam.tools if t.name == name), None)
         if tool is None:
             return
         fn = (lambda: tool.run(srcs)) if tool.multi else (lambda: run_each(srcs, lambda p: tool.run([p])))
-        self.submit(f"tool:{name}", paths, fn, tool.working)
+        self.submit(f"tool:{name}", paths, fn, tr(tool.working))
 
     def run_media_tool(self, cat: str, name: str, paths: list[str]):
         if not media.available():
-            self.toasts.error("ffmpeg is missing", "Video and audio need ffmpeg. Install it, or "
-                              "`pip install imageio-ffmpeg`, then try again.")
+            self.toasts.error(tr("ffmpeg is missing"), tr("Video and audio need ffmpeg. Install it, or "
+                                                          "`pip install imageio-ffmpeg`, then try again."))
             return
         fns = {
-            ("video", "Compress"): (media.compress_video, "Compressing video…"),
-            ("video", "Audio"): (media.extract_audio, "Extracting audio…"),
-            ("video", "Mute"): (media.mute_video, "Removing sound…"),
-            ("video", "Frame"): (media.video_frame, "Grabbing a frame…"),
-            ("video", "Rotate"): (media.rotate_video, "Rotating video…"),
-            ("audio", "Normalize"): (media.normalize_audio, "Normalizing…"),
-            ("audio", "Trim silence"): (media.trim_silence, "Trimming silence…"),
-            ("audio", "Compress"): (media.compress_audio, "Compressing audio…"),
+            ("video", "Compress"): (media.compress_video, tr("Compressing video…")),
+            ("video", "Audio"): (media.extract_audio, tr("Extracting audio…")),
+            ("video", "Mute"): (media.mute_video, tr("Removing sound…")),
+            ("video", "Frame"): (media.video_frame, tr("Grabbing a frame…")),
+            ("video", "Rotate"): (media.rotate_video, tr("Rotating video…")),
+            ("audio", "Normalize"): (media.normalize_audio, tr("Normalizing…")),
+            ("audio", "Trim silence"): (media.trim_silence, tr("Trimming silence…")),
+            ("audio", "Compress"): (media.compress_audio, tr("Compressing audio…")),
         }
         fn, verb = fns[(cat, name)]
 
@@ -631,11 +639,11 @@ class DropDialApp(QObject):
         from . import web
         items = web.from_mime(md)
         if not items:
-            self.toasts.error("Nothing to convert", "Drop a file, a picture or a link to a file.")
+            self.toasts.error(tr("Nothing to convert"), tr("Drop a file, a picture or a link to a file."))
             return
         self.submit_plain(lambda: [web.fetch(i) for i in items],
                           lambda got: self.show_click_menu([str(g) for g in got]),
-                          "Downloading…", [i.name for i in items])
+                          tr("Downloading…"), [i.name for i in items])
 
     # ------------------------------------------------------------ updates
     def check_updates(self):
@@ -650,15 +658,15 @@ class DropDialApp(QObject):
             if upd is None:
                 return
             self.update = upd
-            self.act_update.setText(f"Update available: DropDial {upd.version}…")
+            self.act_update.setText(tr("Update available: DropDial {version}…", version=upd.version))
             self.act_update.setVisible(True)
             for w in self.windows:
                 if hasattr(w, "show_update"):
                     w.show_update(upd)
             if self.settings.get("update_seen") != upd.version:
                 self.settings.set("update_seen", upd.version)
-                self.toasts.info(f"DropDial {upd.version} is available",
-                                 "Open DropDial's menu → Update available, to download it.")
+                self.toasts.info(tr("DropDial {version} is available", version=upd.version),
+                                 tr("Open DropDial's menu → Update available, to download it."))
 
         job.sig.done.connect(got)
         job.sig.failed.connect(lambda *_: release(job))
@@ -669,7 +677,7 @@ class DropDialApp(QObject):
             QDesktopServices.openUrl(QUrl(self.update.url))
 
     def open_dialog(self):
-        files, _ = QFileDialog.getOpenFileNames(None, "Choose file(s) for DropDial", QDir.homePath())
+        files, _ = QFileDialog.getOpenFileNames(None, tr("Choose file(s) for DropDial"), QDir.homePath())
         if files:
             self.show_click_menu(files)
 
@@ -686,7 +694,7 @@ class DropDialApp(QObject):
 
     def _settings_changed(self):
         self.watcher.set_key(self.settings.get("trigger"))
-        self.tray.setToolTip(f"{APP_NAME} — press {self.trigger_label()} while dragging a file")
+        self.tray.setToolTip(self._tray_tip())
 
     def show_welcome(self):
         self.open_window(WelcomeWindow(self.settings, self.trigger_label()))
@@ -722,7 +730,7 @@ class DropDialApp(QObject):
         # keep existing scanners (and what they've already seen) for unchanged rules
         self.scanners = [old.get((r.folder, r.action, r.output)) or watch.FolderScanner(r) for r in rules]
         n = len(self.scanners)
-        self.act_watch.setText(f"Watch folders… ({n} on)" if n else "Watch folders…")
+        self.act_watch.setText(tr("Watch folders… ({n} on)", n=n) if n else tr("Watch folders…"))
         if n:
             self.watch_timer.start()
         else:
@@ -825,6 +833,8 @@ def main(argv: list[str] | None = None) -> int:
     qapp.setApplicationVersion(VERSION)
     qapp.setQuitOnLastWindowClosed(False)
     qapp.setWindowIcon(make_icon())
+    i18n.set_language(Settings().get("language"))     # before any window or menu is built
+    i18n.apply_direction()
 
     if "--selftest" in argv:
         return selftest()
@@ -842,7 +852,7 @@ def main(argv: list[str] | None = None) -> int:
         QTimer.singleShot(300, app.show_welcome)
     elif "--quiet" not in argv:
         QTimer.singleShot(400, lambda: app.toasts.info(
-            "DropDial is running", f"Drag any file, then press {app.trigger_label()}."))
+            tr("DropDial is running"), tr("Drag any file, then press {key}.", key=app.trigger_label())))
     return qapp.exec()
 
 

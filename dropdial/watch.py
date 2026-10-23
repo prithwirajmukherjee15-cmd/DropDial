@@ -17,6 +17,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Callable
 
+from .i18n import tr
 from .util import UserError, category, data_dir, output_override
 
 SUBFOLDER = "DropDial"
@@ -32,7 +33,10 @@ class WatchRule:
     @property
     def label(self) -> str:
         kind, _, name = self.action.partition(":")
-        return name if kind == "recipe" else f"Convert to {name}"
+        if kind == "recipe":
+            from .recipes import display_name
+            return display_name(name)
+        return tr("Convert to {fmt}", fmt=name)
 
     def out_dir(self) -> Path:
         f = Path(self.folder)

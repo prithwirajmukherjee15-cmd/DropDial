@@ -10,6 +10,8 @@ from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QImage, QLinearGradient,
                            QPainter, QPainterPath, QPen, QPixmap, QRadialGradient)
 
+from .i18n import N_
+
 # "Midnight & Champagne": graphite glass, champagne-gold accents, a pearl/gold rim
 # instead of a rainbow. Every colour in the UI comes from here.
 IRIDESCENT = ["#f4dfb2", "#fffaf0", "#cfd6e4", "#e6c27e", "#fff3dc", "#b8c1d6", "#f4dfb2"]
@@ -35,8 +37,8 @@ ACCENTS = {
     "violet": ("#e8deff", "#9d86f1", "#6a4fc9", "#baa8f8", "#140a2e"),
     "silver": ("#f5f7fb", "#c5cbd6", "#8b94a4", "#d9dee8", "#12151b"),
 }
-ACCENT_NAMES = {"champagne": "Champagne", "rose": "Rose", "ocean": "Ocean", "emerald": "Emerald",
-                "violet": "Violet", "silver": "Silver"}
+ACCENT_NAMES = {"champagne": N_("Champagne"), "rose": N_("Rose"), "ocean": N_("Ocean"), "emerald": N_("Emerald"),
+                "violet": N_("Violet"), "silver": N_("Silver")}
 ACCENT = "champagne"
 
 

@@ -152,7 +152,8 @@ def run_ffmpeg(args: list, out: Path, duration: float = 0.0,
         err = proc.stderr.read() if proc.stderr else ""
         if proc.wait() != 0 or not tmp.exists():
             last = [ln for ln in err.strip().splitlines() if ln.strip()]
-            raise UserError("ffmpeg couldn't process this file" + (f": {last[-1]}" if last else "."))
+            raise UserError("ffmpeg couldn't process this file: {detail}", detail=last[-1]) if last else \
+                UserError("ffmpeg couldn't process this file.")
         os.replace(tmp, out)
         return out
     finally:
@@ -209,8 +210,8 @@ def _mp4_audio(info: MediaInfo) -> list:
 def _ensure_smaller(src, out: Path) -> Path:
     if out.stat().st_size >= Path(src).stat().st_size:
         out.unlink()
-        raise NotSmaller(f"{Path(src).name} is already well compressed: a smaller copy would look worse. "
-                         "Nothing was saved.")
+        raise NotSmaller("{name} is already well compressed: a smaller copy would look worse. "
+                         "Nothing was saved.", name=Path(src).name)
     return out
 
 
