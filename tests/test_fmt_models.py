@@ -1,6 +1,7 @@
 """3D model family: conversions are checked by re-reading outputs (trimesh + hand-written parsers)."""
 from __future__ import annotations
 
+import sys
 import json
 import struct
 import time

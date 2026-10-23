@@ -1,4 +1,5 @@
 """Spreadsheet family: every output is parsed back with a different library or by hand."""
+import sys
 import csv
 import datetime as dt
 import io
@@ -527,7 +528,7 @@ def test_write_xlsx_helper(tmp_path):
 
 def test_cli_convert(tmp_path):
     p = write_csv(tmp_path, "a,b\n1,2\n")
-    r = subprocess.run(["python", "-m", "dropdial", "convert", str(p), "--to", "JSON"],
+    r = subprocess.run([sys.executable, "-m", "dropdial", "convert", str(p), "--to", "JSON"],
                        capture_output=True, text=True, cwd=Path(__file__).parent.parent, timeout=120)
     assert r.returncode == 0, r.stderr
     assert json.loads((tmp_path / "data.json").read_text()) == [{"a": 1, "b": 2}]

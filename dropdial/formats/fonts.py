@@ -115,6 +115,8 @@ def _friendly(msg: str = "This font file is damaged or uses something DropDial c
     except MemoryError:
         raise UserError("This font is too big to process.") from None
     except Exception as e:
+        import traceback
+        traceback.print_exc()           # the real cause goes to the log; the user gets a sentence
         raise UserError(msg) from e
 
 

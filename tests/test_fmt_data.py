@@ -43,7 +43,7 @@ def write(tmp_path, name, content):
     if isinstance(content, bytes):
         p.write_bytes(content)
     else:
-        p.write_text(content, encoding="utf-8")
+        p.write_text(content, encoding="utf-8", newline="")   # exact bytes on Windows too
     return p
 
 

@@ -737,7 +737,8 @@ def _split_quoted(s: str, sep: str) -> list[str]:
 def _vcard_lines(text: str) -> list[str]:
     """Unfold continuation lines (RFC 6350) and vCard 2.1 quoted-printable soft breaks."""
     out: list[str] = []
-    for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+    # "\r\r\n" comes from files saved through a Windows text-mode writer: one line break, not two
+    for line in text.replace("\r\r\n", "\n").replace("\r\n", "\n").replace("\r", "\n").split("\n"):
         if line[:1] in (" ", "\t") and out:
             out[-1] += line[1:]
         elif out and out[-1].endswith("=") and "QUOTED-PRINTABLE" in out[-1].split(":", 1)[0].upper():

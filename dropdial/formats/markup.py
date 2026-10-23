@@ -135,6 +135,28 @@ def _rst_html(text: str) -> str:
         raise UserError("This reStructuredText file couldn't be read.") from None
 
 
+_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source",
+         "track", "wbr", "p", "li", "dt", "dd", "tr", "td", "th", "option"}   # + tags HTML closes for you
+_TAG = re.compile(r"<(/?)([a-zA-Z][\w:-]*)\b[^>]*?(/?)>")
+
+
+def _too_deep(text: str, limit: int = 250) -> bool:
+    """Would libxml2 drop part of this page for being nested more than 256 levels deep? Checked
+    up front because not every libxml2 build reports it (the Windows wheels don't)."""
+    depth = 0
+    for m in _TAG.finditer(text):
+        name = m.group(2).lower()
+        if name in _VOID or m.group(3):
+            continue
+        if m.group(1):
+            depth = max(0, depth - 1)
+        else:
+            depth += 1
+            if depth > limit:
+                return True
+    return False
+
+
 def _parse_html(text: str):
     from lxml import etree, html as lh
     text = re.sub(r"\A\s*<\?xml[^>]*\?>", "", text)
@@ -145,7 +167,8 @@ def _parse_html(text: str):
         root = lh.document_fromstring(text, parser=parser)
     except (etree.ParserError, ValueError):
         raise UserError("This document is empty or isn't valid HTML.") from None
-    if any(e.type_name == "ERR_RESOURCE_LIMIT" for e in parser.error_log):
+    if _too_deep(text) or any(e.type_name == "ERR_RESOURCE_LIMIT" or "depth" in (e.message or "").lower()
+                              for e in parser.error_log):
         # libxml2 silently drops whatever lies deeper than 256 levels: refuse, don't lose text
         raise UserError("This document is nested too deeply to convert.")
     return root
