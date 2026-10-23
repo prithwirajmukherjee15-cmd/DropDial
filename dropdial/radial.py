@@ -18,6 +18,10 @@ from PySide6.QtGui import (QColor, QCursor, QFont, QGuiApplication, QImage, QPai
 from PySide6.QtWidgets import QWidget
 
 from . import glass
+from .i18n import N_, tr
+
+# the dial's rings, named by app.build_rings and shown on the hub
+RING_NAMES = (N_("Convert"), N_("More formats"), N_("Tools"), N_("Recipes"), N_("Unsupported"))
 
 
 @dataclass
@@ -202,7 +206,7 @@ class RadialMenu(QWidget):
             self.got_drag = True
         else:
             self.paths, self.rings, self.ring_names = [], {}, []
-            self.hub_text = "Drop here"
+            self.hub_text = tr("Drop here")
             for n in (4, 7):  # most common rings: render speculatively
                 self._render(n)
             if sys.platform != "darwin":
@@ -263,7 +267,7 @@ class RadialMenu(QWidget):
         self.ring_names = list(self.rings)
         self.ring_idx = 0
         if paths and all(p in self.web_items for p in paths):
-            self.hub_text = "From the web" if len(paths) == 1 else f"{len(paths)} from web"
+            self.hub_text = tr("From the web") if len(paths) == 1 else tr("{n} from web", n=len(paths))
         else:
             self.hub_text = self.describe(paths)
         for items in self.rings.values():
@@ -576,9 +580,9 @@ class RadialMenu(QWidget):
             top = self.hub_text
             if len(self.ring_names) > 1:
                 other = self.ring_names[(self.ring_idx + 1) % len(self.ring_names)]
-                sub = f"⇧ {other.upper()}"
+                sub = f"⇧ {tr(other).upper()}"
             else:
-                sub = ring_name.upper()
+                sub = tr(ring_name).upper()
         f = QFont("Segoe UI Variable Display", 1)
         f.setPixelSize(14)
         f.setBold(True)

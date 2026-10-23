@@ -7,7 +7,8 @@ from PySide6.QtCore import QSettings, Qt, Signal
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QGridLayout, QHBoxLayout, QLabel,
                                QPushButton, QSlider, QVBoxLayout)
 
-from . import CREDIT, __version__, glass
+from . import __version__, glass, i18n
+from .i18n import N_, credit, tr
 from .util import CONFIG
 from .window import GlassWindow
 
@@ -27,6 +28,7 @@ DEFAULTS = {
     "check_updates": True,
     "accent": "champagne",
     "update_seen": "",
+    "language": "system",      # "system" or a code from i18n.LANGUAGES
 }
 
 
@@ -104,15 +106,15 @@ def set_autostart(on: bool):
 
 TRIGGERS = ([("shift", "Shift ⇧"), ("ctrl", "Control ⌃"), ("alt", "Option ⌥")] if IS_MAC
             else [("shift", "Shift"), ("ctrl", "Ctrl"), ("alt", "Alt")])
-OUTPUTS = [("next", "Next to the original"), ("folder", "In a “DropDial” subfolder")]
-DPIS = [(150, "150 dpi · small"), (200, "200 dpi · balanced"), (300, "300 dpi · print")]
+OUTPUTS = [("next", N_("Next to the original")), ("folder", N_("In a “DropDial” subfolder"))]
+DPIS = [(150, N_("150 dpi · small")), (200, N_("200 dpi · balanced")), (300, N_("300 dpi · print"))]
 
 
 class SettingsWindow(GlassWindow):
     changed = Signal()
 
     def __init__(self, settings: Settings):
-        super().__init__("Settings", size=(540, 540))
+        super().__init__(tr("Settings"), size=(560, 600))
         self.s = settings
         grid = QGridLayout()
         grid.setHorizontalSpacing(14)
@@ -127,23 +129,23 @@ class SettingsWindow(GlassWindow):
             c.setCurrentIndex(idx)
             return c
 
-        grid.addWidget(QLabel("Open the menu with"), r, 0)
+        grid.addWidget(QLabel(tr("Open the menu with")), r, 0)
         self.trigger = combo(TRIGGERS, self.s.get("trigger"))
         self.trigger.currentIndexChanged.connect(lambda _: self._save("trigger", self.trigger.currentData()))
         grid.addWidget(self.trigger, r, 1)
         r += 1
-        hint = QLabel("…pressed while you’re dragging a file")
+        hint = QLabel(tr("…pressed while you’re dragging a file"))
         hint.setObjectName("dim")
         grid.addWidget(hint, r, 1)
         r += 1
 
-        grid.addWidget(QLabel("Save results"), r, 0)
-        self.output = combo(OUTPUTS, self.s.get("output"))
+        grid.addWidget(QLabel(tr("Save results")), r, 0)
+        self.output = combo([(v, tr(t)) for v, t in OUTPUTS], self.s.get("output"))
         self.output.currentIndexChanged.connect(lambda _: self._save("output", self.output.currentData()))
         grid.addWidget(self.output, r, 1)
         r += 1
 
-        grid.addWidget(QLabel("JPG / WebP quality"), r, 0)
+        grid.addWidget(QLabel(tr("JPG / WebP quality")), r, 0)
         row = QHBoxLayout()
         self.q = QSlider(Qt.Horizontal)
         self.q.setRange(60, 100)
@@ -157,13 +159,13 @@ class SettingsWindow(GlassWindow):
         grid.addLayout(row, r, 1)
         r += 1
 
-        grid.addWidget(QLabel("PDF → image resolution"), r, 0)
-        self.dpi = combo(DPIS, self.s.get("pdf_dpi"))
+        grid.addWidget(QLabel(tr("PDF → image resolution")), r, 0)
+        self.dpi = combo([(v, tr(t)) for v, t in DPIS], self.s.get("pdf_dpi"))
         self.dpi.currentIndexChanged.connect(lambda _: self._save("pdf_dpi", self.dpi.currentData()))
         grid.addWidget(self.dpi, r, 1)
         r += 1
 
-        grid.addWidget(QLabel("Accent colour"), r, 0)
+        grid.addWidget(QLabel(tr("Accent colour")), r, 0)
         sw_row = QHBoxLayout()
         sw_row.setSpacing(8)
         self.swatches = []
@@ -172,7 +174,7 @@ class SettingsWindow(GlassWindow):
             b.setObjectName("swatch")
             b.setCheckable(True)
             b.setChecked(key == self.s.get("accent"))
-            b.setToolTip(glass.ACCENT_NAMES[key])
+            b.setToolTip(tr(glass.ACCENT_NAMES[key]))
             b.setStyleSheet(f"QPushButton#swatch {{ background: qlineargradient(x1:0,y1:0,x2:0,y2:1,"
                             f" stop:0 {hi}, stop:0.5 {mid}, stop:1 {deep}); }}")
             b.clicked.connect(lambda _=False, k=key: self._accent(k))
@@ -182,15 +184,27 @@ class SettingsWindow(GlassWindow):
         grid.addLayout(sw_row, r, 1)
         r += 1
 
+        grid.addWidget(QLabel(tr("Language")), r, 0)
+        self.language = combo([("system", tr("System default"))] + i18n.available(), self.s.get("language"))
+        self.language.currentIndexChanged.connect(lambda _: self._language(self.language.currentData()))
+        grid.addWidget(self.language, r, 1)
+        r += 1
+        self.lang_note = QLabel()
+        self.lang_note.setObjectName("dim")
+        self.lang_note.setWordWrap(True)
+        self.lang_note.hide()
+        grid.addWidget(self.lang_note, r, 1)
+        r += 1
+
         if IS_WIN or IS_MAC or IS_LINUX:
-            self.auto = QCheckBox("Start DropDial with Windows" if IS_WIN else "Open DropDial at login")
+            self.auto = QCheckBox(tr("Start DropDial with Windows") if IS_WIN else tr("Open DropDial at login"))
             self.auto.setChecked(autostart_enabled())
             self.auto.toggled.connect(set_autostart)
             grid.addWidget(self.auto, r, 1)
             r += 1
-        self.upd = QCheckBox("Check for updates automatically")
-        self.upd.setToolTip("Asks GitHub once every few hours whether a newer DropDial exists. "
-                            "Nothing about you or your files is sent.")
+        self.upd = QCheckBox(tr("Check for updates automatically"))
+        self.upd.setToolTip(tr("Asks GitHub once every few hours whether a newer DropDial exists. "
+                               "Nothing about you or your files is sent."))
         self.upd.setChecked(self.s.get("check_updates"))
         self.upd.toggled.connect(lambda on: self._save("check_updates", on))
         grid.addWidget(self.upd, r, 1)
@@ -198,19 +212,19 @@ class SettingsWindow(GlassWindow):
         if IS_MAC:
             from . import platform_mac
             if not platform_mac.has_screen_recording():
-                glass_btn = QPushButton("Enable full liquid glass…")
-                glass_btn.setToolTip("Lets the glass refract the windows behind it (Screen Recording permission)")
+                glass_btn = QPushButton(tr("Enable full liquid glass…"))
+                glass_btn.setToolTip(tr("Lets the glass refract the windows behind it (Screen Recording permission)"))
                 glass_btn.clicked.connect(platform_mac.request_screen_recording)
                 grid.addWidget(glass_btn, r, 1)
                 r += 1
         self.body.addLayout(grid)
         self.body.addStretch(1)
-        about = QLabel(f"DropDial {__version__}  ·  {CREDIT}")
+        about = QLabel(f"DropDial {__version__}  ·  {credit()}")
         about.setObjectName("credit")
         foot = QHBoxLayout()
         foot.addWidget(about)
         foot.addStretch(1)
-        done = QPushButton("Done")
+        done = QPushButton(tr("Done"))
         done.setObjectName("primary")
         done.clicked.connect(self.close)
         foot.addWidget(done)
@@ -219,6 +233,14 @@ class SettingsWindow(GlassWindow):
     def _save(self, key, value):
         self.s.set(key, value)
         self.changed.emit()
+
+    def _language(self, code: str):
+        """Saved at once; windows opened from now on use it, the rest after a restart."""
+        self._save("language", code)
+        i18n.set_language(code)
+        i18n.apply_direction()
+        self.lang_note.setText(tr("Restart DropDial to apply everywhere"))
+        self.lang_note.show()
 
     def _accent(self, key: str):
         for k, b in self.swatches:
@@ -230,14 +252,15 @@ class SettingsWindow(GlassWindow):
 
 class WelcomeWindow(GlassWindow):
     def __init__(self, settings: Settings, trigger_label: str = "Shift"):
-        super().__init__("Welcome to DropDial", size=(560, 430))
+        super().__init__(tr("Welcome to DropDial"), size=(580, 450))
         self.s = settings
         steps = [
-            ("1", "Start dragging any file", "in Finder or on the desktop" if IS_MAC else
-             "in your file manager (Thunar, Nautilus…)" if IS_LINUX else "in File Explorer or on the desktop"),
-            ("2", f"Press {trigger_label}", "the glass menu opens right under your cursor"),
-            ("3", "Drop it on a slice", "the result is saved next to the original"),
-            ("⇄", f"Tap {trigger_label} again", "or turn the mouse wheel, to flip to More formats, Tools, Recipes"),
+            ("1", tr("Start dragging any file"), tr("in Finder or on the desktop") if IS_MAC else
+             tr("in your file manager (Thunar, Nautilus…)") if IS_LINUX else tr("in File Explorer or on the desktop")),
+            ("2", tr("Press {key}", key=trigger_label), tr("the glass menu opens right under your cursor")),
+            ("3", tr("Drop it on a slice"), tr("the result is saved next to the original")),
+            ("⇄", tr("Tap {key} again", key=trigger_label),
+             tr("or turn the mouse wheel, to flip to More formats, Tools, Recipes")),
         ]
         for n, head, sub in steps:
             row = QHBoxLayout()
@@ -255,6 +278,7 @@ class WelcomeWindow(GlassWindow):
             h.setStyleSheet("font-size: 12pt; font-weight: 600;")
             d = QLabel(sub)
             d.setObjectName("dim")
+            d.setWordWrap(True)
             col.addWidget(h)
             col.addWidget(d)
             row.addSpacing(8)
@@ -264,33 +288,33 @@ class WelcomeWindow(GlassWindow):
         if IS_MAC:
             from . import platform_mac
             if not platform_mac.has_screen_recording():
-                note = QLabel("Optional: allow Screen Recording so the glass can refract the windows "
-                              "behind it (otherwise it shows your wallpaper). DropDial never saves or sends it.")
+                note = QLabel(tr("Optional: allow Screen Recording so the glass can refract the windows "
+                                 "behind it (otherwise it shows your wallpaper). DropDial never saves or sends it."))
                 note.setObjectName("dim")
                 note.setWordWrap(True)
                 self.body.addWidget(note)
-                b = QPushButton("Allow Screen Recording…")
+                b = QPushButton(tr("Allow Screen Recording…"))
                 b.clicked.connect(platform_mac.request_screen_recording)
                 self.body.addWidget(b, 0, Qt.AlignLeft)
         if IS_LINUX:
             from . import platform_linux
             if platform_linux.is_wayland():
-                note = QLabel("You're on a Wayland session: the Shift-while-dragging trigger needs X11 (e.g. XFCE). "
-                              "Right-click a file → Open With → DropDial still works.")
+                note = QLabel(tr("You're on a Wayland session: the Shift-while-dragging trigger needs X11 "
+                                 "(e.g. XFCE). Right-click a file → Open With → DropDial still works."))
                 note.setObjectName("warn")
                 note.setWordWrap(True)
                 self.body.addWidget(note)
-        sig = QLabel(CREDIT)
+        sig = QLabel(credit())
         sig.setObjectName("credit")
         sig.setAlignment(Qt.AlignRight)
         self.body.addWidget(sig)
         foot = QHBoxLayout()
         if IS_WIN or IS_MAC or IS_LINUX:
-            self.auto = QCheckBox("Start with Windows" if IS_WIN else "Open at login")
+            self.auto = QCheckBox(tr("Start with Windows") if IS_WIN else tr("Open at login"))
             self.auto.setChecked(True)
             foot.addWidget(self.auto)
         foot.addStretch(1)
-        ok = QPushButton("Got it")
+        ok = QPushButton(tr("Got it"))
         ok.setObjectName("primary")
         ok.clicked.connect(self._done)
         foot.addWidget(ok)

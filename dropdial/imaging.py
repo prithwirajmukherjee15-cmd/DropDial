@@ -246,7 +246,7 @@ def metadata_summary(src: str | Path) -> dict[str, str]:
     """The handful of fields people actually care about, human-readable."""
     out: dict[str, str] = {}
     with Image.open(src) as im:
-        out["Size"] = f"{im.width} × {im.height}"
+        out[N_("Size")] = f"{im.width} × {im.height}"
         exif = im.getexif()
         sub = {}
         gps = {}
@@ -257,22 +257,22 @@ def metadata_summary(src: str | Path) -> dict[str, str]:
             pass
         make, model = str(exif.get(0x010F, "")).strip(), str(exif.get(0x0110, "")).strip()
         if make or model:
-            out["Camera"] = model if make and model.startswith(make) else f"{make} {model}".strip()
+            out[N_("Camera")] = model if make and model.startswith(make) else f"{make} {model}".strip()
         taken = sub.get(0x9003) or exif.get(0x0132)
         if taken:
-            out["Taken"] = str(taken)
+            out[N_("Taken")] = str(taken)
         if exif.get(0x0131):
-            out["Software"] = str(exif.get(0x0131))
+            out[N_("Software")] = str(exif.get(0x0131))
         if sub.get(0x829A):
             t = float(sub[0x829A])
-            out["Exposure"] = f"1/{round(1 / t)} s" if 0 < t < 1 else f"{t:g} s"
+            out[N_("Exposure")] = f"1/{round(1 / t)} s" if 0 < t < 1 else f"{t:g} s"
         if sub.get(0x829D):
-            out["Aperture"] = f"f/{float(sub[0x829D]):.1f}"
+            out[N_("Aperture")] = f"f/{float(sub[0x829D]):.1f}"
         if sub.get(0x8827):
-            out["ISO"] = str(sub[0x8827])
+            out[N_("ISO")] = str(sub[0x8827])
         loc = gps_decimal(gps)
         if loc:
-            out["Location"] = f"{loc[0]:.5f}, {loc[1]:.5f}"
+            out[N_("Location")] = f"{loc[0]:.5f}, {loc[1]:.5f}"
     return out
 
 

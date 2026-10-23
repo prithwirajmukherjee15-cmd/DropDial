@@ -13,7 +13,8 @@ from PySide6.QtGui import QColor, QCursor, QFont, QImage, QPainter, QPainterPath
 from PySide6.QtWidgets import (QGridLayout, QHBoxLayout, QLabel, QMenu, QPushButton, QScrollArea,
                                QSizePolicy, QVBoxLayout, QWidget)
 
-from . import CREDIT, __version__, glass, history
+from . import __version__, glass, history
+from .i18n import credit, tr
 from .util import category
 from .window import GlassWindow
 
@@ -84,13 +85,13 @@ class DropZone(QWidget):
         p.setFont(f)
         p.setPen(QColor(247, 244, 238))
         p.drawText(QRectF(r.left(), c.y() + 24, r.width(), 24), Qt.AlignCenter,
-                   "Drop files here" if not self.hot else "Release to open the dial")
+                   tr("Drop files here") if not self.hot else tr("Release to open the dial"))
         f.setPixelSize(12)
         f.setBold(False)
         p.setFont(f)
         p.setPen(QColor(255, 255, 255, 150))
         p.drawText(QRectF(r.left(), c.y() + 48, r.width(), 20), Qt.AlignCenter,
-                   "or click to choose · or Shift-drag a file anywhere")
+                   tr("or click to choose · or Shift-drag a file anywhere"))
 
     def mouseReleaseEvent(self, e):
         if e.button() == Qt.LeftButton and self.rect().contains(e.position().toPoint()):
@@ -133,7 +134,8 @@ class RecentCard(QWidget):
         self.out = entry.existing_outs[0]
         self.setCursor(Qt.PointingHandCursor)
         self.setFixedWidth(THUMB.width() + 16)
-        self.setToolTip(f"{self.out.name}\n{entry.title} · {entry.detail}\nClick to open · right-click for more")
+        self.setToolTip(f"{self.out.name}\n{entry.title} · {entry.detail}\n"
+                        + tr("Click to open · right-click for more"))
         lay = QVBoxLayout(self)
         lay.setContentsMargins(8, 8, 8, 8)
         lay.setSpacing(4)
@@ -182,12 +184,12 @@ class RecentCard(QWidget):
         elif e.button() == Qt.RightButton:
             m = QMenu(self)
             m.setStyleSheet(glass.QSS)
-            m.addAction("Open", lambda: self.actions["open"](self.out))
-            m.addAction("Show in folder", lambda: self.actions["reveal"](self.out))
-            m.addAction("Convert again…", lambda: self.actions["dial"]([str(self.out)]))
-            m.addAction("Copy", lambda: self.actions["copy"]([self.out]))
+            m.addAction(tr("Open"), lambda: self.actions["open"](self.out))
+            m.addAction(tr("Show in folder"), lambda: self.actions["reveal"](self.out))
+            m.addAction(tr("Convert again…"), lambda: self.actions["dial"]([str(self.out)]))
+            m.addAction(tr("Copy"), lambda: self.actions["copy"]([self.out]))
             m.addSeparator()
-            m.addAction("Move to " + ("Recycle Bin" if sys.platform == "win32" else "Trash"),
+            m.addAction(tr("Move to Recycle Bin") if sys.platform == "win32" else tr("Move to Trash"),
                         lambda: self.actions["trash"]([self.out]))
             m.exec(QCursor.pos())
 
@@ -196,7 +198,7 @@ class HomeWindow(GlassWindow):
     def __init__(self, app):
         super().__init__("DropDial", size=(720, 640))
         self.app = app
-        head = QLabel(f"Drag. Shift. Drop.  <span style='color:{glass.GOLD}'>Done.</span>")
+        head = QLabel(f"{tr('Drag. Shift. Drop.')}  <span style='color:{glass.GOLD}'>{tr('Done.')}</span>")
         head.setTextFormat(Qt.RichText)
         head.setStyleSheet("font-size: 20px; font-weight: 700;")
         self.body.addWidget(head)
@@ -213,11 +215,11 @@ class HomeWindow(GlassWindow):
         self.body.addWidget(self.zone)
 
         row = QHBoxLayout()
-        lab = QLabel("RECENT")
+        lab = QLabel(tr("Recent").upper())
         lab.setObjectName("section")
         row.addWidget(lab)
         row.addStretch(1)
-        all_btn = QPushButton("All history")
+        all_btn = QPushButton(tr("All history"))
         all_btn.clicked.connect(app.open_history)
         row.addWidget(all_btn)
         self.body.addLayout(row)
@@ -236,15 +238,15 @@ class HomeWindow(GlassWindow):
         self.body.addWidget(scroll, 1)
 
         foot = QHBoxLayout()
-        for text, slot in (("Recipes", app.open_recipes), ("Watch folders", app.open_watch),
-                           ("Settings", app.open_settings), ("How to use", app.show_welcome)):
+        for text, slot in ((tr("Recipes"), app.open_recipes), (tr("Watch folders"), app.open_watch),
+                           (tr("Settings"), app.open_settings), (tr("How to use"), app.show_welcome)):
             b = QPushButton(text)
             b.clicked.connect(slot)
             foot.addWidget(b)
         foot.addStretch(1)
-        credit = QLabel(f"DropDial {__version__} · {CREDIT}")
-        credit.setObjectName("good")
-        foot.addWidget(credit)
+        sig = QLabel(f"DropDial {__version__} · {credit()}")
+        sig.setObjectName("good")
+        foot.addWidget(sig)
         self.body.addLayout(foot)
         self.reload()
         self.show_update(getattr(app, "update", None))
@@ -272,7 +274,7 @@ class HomeWindow(GlassWindow):
         for i, c in enumerate(cards):
             self.grid.addWidget(c, i // cols, i % cols, Qt.AlignTop | Qt.AlignLeft)
         if not cards:
-            empty = QLabel("Nothing yet. Results show up here, with a preview.")
+            empty = QLabel(tr("Nothing yet. Results show up here, with a preview."))
             empty.setObjectName("dim")
             self.grid.addWidget(empty, 0, 0)
         self.grid.setColumnStretch(cols, 1)
@@ -285,7 +287,7 @@ class HomeWindow(GlassWindow):
         if upd is None:
             self.update_bar.hide()
             return
-        self.update_bar.setText(f"DropDial {upd.version} is available. Click to download")
+        self.update_bar.setText(tr("DropDial {version} is available. Click to download", version=upd.version))
         self.update_bar.show()
 
     def _open_update(self):

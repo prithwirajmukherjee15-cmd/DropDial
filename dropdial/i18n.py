@@ -43,7 +43,7 @@ def N_(text: str) -> str:
     return text
 
 
-def tr(text: str, **fmt) -> str:
+def tr(text: str, /, **fmt) -> str:
     """`text` in the active language (English if there's no translation), with `fmt` filled in."""
     out = _catalogue.get(text, text)
     if fmt:
@@ -54,7 +54,7 @@ def tr(text: str, **fmt) -> str:
     return out
 
 
-def trn(one: str, many: str, n: int, **fmt) -> str:
+def trn(one: str, many: str, n: int, /, **fmt) -> str:
     """Singular or plural English source, chosen by `n` (available as {n}), then translated."""
     return tr(one if n == 1 else many, n=n, **fmt)
 

@@ -8,9 +8,12 @@ import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
+from .i18n import N_, tr
 from .util import data_dir
 
 MAX_ENTRIES = 500
+MONTHS = [N_("Jan"), N_("Feb"), N_("Mar"), N_("Apr"), N_("May"), N_("Jun"),
+          N_("Jul"), N_("Aug"), N_("Sep"), N_("Oct"), N_("Nov"), N_("Dec")]
 _LOCK = threading.Lock()
 
 
@@ -32,12 +35,14 @@ class Entry:
         now = now or time.time()
         d = now - self.time
         if d < 60:
-            return "just now"
+            return tr("just now")
         if d < 3600:
-            return f"{int(d // 60)} min ago"
-        if d < 86400 and time.localtime(now).tm_yday == time.localtime(self.time).tm_yday:
-            return time.strftime("%H:%M", time.localtime(self.time))
-        return time.strftime("%d %b %H:%M", time.localtime(self.time))
+            return tr("{n} min ago", n=int(d // 60))
+        t = time.localtime(self.time)
+        if d < 86400 and time.localtime(now).tm_yday == t.tm_yday:
+            return time.strftime("%H:%M", t)
+        return tr("{day} {month} {time}", day=f"{t.tm_mday:02d}", month=tr(MONTHS[t.tm_mon - 1]),
+                  time=time.strftime("%H:%M", t))
 
 
 def path() -> Path:

@@ -18,6 +18,7 @@ from PySide6.QtGui import (QColor, QCursor, QDesktopServices, QFont, QFontMetric
 from PySide6.QtWidgets import QWidget
 
 from . import glass
+from .i18n import tr, trn
 from .report import Result
 
 W, H = 380, 104
@@ -226,7 +227,7 @@ class ToastCard(QWidget):
             self.dismiss()
         elif name == "Copy":
             copy_files(r.outs)
-            self.good = "copied"
+            self.good = tr("copied")
             self.life.start(1800)
             self.update()
         elif name == "Undo":
@@ -234,8 +235,9 @@ class ToastCard(QWidget):
             self.result = None
             self.thumb = None
             self.good = ""
-            bin_name = "Recycle Bin" if sys.platform == "win32" else "Trash"
-            self.info("Undone", f"Moved {n} file{'s' if n != 1 else ''} to the {bin_name}", 2500)
+            moved = (trn("Moved {n} file to the Recycle Bin.", "Moved {n} files to the Recycle Bin.", n)
+                     if sys.platform == "win32" else trn("Moved {n} file to the Trash.", "Moved {n} files to the Trash.", n))
+            self.info(tr("Undone"), moved, 2500)
 
     # ------------------------------------------------------------ paint
     def paintEvent(self, e):
@@ -328,7 +330,7 @@ class ToastCard(QWidget):
         self.buttons = []
         if self.state == "done" and self.result and self.result.outs:
             names = ["Open", "Copy", "Show", "Undo"]
-            labels = {"Open": "Open", "Copy": "Copy", "Show": "Folder", "Undo": "Undo"}
+            labels = {"Open": tr("Open"), "Copy": tr("Copy"), "Show": tr("Folder"), "Undo": tr("Undo")}
             f.setPixelSize(12)
             f.setBold(True)
             p.setFont(f)
