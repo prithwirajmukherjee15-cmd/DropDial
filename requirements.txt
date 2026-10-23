@@ -22,7 +22,7 @@ docutils>=0.21
 pyshp>=2.3
 fast-simplification>=0.1.7
 rawpy>=0.25.1,<0.26; sys_platform == "darwin" and platform_machine == "x86_64"
-rawpy>=0.25.1; not (sys_platform == "darwin" and platform_machine == "x86_64")
+rawpy>=0.25.1; sys_platform != "darwin" or platform_machine != "x86_64"
 pywin32>=306; sys_platform == "win32"
 pyobjc-framework-Cocoa>=10; sys_platform == "darwin"
 pyobjc-framework-Quartz>=10; sys_platform == "darwin"
