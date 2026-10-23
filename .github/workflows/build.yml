@@ -328,12 +328,24 @@ jobs:
             gh api -X PATCH "repos/$REPO/git/refs/tags/latest" -f sha="$GITHUB_SHA" -F force=true >/dev/null && echo "tag moved to $GITHUB_SHA" || true
           fi
 
+      - name: Read the app version (names the release, so the app's update check sees it)
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          v=$(gh api "repos/$REPO/contents/dropdial/__init__.py?ref=$GITHUB_SHA" -q .content | base64 -d \
+              | sed -n 's/^__version__ = "\(.*\)"/\1/p')
+          echo "version: $v"
+          test -n "$v"
+          echo "APP_VERSION=$v" >> "$GITHUB_ENV"
+
       - name: Publish download (latest)
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: DropDial (latest build)
+          name: DropDial ${{ env.APP_VERSION }}
           make_latest: true
           body: |
             **DropDial** for Mac, Windows and Linux · Made by Prithwiraj Mukherjee
