@@ -240,3 +240,18 @@ def test_trace_svg_matches_the_picture(tmp_path):
     im.resize((4000, 2667)).save(big)
     out = convert.convert(big, "image", "SVG")[0]
     assert 'width="4000" height="2667" viewBox=' in out.read_text()
+
+
+def test_cli_output_survives_a_non_utf8_pipe(tmp_path):
+    """Windows pipes/redirects use the ANSI code page: printing ✓ must not crash the command."""
+    import os
+    import subprocess
+    import sys
+    src = tmp_path / "t.png"
+    Image.new("RGB", (8, 8), "red").save(src)
+    env = dict(os.environ, PYTHONIOENCODING="cp1252")
+    env.pop("PYTHONUTF8", None)
+    r = subprocess.run([sys.executable, "-m", "dropdial", "convert", str(src), "--to", "jpg"],
+                       capture_output=True, env=env, cwd=str(Path(__file__).resolve().parents[1]))
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (tmp_path / "t.jpg").exists()

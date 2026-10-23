@@ -475,8 +475,20 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _utf8_output() -> None:
+    """Windows writes piped/redirected output in the ANSI code page, which has no ✓ or →:
+    printing a result would crash after the work was done. Always write UTF-8, and never
+    let a character the terminal can't show end the command."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
     _attach_windows_console()
+    _utf8_output()
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["help"]:
         argv = ["--help"]
