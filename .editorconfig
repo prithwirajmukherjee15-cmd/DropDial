@@ -1,0 +1,29 @@
+# Editor settings shared by everyone working on DropDial. See https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.py]
+max_line_length = 120
+
+[*.{yml,yaml,json,plist,desktop}]
+indent_size = 2
+
+[*.md]
+# two trailing spaces are a line break in Markdown
+trim_trailing_whitespace = false
+
+[*.{bat,cmd,ps1}]
+end_of_line = crlf
+
+[*.{png,jpg,jpeg,gif,ico,icns,bmp,dmg}]
+charset = unset
+end_of_line = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset

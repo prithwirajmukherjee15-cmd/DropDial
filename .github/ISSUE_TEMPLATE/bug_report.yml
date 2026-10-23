@@ -1,0 +1,87 @@
+name: Bug report
+description: Something doesn't work, or a result looks wrong
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this. Please check that it still happens in the
+        [latest release](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest).
+        A security problem? Please report it privately instead: see the [Security policy](https://github.com/prithwirajmukherjee15-cmd/DropDial/security/policy).
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS 26
+        - macOS 15
+        - macOS 14
+        - macOS 13
+        - macOS (other version)
+        - Linux (X11)
+        - Linux (Wayland)
+    validations:
+      required: true
+  - type: input
+    id: os-details
+    attributes:
+      label: OS version and Linux distribution
+      description: The exact version. On Linux, also the distribution and desktop.
+      placeholder: "Windows 11 24H2 · macOS 15.3 (M2) · Debian 12, XFCE"
+  - type: input
+    id: version
+    attributes:
+      label: DropDial version
+      description: Shown at the top of the tray (menu-bar) menu, or run `dropdial --version`.
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install DropDial?
+      options:
+        - Windows installer (DropDial-Setup.exe)
+        - Windows portable (DropDial.exe)
+        - macOS .dmg
+        - macOS Terminal installer (install-mac.sh)
+        - Linux .deb
+        - From source (python -m dropdial)
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the file type and roughly how big it was. Attach a sample file if you can share it.
+      placeholder: |
+        1. Drag a 12 MB .heic photo in Finder
+        2. Press Shift and drop it on Convert → JPG
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: |
+        Paste the last lines of DropDial's log file, especially anything after the latest "started" line:
+        - Windows: `%LOCALAPPDATA%\DropDial\log.txt`
+        - macOS: `~/Library/Logs/DropDial/log.txt`
+        - Linux: `~/.local/share/DropDial/log.txt`
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or a screen recording
+      description: Optional, but very helpful for problems with the dial or a window. Drag images into this box.

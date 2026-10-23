@@ -6,12 +6,25 @@ onefile = os.environ.get("ONEFILE") == "1"
 heif_datas, heif_bins, heif_hidden = collect_all("pillow_heif")
 # bundled ffmpeg for video/audio (imageio-ffmpeg ships a static binary per platform)
 ff_datas, ff_bins, ff_hidden = collect_all("imageio_ffmpeg")
+# file families in dropdial/formats import their libraries lazily, so name them here
+from PyInstaller.utils.hooks import collect_dynamic_libs, collect_submodules
+family_hidden = (["yaml", "defusedxml.ElementTree", "defusedxml.minidom", "tomli_w", "tomllib", "plistlib",
+                  "openpyxl", "openpyxl.cell._writer", "xlrd", "rawpy", "vtracer"] + collect_submodules("py7zr") + collect_submodules("fontTools") + ["brotli"]
+                 + [f"dropdial.formats.{m}" for m in ("sheets", "data", "markup", "subtitles", "archives",
+                                                      "fonts", "models", "geo", "rawimages")])
+family_hidden += ["lxml.etree", "networkx", "fast_simplification"] + collect_submodules("trimesh.exchange")
+family_bins = collect_dynamic_libs("rawpy")
+from PyInstaller.utils.hooks import collect_data_files
+family_datas = collect_data_files("trimesh")      # PLY export templates
+du_datas, du_bins, du_hidden = collect_all("docutils")   # writers and templates load by name
+family_datas += du_datas
+family_hidden += du_hidden + ["markdown", "shapefile", "defusedxml"]
 
 a = Analysis(
     ["run.py"],
-    datas=[("dropdial/assets", "dropdial/assets"), ("LICENSE", ".")] + heif_datas + ff_datas,
-    binaries=heif_bins + ff_bins,
-    hiddenimports=["win32com.client", "PySide6.QtNetwork", "PySide6.QtSvg", "AppKit", "Quartz", "objc"] + heif_hidden + ff_hidden,
+    datas=[("dropdial/assets", "dropdial/assets"), ("LICENSE", ".")] + heif_datas + ff_datas + family_datas,
+    binaries=heif_bins + ff_bins + family_bins,
+    hiddenimports=["win32com.client", "PySide6.QtNetwork", "PySide6.QtSvg", "AppKit", "Quartz", "objc"] + heif_hidden + ff_hidden + family_hidden,
     excludes=["tkinter", "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtQml",
               "PySide6.QtQuick", "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtCharts",
               "PySide6.QtDataVisualization", "PySide6.QtPdf", "pandas", "yaml", "PySide6.QtSql", "PySide6.QtTest",
@@ -50,10 +63,10 @@ if IS_MAC:
         info_plist={
             "CFBundleName": "DropDial",
             "CFBundleDisplayName": "DropDial",
-            "CFBundleShortVersionString": "1.0.0",
-            "CFBundleVersion": "1.0.0",
+            "CFBundleShortVersionString": "1.1.0",
+            "CFBundleVersion": "1.1.0",
             "NSHumanReadableCopyright": "© 2026 Prithwiraj Mukherjee. Made by Prithwiraj Mukherjee.",
-            "CFBundleGetInfoString": "DropDial 1.0.0, made by Prithwiraj Mukherjee",
+            "CFBundleGetInfoString": "DropDial 1.1.0, made by Prithwiraj Mukherjee",
             "LSUIElement": True,                 # menu-bar app, no Dock icon
             "LSMinimumSystemVersion": "11.0",
             "NSHighResolutionCapable": True,

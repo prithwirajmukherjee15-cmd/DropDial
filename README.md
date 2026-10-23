@@ -3,8 +3,27 @@
 </p>
 
 <p align="center">
-  <b>The fastest way to convert, compress and edit files.</b><br>
-  No app to open, no upload, no waiting. Just drag, press Shift, and drop.
+  <b>A free, open-source file converter you use by dragging.</b><br>
+  Drag any file, press <kbd>Shift</kbd>, and drop it on a slice of the glass dial that opens at your cursor.
+</p>
+
+<p align="center">
+  <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest"><b>Download</b></a> ·
+  <a href="#install">Install</a> ·
+  <a href="#first-launch">First launch</a> ·
+  <a href="#formats">Formats</a> ·
+  <a href="#command-line">Command line</a> ·
+  <a href="#development">Development</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/actions/workflows/ci.yml"><img src="https://github.com/prithwirajmukherjee15-cmd/DropDial/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest"><img src="https://img.shields.io/github/v/release/prithwirajmukherjee15-cmd/DropDial?color=d8ad62&label=release" alt="Latest release"></a>
+  <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases"><img src="https://img.shields.io/github/downloads/prithwirajmukherjee15-cmd/DropDial/total?color=a87a34" alt="Downloads"></a>
+  <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-2b2f3a" alt="Windows 10 | 11">
+  <img src="https://img.shields.io/badge/macOS-11%2B-2b2f3a" alt="macOS 11+">
+  <img src="https://img.shields.io/badge/Linux-x64-2b2f3a" alt="Linux x64">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-e3be7a" alt="MIT license"></a>
 </p>
 
 <p align="center">
@@ -15,194 +34,35 @@
   <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb"><img src="docs/btn-linux.svg" alt="Download for Linux" height="56"></a>
 </p>
 
-<p align="center">
-  <sub>Free · Works offline · Your originals are never touched · <a href="#install">Install help</a> · <a href="../../releases">All releases</a></sub>
-</p>
-
 > [!IMPORTANT]
 > **Opening DropDial for the first time?** Windows and macOS show a one-time security warning because the app isn't code-signed yet. It's safe, and it takes 10 seconds to get past. **[See First launch ↓](#first-launch)**
 
-<br>
+<table>
+  <tr>
+    <td width="33%" valign="top"><b>Right at your cursor</b><br>No app window to open. The dial appears where you already are, with only the formats that make sense for the files you drag.</td>
+    <td width="33%" valign="top"><b>140+ file types, no other software</b><br>Images, camera RAW, PDF, Word, Excel, e-books, video, audio, subtitles, archives, fonts, 3D models and map files work without Office or anything else installed.</td>
+    <td width="33%" valign="top"><b>Stays on your computer</b><br>Nothing is uploaded. DropDial works offline and saves the result next to the original, never over it.</td>
+  </tr>
+</table>
+
+## See it in action
 
 <p align="center">
   <img src="docs/demo.gif" alt="Dragging a photo, pressing Shift, and dropping it on Compress" width="760">
 </p>
 
-## How it works
-
-<table>
-  <tr>
-    <td width="33%" valign="top"><h3>1 · Drag</h3>Start dragging any file, in Finder, File Explorer, your Linux file manager or on the desktop.</td>
-    <td width="33%" valign="top"><h3>2 · Press Shift</h3>A glass dial opens right under your cursor, with only the options that fit that file.</td>
-    <td width="33%" valign="top"><h3>3 · Drop</h3>Drop on a slice. The result appears next to the original, with a card showing what changed.</td>
-  </tr>
-</table>
-
-Tap **Shift** again to flip between the three rings: **Convert**, **Tools** and **Recipes**.
-
-<p align="center"><img src="docs/rings.png" alt="The Convert, Tools and Recipes rings" width="100%"></p>
-
-## What it can do
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <h4>🖼️ Images</h4>
-      Convert between JPG, PNG, WebP, HEIC, AVIF, TIFF, GIF, BMP, ICO and PDF. Compress to an exact size (“under 500 KB”), resize, crop, adjust light and colour, annotate, redact, add a gradient backdrop, watermark, and strip GPS and camera data.
-    </td>
-    <td width="50%" valign="top">
-      <h4>📄 PDFs and documents</h4>
-      PDF to images, Word or text; Word and text to PDF. Compress, split, merge, rotate, add page numbers, stamp a watermark, password-protect (AES-256), unlock, extract images, remove metadata.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>🎬 Video and audio</h4>
-      MP4, MOV, MKV, WebM, AVI to MP4, WebM, MOV, MP3 or a smooth <b>GIF</b>. Compress videos, pull out the sound, mute, grab a frame, rotate. Convert audio between MP3, M4A, WAV, FLAC and OGG, even out loudness, trim silence.
-    </td>
-    <td valign="top">
-      <h4>📚 SVG and e-books</h4>
-      SVG to crisp PNG, JPG, WebP, ICO or vector PDF. EPUB, MOBI, FB2, XPS and CBZ to PDF (table of contents kept), Word or text.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>⚡ Recipes</h4>
-      Several steps in a single drop. <i>Web-ready</i> resizes, strips metadata and saves as WebP; <i>Email size</i> shrinks photos, PDFs and videos to attach. Eight built in, and a builder for your own.
-    </td>
-    <td valign="top">
-      <h4>📂 Watch folders</h4>
-      Pick a folder and what should happen to new files in it: screenshots to WebP, scans to one PDF, downloads made private. It runs quietly in the background.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <h4>🕘 History and undo</h4>
-      Every result is listed, searchable, with Open, Show, Copy and Undo. Undo moves the new file to the Trash.
-    </td>
-    <td valign="top">
-      <h4>⌨️ Command line</h4>
-      Everything is scriptable too: <code>dropdial convert *.heic --to jpg</code>
-    </td>
-  </tr>
-</table>
-
-<p align="center"><img src="docs/toast.png" alt="A result card: Compressed, 75% smaller" width="440"></p>
-
-<details>
-<summary><b>Every format and tool</b></summary>
-
-<br>
-
-| File | Convert to | Tools |
-|---|---|---|
-| **Images**: JPG, PNG, WEBP, HEIC, AVIF, TIFF, BMP, GIF, ICO | Any of those, or PDF. Several images become one PDF | Compress (by quality or to a target size, with a before/after preview) · Resize · Crop · Edit (auto, light, colour, rotate, flip, B&W) · Annotate (arrows, boxes, numbered steps, text, marker) · Redact · Add BG · Watermark · Metadata (view GPS, remove location only or everything) |
-| **PDF** | JPG or PNG (one per page), DOCX, TXT | Compress · Split · Rotate · Merge (drop several) · Numbers · Watermark · Protect · Unlock · Extract images · Metadata |
-| **Word** (.docx) | PDF (uses Microsoft Word when installed), TXT | |
-| **Text** (.txt, .md, .csv…) | PDF, DOCX | |
-| **Video**: MP4, MOV, MKV, WEBM, AVI, M4V… | MP4, WEBM, MOV, GIF (first 30 s), MP3 | Compress (H.264, up to 1080p) · Audio · Mute · Frame · Rotate |
-| **Audio**: MP3, WAV, M4A, FLAC, OGG… | Any of those | Normalize (−16 LUFS) · Trim silence · Compress |
-| **SVG** | PNG, JPG, WEBP (2048 px), PDF (vector), ICO | |
-| **E-books**: EPUB, MOBI, FB2, XPS, CBZ | PDF, DOCX, TXT | |
-
-</details>
-
-<details>
-<summary><b>Recipes</b></summary>
-
-<br>
-
-A step that doesn't fit a file is simply skipped for it, so one recipe can handle photos, PDFs and videos together.
-
-| | Recipe | What it does | Works on |
-|---|---|---|---|
-| ⚡ | **Web-ready** | resize to 2048 px → remove metadata → WebP | images |
-| ✉ | **Email size** | resize to 1600 px → photos under 900 KB, PDFs and videos compressed | images, PDFs, videos |
-| ⛨ | **Private** | remove camera, GPS and author details | images, PDFs |
-| ♥ | **Social** | gradient backdrop at 4:5 → 1350 px → JPG | images |
-| ⎙ | **Scan → PDF** | auto-enhance → combine into one PDF → compress | images |
-| ⚠ | **Confidential** | tiled CONFIDENTIAL watermark → page numbers | images, PDFs |
-| ▶ | **Share video** | 720p MP4 that plays everywhere | videos |
-| ♫ | **Podcast** | MP3 → trim silence → normalize loudness | videos, audio |
-
-Open **Recipes…** from the menu-bar or tray icon to hide the ones you don't use, or build your own from 15 steps. Recipes are plain JSON files, so you can share them.
-
-<p align="center"><img src="docs/recipes.png" alt="The recipe builder" width="680"></p>
-
-</details>
-
-<details>
-<summary><b>Command line</b></summary>
-
-<br>
-
-```bash
-dropdial convert *.heic --to jpg
-dropdial compress photo.jpg --target 500KB
-dropdial resize *.png --long 1920 --out ~/Desktop/small
-dropdial watermark *.jpg --text "© Your Name" --position tile
-dropdial pdf merge a.pdf b.pdf          # also: split, rotate, number, protect, unlock, extract, compress
-dropdial media gif clip.mov --fps 15    # also: audio, mute, frame, rotate, normalize, trim-silence
-dropdial recipe run web-ready ~/Pictures/*.png
-dropdial info photo.jpg video.mp4
-dropdial watch ~/Screenshots --recipe web-ready   # Ctrl+C to stop
-dropdial formats
-```
-
-Add `--json` for machine-readable output; the exit code is 1 if any file failed. From source, use `python -m dropdial` in place of `dropdial`.
-
-</details>
-
 ## Install
 
-<details open>
-<summary><b>🍎 macOS</b> (macOS 11 or later)</summary>
+Download from [Releases](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest).
 
-<br>
+- **macOS 11+**: open the `.dmg` ([Apple Silicon](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-apple-silicon.dmg) · [Intel](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-intel.dmg)) and drag DropDial to Applications. Or paste this into Terminal: it picks the right build, installs it with no security prompt, and updates it when you run it again:
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/main/install-mac.sh | bash
+  ```
+- **Windows 10/11**: run [`DropDial-Setup.exe`](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-Setup.exe) (installs for your user, no admin rights; adds the right-click menu, *Send to*, and start with Windows), or use the portable [`DropDial.exe`](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial.exe).
+- **Linux x64** (Debian 12+, Ubuntu 23.04+, Mint…): `sudo apt install ./DropDial-linux-amd64.deb` ([download](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb)). The Shift gesture needs X11; on Wayland, use Home's drop zone or right-click → **Open With → DropDial**.
 
-**Easiest:** paste this into Terminal. It picks the right build for your Mac, installs it and opens it, with no security prompt. Run it again any time to update.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/main/install-mac.sh | bash
-```
-
-**Or use the .dmg:** [Apple Silicon (M1–M4)](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-apple-silicon.dmg) · [Intel](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-intel.dmg). Open it and drag DropDial into Applications. DropDial lives in the menu bar.
-
-<p align="center"><img src="docs/dmg.png" alt="The DropDial installer window" width="460"></p>
-
-macOS will warn the first time you open the .dmg version: see **[First launch on Mac](#mac-apple-could-not-verify-dropdial)**.
-
-</details>
-
-<details>
-<summary><b>🪟 Windows</b> (Windows 10 or 11)</summary>
-
-<br>
-
-[**DropDial-Setup.exe**](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-Setup.exe) installs for your user only (no admin rights) and adds a Start menu entry, *start with Windows*, a right-click **DropDial…** entry and **Send to → DropDial**. It uninstalls cleanly from Settings → Apps.
-
-Prefer no installer? [**DropDial.exe**](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial.exe) is portable: run it from anywhere.
-
-If SmartScreen warns on first launch, see **[First launch on Windows](#windows-windows-protected-your-pc)**.
-
-</details>
-
-<details>
-<summary><b>🐧 Linux</b> (Debian 12+, Ubuntu 23.04+, Mint, MX…)</summary>
-
-<br>
-
-Download [**DropDial-linux-amd64.deb**](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb), then:
-
-```bash
-sudo apt install ./DropDial-linux-amd64.deb
-```
-
-Open DropDial from the app menu; it sits in the panel's notification area. It works in Thunar, Nautilus, Nemo, Caja, Dolphin and on the desktop, with or without a compositor, and adds **Open With → DropDial** to file menus.
-
-The Shift-while-dragging trigger needs an X11 session (XFCE, MATE, Cinnamon, or “Ubuntu on Xorg”). On Wayland, right-click a file → **Open With → DropDial** works everywhere.
-
-</details>
+DropDial lives in the menu bar / system tray. It tells you when a new version is out.
 
 ## First launch
 
@@ -244,33 +104,108 @@ Then open DropDial normally.
 
 DropDial may ask for **Screen Recording** permission. Allowing it lets the glass dial show the windows behind it. If you don't allow it, everything still works and the glass shows your wallpaper instead. **Nothing is ever recorded, saved or sent anywhere.** You can change this any time in **System Settings → Privacy & Security → Screen & System Audio Recording**.
 
-## Good to know
+## Features
 
-- **Private by design.** Everything runs on your computer. Files are never uploaded.
-- **Originals are safe.** Results are saved next to the original (or in a `DropDial` subfolder, if you prefer). Nothing is ever overwritten.
-- **Make it yours.** In Settings, choose the trigger key (Shift, Ctrl or Alt), where results go, JPG/WebP quality, PDF image resolution and start at login.
-- **More ways in.** Right-click a file → **Open With → DropDial**, or click the menu-bar/tray icon to pick a file.
+- **A dial at the cursor**: drag files, press <kbd>Shift</kbd>, drop them on a format. Only formats that fit the files appear.
+- **More than one side**: tap <kbd>Shift</kbd> again, press <kbd>Tab</kbd> or turn the mouse wheel to flip to **More formats**, **Tools** and **Recipes**.
+- **Straight from the browser**: drag a picture, a link to a file or a download out of Chrome, Edge, Firefox or Safari. DropDial saves it to Downloads, then converts it.
+- **Home**: click the tray / menu-bar icon for a drop zone (no Shift needed) and your recent results with previews. Open, show in folder, convert again or undo.
+- **Tools for each kind of file**: compress, resize, crop, edit, annotate, redact, watermark and strip metadata from images; split, merge, rotate, number, protect, unlock and compress PDFs; compress, mute and rotate video; normalise audio; clean subtitles; subset fonts; repair 3D models; trip stats for GPS tracks; and more.
+- **Recipes**: chain steps into one slice ("Web-ready", "Email size", "Private"…) or build your own.
+- **Watch folders** convert every file that lands in them.
+- **Many files at once**, a ZIP slice for a pile of files or a folder, and **History** to find or undo anything.
+- **Other ways in**: the right-click menu, *Send to* (Windows), Home's drop zone and the [`dropdial` command](#command-line).
+- **Your look**: liquid-glass dial with an accent colour of your choice (Champagne, Rose, Ocean, Emerald, Violet, Silver).
 
-<details>
-<summary><b>Build from source</b></summary>
+## Screenshots
 
-<br>
+<table>
+  <tr>
+    <td width="58%"><img src="docs/screen-home.png" alt="Home: drop zone and recent results with previews"></td>
+    <td width="42%"><img src="docs/screen-dial.png" alt="The dial for a spreadsheet: XLSX, PDF, JSON, HTML, DOCX, MD"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Home: drop zone and recent results (a 3D render, a GPS map, a font specimen…)</sub></td>
+    <td align="center"><sub>The dial for a spreadsheet; flip it for More formats and Tools</sub></td>
+  </tr>
+</table>
+
+## Formats
+
+| From | To |
+|---|---|
+| **Images**: JPG, PNG, WEBP, HEIC, AVIF, TIFF, GIF, BMP, ICO | each other, PDF, SVG (traced), ICNS, TGA, QOI |
+| **Pro images**: camera RAW (CR2, CR3, NEF, ARW, DNG, RAF, ORF, RW2…), PSD, TGA, QOI, JPEG 2000, DDS, ICNS, PPM… | JPG, PNG, TIFF (16-bit for RAW), WEBP, AVIF, HEIC, PDF |
+| **Vector**: SVG | PDF (stays vector), PNG, JPG, WEBP, ICO |
+| **PDF** | JPG, PNG, DOCX, TXT; merge, split, rotate, compress, number, watermark, protect, unlock, extract images |
+| **Documents**: DOCX, TXT, Markdown, HTML, saved web pages (MHTML), reStructuredText | PDF, DOCX, HTML, Markdown, TXT |
+| **E-mail**: EML | PDF, DOCX, HTML, TXT; save attachments |
+| **Spreadsheets**: XLSX, XLSM, XLS, ODS, CSV, TSV | XLSX, ODS, CSV, TSV, JSON, HTML, PDF, DOCX, Markdown; contacts CSV → VCF; combine, split sheets |
+| **Data**: JSON, JSON Lines, YAML, TOML, XML, plist, vCard | each other, CSV, XLSX, PDF |
+| **E-books**: EPUB, MOBI, FB2, CBZ, XPS | PDF, DOCX, TXT |
+| **Video**: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, M4V, MPEG, 3GP | MP4, WEBM, MOV, GIF, MP3; compress, mute, rotate, still frame (iPhone HDR is tone-mapped) |
+| **Audio**: MP3, M4A, AAC, WAV, FLAC, OGG, OPUS, WMA, AIFF | MP3, M4A, WAV, FLAC, OGG; normalise loudness, trim silence, compress |
+| **Subtitles**: SRT, WebVTT, ASS/SSA, SBV, MicroDVD, SAMI, LRC, TTML | each other as UTF-8, TXT; clean captions, fix 25 / 23.976 fps timing |
+| **Archives**: ZIP, 7Z, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, BZ2, XZ | extract, ZIP, 7Z, TAR.GZ; any files or folder → one ZIP |
+| **Fonts**: TTF, OTF, WOFF, WOFF2, TTC | each other, PNG / PDF specimen; Latin subset, web font kit |
+| **3D models**: STL, OBJ, PLY, GLB, glTF, OFF, 3MF | each other, PNG preview; center & ground, repair, decimate |
+| **Map data**: GPX, KML, KMZ, GeoJSON, Shapefile | each other, CSV, PNG map; trip stats, reverse, simplify |
+
+Everything works out of the box: the downloads include all the engines (FFmpeg for video and audio).
+`dropdial formats` prints the full list for your copy.
+
+## Command line
+
+The `dropdial` command uses the same engines and recipes as the app (from source: `python -m dropdial`).
 
 ```bash
-pip install -r requirements.txt
-python -m dropdial            # the app
-python -m dropdial --help     # the command line
-QT_QPA_PLATFORM=offscreen python -m pytest -q   # tests
+dropdial convert *.heic --to jpg
+dropdial convert report.md --to pdf
+dropdial convert ride.gpx --to kml
+dropdial compress photo.jpg --target 500KB
+dropdial pdf merge a.pdf b.pdf          # also: split, rotate, number, protect, unlock, extract, compress
+dropdial media gif clip.mov --fps 15    # also: audio, mute, frame, rotate, normalize, trim-silence
+dropdial recipe run web-ready ~/Pictures/*.png
+dropdial watch ~/Screenshots --recipe web-ready
+dropdial formats
 ```
 
-On Linux, Qt also needs `sudo apt install libxcb-cursor0 libxkbcommon-x11-0`. Video and audio use ffmpeg from your PATH, or the copy bundled with `imageio-ffmpeg`. Every push is built and tested automatically on real Mac, Windows and Linux machines, including scripted drag-and-drop runs that check every output file.
+Add `--json` for machine-readable output; the exit code is 1 if any file failed.
 
-</details>
+## Development
 
-<br>
+Python 3.12, on Windows, macOS or Linux:
+
+```bash
+git clone https://github.com/prithwirajmukherjee15-cmd/DropDial.git
+cd DropDial
+pip install -r requirements.txt pytest
+python -m dropdial
+python -m pytest -q          # on Linux without a display: QT_QPA_PLATFORM=offscreen
+```
+
+[Architecture](docs/ARCHITECTURE.md) · [Adding a file format](docs/ADDING-A-CONVERTER.md) · [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Security](SECURITY.md)
+
+Pull requests are welcome. If DropDial saves you some clicks, a ⭐ helps other people find it.
+
+## Code signing
+
+DropDial is developed and published by **Prithwiraj Mukherjee**. The Windows and macOS downloads aren't code-signed or notarized yet, which is why the system warns the first time (see [First launch](#first-launch)). Every download is built from this repository's source by GitHub Actions; nothing is built by hand.
+
+### Privacy
+
+DropDial converts files on your own computer and never uploads them. It collects no usage data and sends no telemetry. It connects to the internet only:
+
+- to ask GitHub (`api.github.com`) whether a newer release exists, shortly after start and then every few hours. Turn this off in Settings ("Check for updates automatically").
+- to download a file you drag out of your web browser onto the dial.
+- when you click a link, which opens your web browser.
+
+## License
+
+MIT, © 2026 Prithwiraj Mukherjee. Bundled third-party components keep their own licenses, listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
 <p align="center">
-  <img src="dropdial/assets/dropdial.png" width="64" alt=""><br>
-  <b>DropDial</b><br>
-  <sub>Made by Prithwiraj Mukherjee · <a href="LICENSE">MIT License</a></sub>
+  <a href="https://star-history.com/#prithwirajmukherjee15-cmd/DropDial&Date"><img src="https://api.star-history.com/svg?repos=prithwirajmukherjee15-cmd/DropDial&type=Date" alt="Star history" width="600"></a>
 </p>
+
+<p align="center"><sub>Made by <b>Prithwiraj Mukherjee</b></sub></p>

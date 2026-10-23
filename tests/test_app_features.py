@@ -226,6 +226,15 @@ def test_trace_svg_matches_the_picture(tmp_path):
     back = convert.svg_to_image(out).convert("RGB").resize(im.size)
     err = np.abs(np.asarray(back, float) - np.asarray(im, float)).mean()
     assert err < 3, err
+    # smooth gradients (photos, skies) must not collapse into one flat colour
+    from dropdial.imaging import gradient
+    sky = tmp_path / "sky.jpg"
+    g = gradient((800, 500), ["#ffb36b", "#ff5f6d", "#7b8cff"], 135).convert("RGB")
+    g.save(sky, quality=95)
+    out = convert.convert(sky, "image", "SVG")[0]
+    back = convert.svg_to_image(out).convert("RGB").resize(g.size)
+    err = np.abs(np.asarray(back, float) - np.asarray(g, float)).mean()
+    assert err < 3, err
     # big pictures are traced smaller but keep their size on screen
     big = tmp_path / "big.png"
     im.resize((4000, 2667)).save(big)

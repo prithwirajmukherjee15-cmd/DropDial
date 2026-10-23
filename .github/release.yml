@@ -1,0 +1,26 @@
+# Categories for GitHub's automatically generated release notes.
+# Each merged pull request is listed under the first category whose label it has.
+changelog:
+  exclude:
+    labels:
+      - dependencies
+      - skip-changelog
+  categories:
+    - title: New formats
+      labels:
+        - formats
+    - title: New features
+      labels:
+        - enhancement
+        - feature
+    - title: Fixes
+      labels:
+        - bug
+        - fix
+    - title: Documentation
+      labels:
+        - documentation
+        - docs
+    - title: Other changes
+      labels:
+        - "*"

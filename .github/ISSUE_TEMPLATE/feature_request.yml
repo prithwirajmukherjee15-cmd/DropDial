@@ -1,0 +1,27 @@
+name: Feature request
+description: A new tool, recipe step, setting or idea
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Want DropDial to read or write a new file type? Please use the **Format request** form instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like DropDial to do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: When would you use it?
+      description: What are you trying to get done, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: ideas
+    attributes:
+      label: Ideas for how it could work
+      description: Optional. Where it would appear (the dial, a recipe, the command line), or a library that could help.

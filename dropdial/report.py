@@ -77,7 +77,8 @@ def summarize(action: str, srcs: list, outs: list, extra: str = "") -> Result:
         return Result(action, extra or "Nothing was written", [], srcs)
     src = srcs[0] if srcs else outs[0]
     before = sum(file_size(s) for s in srcs if s.is_file())
-    after = sum(file_size(o) for o in outs if o.is_file())
+    after = sum(file_size(o) if o.is_file() else sum(file_size(f) for f in o.rglob("*") if f.is_file())
+                for o in outs if o.exists())
     kind, _, name = action.partition(":")
     o0 = outs[0]
     good = ""

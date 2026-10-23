@@ -6,6 +6,23 @@ numpy>=1.26
 python-docx>=1.1
 imageio-ffmpeg>=0.5
 vtracer>=0.6
+openpyxl>=3.1
+xlrd>=2.0
+PyYAML>=6.0
+defusedxml>=0.7.1
+tomli-w>=1.0
+py7zr>=1.0
+fonttools>=4.47
+brotli>=1.1
+trimesh>=5.0
+networkx>=3.0
+lxml>=5.0
+Markdown>=3.5
+docutils>=0.21
+pyshp>=2.3
+fast-simplification>=0.1.7
+rawpy>=0.25.1,<0.26; sys_platform == "darwin" and platform_machine == "x86_64"
+rawpy>=0.25.1; not (sys_platform == "darwin" and platform_machine == "x86_64")
 pywin32>=306; sys_platform == "win32"
 pyobjc-framework-Cocoa>=10; sys_platform == "darwin"
 pyobjc-framework-Quartz>=10; sys_platform == "darwin"

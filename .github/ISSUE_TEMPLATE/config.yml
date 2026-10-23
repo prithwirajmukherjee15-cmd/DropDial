@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: First launch help (security warnings on Windows and macOS)
+    url: https://github.com/prithwirajmukherjee15-cmd/DropDial#first-launch
+    about: Windows or macOS warns when you first open DropDial? It takes a few seconds to get past.
+  - name: Report a security problem
+    url: https://github.com/prithwirajmukherjee15-cmd/DropDial/security/policy
+    about: Please report security problems privately, not in a public issue.

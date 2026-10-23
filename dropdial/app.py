@@ -846,6 +846,36 @@ def main(argv: list[str] | None = None) -> int:
     return qapp.exec()
 
 
+def selftest_families(d: Path, png: Path) -> None:
+    """Every plug-in family must be present and working in the packaged app (its libraries are
+    imported lazily, so PyInstaller could miss one)."""
+    expected = {"sheet", "data", "markup", "email", "subtitle", "archive", "font", "model", "geo", "rawimage"}
+    missing = expected - {f.category for f in formats.all_families()}
+    if missing:
+        raise RuntimeError(f"file families missing: {sorted(missing)}")
+    (d / "t.csv").write_text("name,n\nA,1\n", encoding="utf-8")
+    (d / "t.json").write_text('{"a": [1, 2], "b": "x"}', encoding="utf-8")
+    (d / "t.md").write_text("# Hi\n\n- one\n", encoding="utf-8")
+    (d / "t.srt").write_text("1\n00:00:01,000 --> 00:00:02,000\nHello\n", encoding="utf-8")
+    (d / "t.gpx").write_text('<?xml version="1.0"?><gpx version="1.1" creator="t" xmlns="http://www.topografix.com/GPX/1/1">'
+                             '<trk><trkseg><trkpt lat="1" lon="2"/><trkpt lat="1.1" lon="2.1"/></trkseg></trk></gpx>',
+                             encoding="utf-8")
+    (d / "t.stl").write_text("solid t\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 1 0 0\nvertex 0 1 0\n"
+                             "endloop\nendfacet\nendsolid t\n", encoding="utf-8")
+    for name, target in (("t.csv", "XLSX"), ("t.json", "YAML"), ("t.json", "TOML"), ("t.md", "PDF"),
+                         ("t.md", "DOCX"), ("t.srt", "VTT"), ("t.gpx", "KML"), ("t.gpx", "SHP"), ("t.stl", "GLB"),
+                         ("t.stl", "PNG"), ("t.stl", "PLY")):
+        src = d / name
+        convert.convert(src, category(src), target)
+    from .formats import archives
+    z = archives.zip_paths([png, d / "t.csv"])
+    convert.convert(z, "archive", "7Z")
+    convert.convert(z, "archive", "EXTRACT")
+    convert.convert(png, "image", "ICNS")
+    if convert.can_trace():
+        convert.convert(png, "image", "SVG")
+
+
 def selftest() -> int:
     """Used by CI on the frozen .exe: exercise every library and build the UI, then exit."""
     import tempfile
@@ -869,6 +899,7 @@ def selftest() -> int:
             liquid.render(Image.new("RGB", (80, 80)), liquid.sdf_circle(80, 80, 40, 40, 30))
             imaging.pdf_page_numbers(pdf)
             imaging.watermark_pdf(pdf, "DRAFT")
+            selftest_families(Path(d), src)
             svg = Path(d) / "v.svg"
             svg.write_text('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">'
                            '<circle cx="10" cy="10" r="8" fill="red"/></svg>')

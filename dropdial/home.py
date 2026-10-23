@@ -20,7 +20,7 @@ from .window import GlassWindow
 THUMB = QSize(148, 104)
 GLYPH = {"image": "▧", "pdf": "▤", "docx": "¶", "text": "≡", "vector": "◇", "ebook": "❒", "video": "▶",
          "audio": "♫", "sheet": "▦", "data": "{ }", "markup": "¶", "subtitle": "❝", "archive": "▤",
-         "font": "Aa", "model": "◆", "geo": "⌖", "rawimage": "▧"}
+         "font": "Aa", "model": "◆", "geo": "⌖", "rawimage": "▧", "email": "✉"}
 
 
 def thumbnail(path: Path) -> QPixmap | None:

@@ -31,7 +31,9 @@ except Exception:  # pragma: no cover
     pass
 
 # most-used first: the dial shows the first 8, the rest go on its "More formats" side
-IMAGE_TARGETS = ["PNG", "JPG", "WEBP", "PDF", "HEIC", "AVIF", "TIFF", "GIF", "BMP", "ICO", "SVG"]
+IMAGE_TARGETS = ["PNG", "JPG", "WEBP", "PDF", "HEIC", "AVIF", "TIFF", "GIF", "BMP", "ICO", "SVG", "ICNS",
+                 "TGA", "QOI"]
+EXTRA_TARGETS = {"ICNS", "TGA", "QOI"}       # written by formats/rawimages.save_extra
 PDF_TARGETS = ["JPG", "PNG", "DOCX", "TXT"]
 DOCX_TARGETS = ["PDF", "TXT"]
 TEXT_TARGETS = ["PDF", "DOCX"]
@@ -189,6 +191,10 @@ def image_to(src: str | Path, target: str) -> list[Path]:
     if target == "PDF":
         write_images_pdf([src], out)
         return [out]
+    if target in EXTRA_TARGETS:
+        from .formats.rawimages import save_extra
+        save_extra(open_image(src), out, target)
+        return [out]
     if target == "SVG":
         svg = trace_svg(open_image(src))
         atomic_save(lambda dst: Path(dst).write_text(svg, encoding="utf-8"), out)
@@ -214,11 +220,17 @@ def trace_svg(im: Image.Image, max_side: int = 2000) -> str:
     k = min(1.0, max_side / max(w, h))
     if k < 1:
         im = im.resize((max(1, round(w * k)), max(1, round(h * k))), Image.LANCZOS)
-    px = [tuple(int(c) for c in row) for row in np.asarray(im).reshape(-1, 4)]
+    # reduce to a palette first: the tracer merges smooth gradients into one flat colour
+    # otherwise (a sunset became a single pink rectangle). 64 colours keeps photos within ~1/255.
+    alpha = im.getchannel("A")
+    q = im.convert("RGB").quantize(colors=64, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    q = q.convert("RGBA")
+    q.putalpha(alpha.point(lambda a: 255 if a >= 128 else 0))
+    px = [tuple(int(c) for c in row) for row in np.asarray(q).reshape(-1, 4)]
     svg = vtracer.convert_pixels_to_svg(
         px, size=im.size, colormode="color", hierarchical="stacked", mode="spline",
-        filter_speckle=4, color_precision=6, layer_difference=16, corner_threshold=60,
-        length_threshold=4.0, max_iterations=10, splice_threshold=45, path_precision=3)
+        filter_speckle=4, color_precision=8, layer_difference=1, corner_threshold=60,
+        length_threshold=4.0, max_iterations=10, splice_threshold=45, path_precision=2)
     svg = re.sub(r"<!--.*?-->\s*", "", svg, flags=re.S)       # drop the generator comment
     if k < 1:   # keep the original's size: scale the traced shapes back up
         svg = svg.replace(f'width="{im.width}" height="{im.height}"',

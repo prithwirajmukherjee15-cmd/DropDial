@@ -1,0 +1,56 @@
+name: Format request
+description: A file type DropDial can't convert yet
+title: "[Format]: "
+labels: ["formats"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        DropDial can't convert files that are encrypted or copy-protected (DRM), or files locked with a
+        password you don't have. If the app that made the file can export it to a common format, that's the way to go.
+  - type: input
+    id: from
+    attributes:
+      label: From format
+      description: The file extension, and the program or device that makes these files.
+      placeholder: ".xyz, saved by ..."
+    validations:
+      required: true
+  - type: input
+    id: to
+    attributes:
+      label: To format
+      description: What should DropDial turn it into?
+      placeholder: "PDF, PNG, MP3, CSV..."
+    validations:
+      required: true
+  - type: textarea
+    id: use
+    attributes:
+      label: Example use
+      description: What would you do with the result? This helps decide the right settings.
+    validations:
+      required: true
+  - type: dropdown
+    id: sample
+    attributes:
+      label: Can you share a sample file?
+      description: A small sample makes it much easier to build and test. Please don't share anything private.
+      options:
+        - Yes, I've attached one (zip it if GitHub won't accept the extension)
+        - Yes, but not publicly
+        - No
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Anything else?
+      description: Optional. A link to the format's documentation, or an open-source tool or Python library that reads it.
+  - type: checkboxes
+    id: not-protected
+    attributes:
+      label: Protection
+      options:
+        - label: These files aren't encrypted or copy-protected, and I can open them without a password.
+          required: true
