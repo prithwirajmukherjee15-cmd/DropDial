@@ -35,7 +35,7 @@ def code_strings() -> set[str]:
     i18n.error_text). The command line stays English, so cli.py is left out."""
     out: set[str] = set()
     for f in ROOT.rglob("*.py"):
-        if f.name in ("cli.py", "i18n.py"):
+        if f.name == "cli.py":
             continue
         for node in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
             if not isinstance(node, ast.Call) or not node.args:
