@@ -301,11 +301,92 @@ jobs:
           name: linux-deb
           path: dist/DropDial-linux-amd64.deb
 
+  linux-arm64:
+    # Built on Ubuntu 24.04 (glibc 2.39): PySide6's arm64 wheels since 6.8.1 need glibc 2.39, so the
+    # .deb runs on Ubuntu 24.04+, Debian 13+, Raspberry Pi OS 13 (64-bit)…
+    # Same steps as `linux` minus the Xvfb/XFCE end-to-end (that one runs on amd64 only).
+    runs-on: ubuntu-24.04-arm
+    container: ubuntu:24.04
+    steps:
+      - name: System packages
+        run: |
+          apt-get update -q
+          DEBIAN_FRONTEND=noninteractive apt-get install -y -q --no-install-recommends \
+            git ca-certificates python3 python3-venv python3-dev binutils dpkg-dev file \
+            libx11-6 libxext6 libxrender1 libxkbcommon0 libxkbcommon-x11-0 libxcb1 libxcb-cursor0 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+            libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libxcb-xkb1 libfontconfig1 libfreetype6 \
+            libdbus-1-3 libegl1 libgl1 libglib2.0-0t64 \
+            fonts-dejavu-core fonts-noto-core desktop-file-utils hicolor-icon-theme xdg-utils
+
+      - uses: actions/checkout@v4
+
+      - name: Python environment
+        run: |
+          # same portable Python 3.12 (via uv) as the amd64 build
+          python3 -m venv /opt/uv && /opt/uv/bin/pip install -q uv
+          /opt/uv/bin/uv python install 3.12
+          /opt/uv/bin/uv venv -p 3.12 /opt/venv
+          VIRTUAL_ENV=/opt/venv /opt/uv/bin/uv pip install -q -r requirements.txt pyinstaller pytest
+          /opt/venv/bin/python --version
+          /opt/venv/bin/python -c "import platform, PySide6; print(platform.machine(), 'PySide6', PySide6.__version__)"
+
+      - name: Run tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: /opt/venv/bin/python -m pytest -q
+
+      - name: Build the app folder
+        run: /opt/venv/bin/pyinstaller DropDial.spec --noconfirm
+
+      - name: Build the .deb
+        run: |
+          PATH=/opt/venv/bin:$PATH packaging/linux/build-deb.sh 1.1.0
+          dpkg-deb --info dist/DropDial-linux-arm64.deb
+          dpkg-deb --field dist/DropDial-linux-arm64.deb Architecture | grep -qx arm64
+          desktop-file-validate packaging/linux/dropdial.desktop
+
+      - name: Install the .deb and self-test it
+        env:
+          QT_QPA_PLATFORM: offscreen
+          LANG: C.UTF-8
+          LC_ALL: C.UTF-8
+        run: |
+          apt-get install -y -q ./dist/DropDial-linux-arm64.deb 2>&1 | tail -5
+          test -x /usr/bin/dropdial
+          set +e
+          dropdial --selftest > selftest-arm64.txt 2>&1
+          rc=$?
+          set -e
+          echo "exit code $rc" >> selftest-arm64.txt
+          cat ~/.local/share/DropDial/log.txt >> selftest-arm64.txt 2>/dev/null || true
+          if [ $rc -ne 0 ]; then
+            /opt/venv/bin/python -X faulthandler -m dropdial --selftest >> selftest-arm64.txt 2>&1 || true
+            cat ~/.local/share/DropDial/log.txt >> selftest-arm64.txt 2>/dev/null || true
+          fi
+          cat selftest-arm64.txt
+          if [ $rc -ne 0 ]; then
+            tail -25 selftest-arm64.txt | sed 's/%/%25/g' | while IFS= read -r l; do echo "::error title=selftest (arm64)::$l"; done
+            exit $rc
+          fi
+          # no system ffmpeg in this container: video/audio must run on the bundled arm64 ffmpeg
+          ff=$(sed -n 's/^selftest: ffmpeg at //p' selftest-arm64.txt | head -n 1)
+          test -n "$ff"
+          "$ff" -version | head -n 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-arm64-deb
+          path: dist/DropDial-linux-arm64.deb
+          if-no-files-found: ignore
+
   publish:
-    needs: [windows, macos, linux]
+    needs: [windows, macos, linux, linux-arm64]
     if: >-
       always() && github.event_name == 'push' &&
-      (needs.windows.result == 'success' || needs.macos.result == 'success' || needs.linux.result == 'success')
+      (needs.windows.result == 'success' || needs.macos.result == 'success' || needs.linux.result == 'success' ||
+      needs['linux-arm64'].result == 'success')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -356,7 +437,8 @@ jobs:
             | 🍎 Mac (Intel) | [DropDial-mac-intel.dmg](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-intel.dmg) |
             | 🪟 Windows installer (recommended) | [DropDial-Setup.exe](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-Setup.exe) |
             | 🪟 Windows portable | [DropDial.exe](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial.exe) |
-            | 🐧 Linux (Debian/Ubuntu .deb) | [DropDial-linux-amd64.deb](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb) |
+            | 🐧 Linux x64 (Debian/Ubuntu .deb) | [DropDial-linux-amd64.deb](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb) |
+            | 🐧 Linux ARM64 (Ubuntu 24.04+, Debian 13+, Raspberry Pi) | [DropDial-linux-arm64.deb](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-arm64.deb) |
 
             **Mac**, easiest with no security warning: paste into Terminal
             `curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/main/install-mac.sh | bash`
@@ -364,7 +446,7 @@ jobs:
 
             **Windows**: run DropDial-Setup.exe (per-user, no admin). If SmartScreen warns, click **More info → Run anyway**.
 
-            **Linux** (Debian 12+, Ubuntu 23.04+, Mint, MX… on X11 desktops such as XFCE, MATE, Cinnamon): `sudo apt install ./DropDial-linux-amd64.deb`, then open DropDial from the app menu.
+            **Linux** (Debian 12+, Ubuntu 23.04+, Mint, MX… on X11 desktops such as XFCE, MATE, Cinnamon): `sudo apt install ./DropDial-linux-amd64.deb`, then open DropDial from the app menu. On 64-bit ARM (Ubuntu 24.04+, Debian 13+, Raspberry Pi OS 13): `sudo apt install ./DropDial-linux-arm64.deb`.
 
             **What's inside:** images, PDFs, Word, text, video, audio, SVG and e-books; compress, resize, crop, edit, annotate, redact, watermark; multi-step recipes, watch folders, history and a command line.
 

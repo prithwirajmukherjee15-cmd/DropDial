@@ -190,7 +190,7 @@ class DropDialApp(QObject):
         self.qapp = qapp
         self.settings = Settings()
         self.settings.apply()
-        glass.set_accent(self.settings.get("accent"))
+        self.settings.apply_look()
         self.pool = QThreadPool.globalInstance()
         self.windows: list[QWidget] = []
         self.toasts = ToastStack()
@@ -205,6 +205,8 @@ class DropDialApp(QObject):
         self.watcher.show_menu.connect(lambda pos, files: self.menu.popup(pos, drag_paths=files))
         self.watcher.toggle_ring.connect(self.menu.next_ring)
         self.watcher.hide_menu.connect(self.menu.close_menu)
+        self.watcher.open_home.connect(self.open_home)
+        self.watcher.hotkey = self.settings.get("hotkey")
         self.watcher.start()
 
         # files handed over by "Send to", the right-click menu, or a second launch
@@ -686,6 +688,7 @@ class DropDialApp(QObject):
 
     def _settings_changed(self):
         self.watcher.set_key(self.settings.get("trigger"))
+        self.watcher.hotkey = self.settings.get("hotkey")
         self.tray.setToolTip(f"{APP_NAME} — press {self.trigger_label()} while dragging a file")
 
     def show_welcome(self):

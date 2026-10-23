@@ -82,13 +82,13 @@ class DropZone(QWidget):
         f.setPixelSize(16)
         f.setBold(True)
         p.setFont(f)
-        p.setPen(QColor(247, 244, 238))
+        p.setPen(glass.fg())
         p.drawText(QRectF(r.left(), c.y() + 24, r.width(), 24), Qt.AlignCenter,
                    "Drop files here" if not self.hot else "Release to open the dial")
         f.setPixelSize(12)
         f.setBold(False)
         p.setFont(f)
-        p.setPen(QColor(255, 255, 255, 150))
+        p.setPen(glass.fg(150))
         p.drawText(QRectF(r.left(), c.y() + 48, r.width(), 20), Qt.AlignCenter,
                    "or click to choose · or Shift-drag a file anywhere")
 
@@ -140,7 +140,8 @@ class RecentCard(QWidget):
         self.pic = QLabel()
         self.pic.setFixedSize(THUMB)
         self.pic.setAlignment(Qt.AlignCenter)
-        self.pic.setStyleSheet("background: rgba(255,255,255,0.06); border-radius: 10px;"
+        o = glass.ov(16)
+        self.pic.setStyleSheet(f"background: rgba({o.red()},{o.green()},{o.blue()},0.06); border-radius: 10px;"
                                f"color: {glass.GOLD}; font-size: 26px;")
         self.pic.setText(GLYPH.get(category(self.out) or "", "◌"))
         lay.addWidget(self.pic)

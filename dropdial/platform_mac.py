@@ -36,6 +36,19 @@ def key_down(name: str) -> bool:
     return bool(OK and AppKit.NSEvent.modifierFlags() & KEY_FLAGS.get(name, SHIFT))
 
 
+def hotkey_down() -> bool:
+    """Control + Option + D held (polled, so no Accessibility permission is needed)."""
+    if not OK:
+        return False
+    try:
+        flags = AppKit.NSEvent.modifierFlags()
+        if not (flags & CONTROL and flags & OPTION):
+            return False
+        return bool(Quartz.CGEventSourceKeyState(Quartz.kCGEventSourceStateCombinedSessionState, 2))  # D
+    except Exception:
+        return False
+
+
 def escape_down() -> bool:
     if not OK:
         return False

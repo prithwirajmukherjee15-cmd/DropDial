@@ -51,6 +51,7 @@ class _X11:
                 return
             self.root = x.XDefaultRootWindow(self.dpy)
             self.esc = x.XKeysymToKeycode(self.dpy, 0xFF1B)
+            self.key_d = x.XKeysymToKeycode(self.dpy, 0x64)
             self.ok = True
         except Exception:
             self.ok = False
@@ -62,6 +63,11 @@ class _X11:
         self.x.XQueryPointer(self.dpy, self.root, ctypes.byref(w), ctypes.byref(w), ctypes.byref(i),
                              ctypes.byref(i), ctypes.byref(i), ctypes.byref(i), ctypes.byref(m))
         return m.value
+
+    def pressed(self, code: int) -> bool:
+        keys = ctypes.create_string_buffer(32)
+        self.x.XQueryKeymap(self.dpy, keys)
+        return bool(code and keys.raw[code // 8] & (1 << (code % 8)))
 
     def escape(self) -> bool:
         keys = ctypes.create_string_buffer(32)
@@ -104,6 +110,13 @@ def key_down(name: str) -> bool:
 
 def escape_down() -> bool:
     return x11().escape()
+
+
+def hotkey_down() -> bool:
+    """Ctrl + Alt + D held."""
+    x = x11()
+    m = x.mask()
+    return bool(m & KEY_MASKS["ctrl"] and m & KEY_MASKS["alt"]) and x.pressed(x.key_d)
 
 
 # ---------------------------------------------------------------- compositing

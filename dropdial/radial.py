@@ -64,6 +64,7 @@ class _RenderJob(QRunnable):
     def __init__(self, serial: int, n: int, backdrop):
         super().__init__()
         self.serial, self.n, self.backdrop = serial, n, backdrop
+        self.light_theme = glass.is_light()
         self.sig = _RenderSig()
 
     def run(self):
@@ -75,7 +76,11 @@ class _RenderJob(QRunnable):
                 a0, a1 = angles(self.n, i)
                 fields.append(liquid.sdf_ring_sector(SIZE, SIZE, c, c, R_IN, R_OUT, a0, a1, CORNER))
             sdf = liquid.union(*fields)
-            img, light = liquid.render(self.backdrop, sdf, liquid.GlassStyle())
+            if self.light_theme:      # light theme: pearl glass and dark text on any wallpaper
+                img, _ = liquid.render(self.backdrop, sdf, liquid.GlassStyle(), tint=(246, 244, 240, 0.55))
+                light = True
+            else:                     # dark theme: midnight glass, but adapts on very light wallpapers
+                img, light = liquid.render(self.backdrop, sdf, liquid.GlassStyle())
             sh = liquid.shadow(sdf, spread=26, opacity=0.42 if light else 0.30, offset=(0, 8))
             sh.alpha_composite(img)
             try:
@@ -474,7 +479,7 @@ class RadialMenu(QWidget):
 
     # ------------------------------------------------------------ painting
     def _text_colors(self) -> tuple[QColor, QColor, QColor]:
-        if self.is_light:
+        if self.is_light or (glass.is_light() and not self.liquid):
             return QColor(24, 20, 14), QColor(24, 20, 14, 170), QColor(255, 255, 255, 120)
         return QColor(247, 244, 238), glass.accent("gold", 220), QColor(0, 0, 0, 120)
 
@@ -496,10 +501,13 @@ class RadialMenu(QWidget):
         img = self.liquid.get(n) if n else (self.liquid.get(4) or self.liquid.get(7))
         have_liquid = img is not None and not img.isNull()
 
+        p.save()
+        p.setOpacity(p.opacity() * glass.DIAL_OPACITY)      # Settings → Dial glass
         if have_liquid:
             p.drawImage(0, 0, img)
         else:
             self._paint_fallback(p, c, n)
+        p.restore()
 
         fg, fg_dim, shadow_col = self._text_colors()
         rot = (1 - self._swap) * -22

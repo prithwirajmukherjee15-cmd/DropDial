@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Build dropdial_<version>_<arch>.deb from the PyInstaller folder in dist/dropdial.
 #   usage: packaging/linux/build-deb.sh 1.2.0
+# writes dist/DropDial-linux-<arch>.deb for the architecture it runs on (amd64, arm64).
 set -euo pipefail
 VERSION="${1:-1.2.0}"
-ARCH="$(dpkg --print-architecture)"
+ARCH="$(dpkg --print-architecture)"            # amd64 or arm64: whatever machine builds it
+# the bundled libraries come from the build machine, so it sets the oldest glibc we run on
+# (Debian 12 -> 2.36 for amd64; Ubuntu 24.04 -> 2.39 for arm64, which PySide6's arm64 wheels need)
+GLIBC_MIN="$(dpkg-query -W -f='${Version}' libc6 2>/dev/null | sed 's/-.*//' || true)"
+GLIBC_MIN="${GLIBC_MIN:-2.36}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 PKG="$ROOT/build/deb/dropdial_${VERSION}_${ARCH}"
 rm -rf "${PKG:?}"
@@ -25,7 +30,7 @@ Section: graphics
 Priority: optional
 Architecture: $ARCH
 Installed-Size: $SIZE
-Depends: libc6 (>= 2.36), libx11-6, libxext6, libxrender1, libxkbcommon0, libxkbcommon-x11-0, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xfixes0, libxcb-xinerama0, libxcb-xkb1, libfontconfig1, libfreetype6, libdbus-1-3, libegl1, libgl1, libglib2.0-0
+Depends: libc6 (>= $GLIBC_MIN), libx11-6, libxext6, libxrender1, libxkbcommon0, libxkbcommon-x11-0, libxcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1, libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xfixes0, libxcb-xinerama0, libxcb-xkb1, libfontconfig1, libfreetype6, libdbus-1-3, libegl1, libgl1, libglib2.0-0
 Recommends: xdg-utils
 Maintainer: Prithwiraj Mukherjee <https://github.com/prithwirajmukherjee15-cmd/DropDial>
 Homepage: https://github.com/prithwirajmukherjee15-cmd/DropDial
