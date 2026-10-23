@@ -260,7 +260,7 @@ class ToastCard(QWidget):
         # leading visual: spinner / thumbnail / icon
         lead = QRectF(14, (H - 56) / 2 - 8, 56, 56)
         if self.state == "working":
-            p.setPen(QPen(QColor(255, 255, 255, 50), 4))
+            p.setPen(QPen(glass.ov(50), 4))
             p.drawEllipse(lead.center(), 16, 16)
             p.setPen(glass.iridescent_pen(lead.center(), 4, 255, angle=-self.spin))
             p.drawArc(QRectF(lead.center().x() - 16, lead.center().y() - 16, 32, 32), int(-self.spin * 16), 100 * 16)
@@ -273,19 +273,19 @@ class ToastCard(QWidget):
             p.drawPixmap(lead.toRect(), self.thumb,
                          QRect((self.thumb.width() - 64) // 2, (self.thumb.height() - 64) // 2, 64, 64))
             p.restore()
-            p.setPen(QPen(QColor(255, 255, 255, 110), 1))
+            p.setPen(QPen(glass.ov(110), 1))
             p.drawRoundedRect(lead, 12, 12)
             x = 82
         else:
             icon = {"done": "✓", "error": "!", "info": "↺"}.get(self.state, "✓")
             p.setPen(Qt.NoPen)
-            p.setBrush(QColor(255, 255, 255, 34))
+            p.setBrush(glass.ov(34))
             p.drawEllipse(lead.center(), 22, 22)
             f = QFont("Segoe UI", 1)
             f.setPixelSize(22)
             f.setBold(True)
             p.setFont(f)
-            p.setPen(glass.gold() if self.state == "done" else QColor("#f0b46a") if err else QColor(255, 250, 240))
+            p.setPen(glass.gold() if self.state == "done" else QColor("#f0b46a") if err else glass.fg())
             p.drawText(QRectF(lead.center().x() - 22, lead.center().y() - 22, 44, 44), Qt.AlignCenter, icon)
             x = 82
 
@@ -296,7 +296,7 @@ class ToastCard(QWidget):
         p.setFont(f)
         fm = QFontMetrics(f)
         title = fm.elidedText(self.title, Qt.ElideRight, int(tw))
-        p.setPen(QColor(255, 255, 255))
+        p.setPen(QColor(255, 255, 255) if err else glass.fg())
         p.drawText(QRectF(x, 13, tw, 20), Qt.AlignLeft | Qt.AlignAbsolute | Qt.AlignVCenter, title)
         # highlighted figure chip (e.g. "75% smaller")
         if self.good:
@@ -317,14 +317,14 @@ class ToastCard(QWidget):
         f.setPixelSize(12)
         f.setBold(False)
         p.setFont(f)
-        p.setPen(QColor(255, 255, 255, 200))
+        p.setPen(QColor(255, 255, 255, 200) if err else glass.fg(200))
         p.drawText(QRectF(x, 35, tw + 18, 34), Qt.AlignLeft | Qt.AlignTop | Qt.TextWordWrap,
                    QFontMetrics(f).elidedText(self.detail, Qt.ElideMiddle, int(tw * 1.9)))
 
         # close ×
         f.setPixelSize(13)
         p.setFont(f)
-        p.setPen(QColor(255, 255, 255, 150))
+        p.setPen(glass.fg(150))
         p.drawText(QRectF(W - 30, 6, 24, 24), Qt.AlignCenter, "✕")
 
         # action buttons
@@ -341,10 +341,10 @@ class ToastCard(QWidget):
                 bw = fm.horizontalAdvance(labels[nme]) + 22
                 br = QRectF(bx, H - 32, bw, 22)
                 self.buttons.append((nme, br))
-                p.setPen(QPen(glass.gold(170) if self.hover_btn == i else QColor(255, 255, 255, 45), 1))
-                p.setBrush(QColor(255, 255, 255, 40 if self.hover_btn == i else 16))
+                p.setPen(QPen(glass.gold(170) if self.hover_btn == i else glass.ov(45), 1))
+                p.setBrush(glass.ov(40 if self.hover_btn == i else 16))
                 p.drawRoundedRect(br, 11, 11)
-                p.setPen(QColor(255, 255, 255))
+                p.setPen(glass.fg())
                 p.drawText(br, Qt.AlignCenter, labels[nme])
                 bx += bw + 6
 

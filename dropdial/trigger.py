@@ -20,6 +20,7 @@ class DropDialWatcher(QObject):
     show_menu = Signal(QPoint, list)   # cursor, files being dragged (if the OS can tell us)
     toggle_ring = Signal()
     hide_menu = Signal()
+    open_home = Signal()                 # Ctrl+Alt+D (⌃⌥D on a Mac), anywhere
 
     def __init__(self, menu_visible, menu_got_drag, parent=None):
         super().__init__(parent)
@@ -34,6 +35,8 @@ class DropDialWatcher(QObject):
         self._idle_ticks = 0
         self._shown_at = QPoint()
         self._drag_cc = -1
+        self.hotkey = True
+        self._hot_was = False
         self._user32 = ctypes.windll.user32 if sys.platform == "win32" else None
         self._mac = None
         if sys.platform == "darwin":
@@ -77,7 +80,20 @@ class DropDialWatcher(QObject):
         except Exception:
             return []
 
+    def _hotkey(self) -> bool:
+        if self._mac is not None:
+            f = getattr(self._mac, "hotkey_down", None)
+            return bool(f and f())
+        if self._user32 is not None:
+            return self._down(0x11) and self._down(0x12) and self._down(0x44)   # Ctrl, Alt, D
+        return False
+
     def _tick(self):
+        if self.hotkey and self.enabled:
+            hot = self._hotkey()
+            if hot and not self._hot_was:
+                self.open_home.emit()
+            self._hot_was = hot
         lbtn, shift, esc = self._state()
         pos = QCursor.pos()
 

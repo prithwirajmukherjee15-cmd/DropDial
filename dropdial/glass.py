@@ -49,9 +49,53 @@ def set_accent(name: str) -> None:
         name = "champagne"
     ACCENT = name
     ACCENT_A, ACCENT_B, ACCENT_C, GOLD, ON_ACCENT = ACCENTS[name]
+    if globals().get("THEME") == "light":
+        GOLD = ACCENT_C              # the light accent would vanish on pale glass: use the deep one
     IRIDESCENT = (_CHAMPAGNE_RIM if name == "champagne" else
                   [ACCENT_A, "#fffaf0", "#cfd6e4", ACCENT_B, "#fff3dc", "#b8c1d6", ACCENT_A])
     QSS = build_qss()
+
+
+THEME = "dark"            # "dark" or "light" (windows, toasts and the dial)
+DIAL_OPACITY = 1.0        # 0.4 … 1.0: how solid the dial's glass is (labels stay fully opaque)
+_DARK = dict(TEXT="#f7f4ee", TEXT_DIM="rgba(247,244,238,0.62)", SURFACE="#14151c", MIDNIGHT=(13, 14, 20))
+_LIGHT = dict(TEXT="#1f1c17", TEXT_DIM="rgba(31,28,23,0.62)", SURFACE="#f6f3ee", MIDNIGHT=(244, 241, 235))
+
+
+def set_theme(name: str) -> None:
+    """'dark' or 'light'. Windows opened afterwards use it; the dial picks it up on its next show."""
+    global THEME, TEXT, TEXT_DIM, SURFACE, MIDNIGHT, QSS
+    THEME = "light" if name == "light" else "dark"
+    v = _LIGHT if THEME == "light" else _DARK
+    TEXT, TEXT_DIM, SURFACE, MIDNIGHT = v["TEXT"], v["TEXT_DIM"], v["SURFACE"], v["MIDNIGHT"]
+    set_accent(ACCENT)              # recomputes the text accent for this theme and rebuilds QSS
+
+
+def system_theme() -> str:
+    """The OS appearance (Qt 6.5+), 'dark' if unknown."""
+    try:
+        from PySide6.QtGui import QGuiApplication
+        from PySide6.QtCore import Qt
+        hints = QGuiApplication.styleHints()
+        return "light" if hints.colorScheme() == Qt.ColorScheme.Light else "dark"
+    except Exception:  # noqa: BLE001
+        return "dark"
+
+
+def is_light() -> bool:
+    return THEME == "light"
+
+
+def fg(alpha: int = 255) -> QColor:
+    """Text colour for hand-painted widgets."""
+    c = QColor(TEXT)
+    c.setAlpha(alpha)
+    return c
+
+
+def ov(alpha: int) -> QColor:
+    """A faint overlay that lifts a surface: white on dark glass, ink on light glass."""
+    return QColor(255, 255, 255, alpha) if THEME == "dark" else QColor(20, 18, 14, alpha)
 
 
 def accent(which: str = "gold", alpha: int = 255) -> QColor:
@@ -62,8 +106,10 @@ def accent(which: str = "gold", alpha: int = 255) -> QColor:
 
 
 def glass_tint(alpha: int, lift: int = 0) -> QColor:
-    """The glass tint: near-black midnight, optionally lifted a little."""
+    """The glass tint: near-black midnight (or warm pearl in the light theme), lifted a little."""
     r, g, b = MIDNIGHT
+    if THEME == "light":
+        return QColor(r - lift, g - lift, b - lift, min(255, alpha + 10))
     return QColor(r + lift, g + lift, b + lift + 4, alpha)
 
 
@@ -174,6 +220,11 @@ def _rgba(hex_color: str, a: float) -> str:
 
 
 def build_qss() -> str:
+    qss = _qss_dark()
+    return _light_qss(qss) if THEME == "light" else qss
+
+
+def _qss_dark() -> str:
     return f"""
 * {{ color: {TEXT}; font-family: "Segoe UI Variable Text", "Segoe UI", sans-serif; font-size: 10pt; }}
 QWidget#glassRoot {{ background: transparent; }}
@@ -251,6 +302,14 @@ QListWidget::item:selected {{ background: {_rgba(ACCENT_B, 0.20)}; color: {TEXT}
 
 
 QSS = build_qss()
+
+
+def _light_qss(qss: str) -> str:
+    """The light theme's stylesheet: the dark one with its lifts and shades inverted."""
+    for a, b in (("rgba(255,255,255,", "\x00INK"), ("rgba(0,0,0,", "rgba(255,255,255,"),
+                 ("\x00INK", "rgba(20,18,14,"), ("rgba(247,244,238,", "rgba(31,28,23,")):
+        qss = qss.replace(a, b)
+    return qss
 
 
 # ---------------------------------------------------------------- Windows acrylic

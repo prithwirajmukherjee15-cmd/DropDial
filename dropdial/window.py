@@ -196,7 +196,7 @@ class ImageView(QWidget):
         p.setRenderHint(QPainter.Antialiasing)
         t = self.target_rect()
         # checkerboard so transparency is visible
-        p.fillRect(t, QColor(255, 255, 255, 30))
+        p.fillRect(t, glass.ov(30))
         p.drawPixmap(t, self.pix, QRectF(self.pix.rect()))
         self.paint_overlay(p, t)
 

@@ -255,3 +255,53 @@ def test_cli_output_survives_a_non_utf8_pipe(tmp_path):
                        capture_output=True, env=env, cwd=str(Path(__file__).resolve().parents[1]))
     assert r.returncode == 0, r.stdout + r.stderr
     assert (tmp_path / "t.jpg").exists()
+
+
+def test_light_theme_and_back():
+    from dropdial import glass
+    dark_qss, dark_gold = glass.QSS, glass.GOLD
+    try:
+        glass.set_theme("light")
+        assert glass.is_light() and glass.TEXT == "#1f1c17"
+        assert "rgba(20,18,14," in glass.QSS and glass.GOLD == glass.ACCENT_C   # readable on pale glass
+        assert glass.fg().lightness() < 60 and glass.ov(40).lightness() < 60
+        assert glass.glass_tint(120).lightness() > 200
+    finally:
+        glass.set_theme("dark")
+    assert glass.QSS == dark_qss and glass.GOLD == dark_gold and glass.fg().lightness() > 200
+
+
+def test_settings_apply_look(qapp):
+    from dropdial import glass
+    from dropdial.settings import Settings
+    s = Settings()
+    try:
+        s.q.setValue("dial_opacity", 10)            # clamped: the dial never disappears
+        s.q.setValue("theme", "light")
+        s.apply_look()
+        assert glass.DIAL_OPACITY == 0.4 and glass.is_light()
+    finally:
+        s.q.remove("dial_opacity")
+        s.q.remove("theme")
+        s.apply_look()
+    assert glass.DIAL_OPACITY == 1.0 and not glass.is_light()
+
+
+def test_hotkey_fires_once_per_press(qapp):
+    from dropdial.trigger import DropDialWatcher
+    w = DropDialWatcher(lambda: False, lambda: False)
+    fired = []
+    w.open_home.connect(lambda: fired.append(1))
+    w._state = lambda: (False, False, False)
+    held = {"v": False}
+    w._hotkey = lambda: held["v"]
+    for v in (False, True, True, True, False, True):
+        held["v"] = v
+        w._tick()
+    assert len(fired) == 2
+    w.hotkey = False
+    held["v"] = False
+    w._tick()
+    held["v"] = True
+    w._tick()
+    assert len(fired) == 2

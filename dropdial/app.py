@@ -196,7 +196,7 @@ class DropDialApp(QObject):
         self.qapp = qapp
         self.settings = Settings()
         self.settings.apply()
-        glass.set_accent(self.settings.get("accent"))
+        self.settings.apply_look()
         self.pool = QThreadPool.globalInstance()
         self.windows: list[QWidget] = []
         self.toasts = ToastStack()
@@ -211,6 +211,8 @@ class DropDialApp(QObject):
         self.watcher.show_menu.connect(lambda pos, files: self.menu.popup(pos, drag_paths=files))
         self.watcher.toggle_ring.connect(self.menu.next_ring)
         self.watcher.hide_menu.connect(self.menu.close_menu)
+        self.watcher.open_home.connect(self.open_home)
+        self.watcher.hotkey = self.settings.get("hotkey")
         self.watcher.start()
 
         # files handed over by "Send to", the right-click menu, or a second launch
@@ -255,11 +257,31 @@ class DropDialApp(QObject):
         self.watch_timer = QTimer(self, interval=2000, timeout=self._watch_tick)
         self.reload_watch()
 
+        # load the converters and file families now, in the background: otherwise the first
+        # Shift-drag pays for it while the OS drag loop waits (seconds on a fresh Windows with
+        # antivirus scanning each module), and that first drop can be missed
+        QTimer.singleShot(300, self._warm_up)
+
         # new releases: a quiet check shortly after start, then every 6 hours
         self.update = None
         self.update_timer = QTimer(self, interval=6 * 3600 * 1000, timeout=self.check_updates)
         self.update_timer.start()
         QTimer.singleShot(45_000, self.check_updates)
+
+    def _warm_up(self):
+        def work():
+            from . import formats, imaging, liquid, media  # noqa: F401
+            formats.load()
+            for fam in formats.all_families():
+                fam.targets(next(iter(fam.exts)).lstrip("."))
+            convert.targets_for("image", "png")             # imports the SVG tracer too
+            liquid.render(__import__("PIL.Image", fromlist=["Image"]).new("RGB", (40, 40)),
+                          liquid.sdf_circle(40, 40, 20, 20, 15))
+            return []
+        job = Job("plain", [], work, raw=True)
+        job.sig.done.connect(lambda *_: release(job))
+        job.sig.failed.connect(lambda *_: release(job))
+        self.pool.start(keep(job))
 
     def trigger_label(self) -> str:
         return dict(TRIGGERS).get(self.settings.get("trigger"), "Shift")
@@ -697,6 +719,7 @@ class DropDialApp(QObject):
 
     def _settings_changed(self):
         self.watcher.set_key(self.settings.get("trigger"))
+        self.watcher.hotkey = self.settings.get("hotkey")
         self.tray.setToolTip(self._tray_tip())
 
     def show_welcome(self):

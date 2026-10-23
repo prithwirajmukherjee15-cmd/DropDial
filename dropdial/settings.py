@@ -27,6 +27,9 @@ DEFAULTS = {
     "watch_toasts": True,
     "check_updates": True,
     "accent": "champagne",
+    "theme": "dark",            # dark | light | system
+    "dial_opacity": 100,        # % of the dial's glass (labels stay solid)
+    "hotkey": True,             # Ctrl+Alt+D opens Home
     "update_seen": "",
     "language": "system",      # "system" or a code from i18n.LANGUAGES
 }
@@ -55,6 +58,14 @@ class Settings:
     def apply(self):
         for k in ("output", "jpg_quality", "pdf_dpi"):
             CONFIG[k] = self.get(k)
+
+    def apply_look(self):
+        """Theme, accent and dial opacity (needs a QApplication for 'system')."""
+        from . import glass
+        theme = self.get("theme")
+        glass.set_theme(glass.system_theme() if theme == "system" else theme)
+        glass.set_accent(self.get("accent"))
+        glass.DIAL_OPACITY = max(0.4, min(1.0, self.get("dial_opacity") / 100))
 
 
 # ---------------------------------------------------------------- autostart (Windows)
@@ -107,6 +118,7 @@ def set_autostart(on: bool):
 TRIGGERS = ([("shift", "Shift ⇧"), ("ctrl", "Control ⌃"), ("alt", "Option ⌥")] if IS_MAC
             else [("shift", "Shift"), ("ctrl", "Ctrl"), ("alt", "Alt")])
 OUTPUTS = [("next", N_("Next to the original")), ("folder", N_("In a “DropDial” subfolder"))]
+THEMES = [("dark", N_("Dark glass")), ("light", N_("Light glass")), ("system", N_("Match my system"))]
 DPIS = [(150, N_("150 dpi · small")), (200, N_("200 dpi · balanced")), (300, N_("300 dpi · print"))]
 
 
@@ -114,7 +126,7 @@ class SettingsWindow(GlassWindow):
     changed = Signal()
 
     def __init__(self, settings: Settings):
-        super().__init__(tr("Settings"), size=(560, 600))
+        super().__init__(tr("Settings"), size=(560, 690))
         self.s = settings
         grid = QGridLayout()
         grid.setHorizontalSpacing(14)
@@ -165,6 +177,27 @@ class SettingsWindow(GlassWindow):
         grid.addWidget(self.dpi, r, 1)
         r += 1
 
+        grid.addWidget(QLabel(tr("Appearance")), r, 0)
+        self.theme = combo([(v, tr(t)) for v, t in THEMES], self.s.get("theme"))
+        self.theme.currentIndexChanged.connect(lambda _: self._look("theme", self.theme.currentData()))
+        grid.addWidget(self.theme, r, 1)
+        r += 1
+
+        grid.addWidget(QLabel(tr("Dial glass")), r, 0)
+        orow = QHBoxLayout()
+        self.op = QSlider(Qt.Horizontal)
+        self.op.setRange(40, 100)
+        self.op.setValue(self.s.get("dial_opacity"))
+        self.op.setToolTip(tr("How solid the dial's glass looks. The labels always stay readable."))
+        self.opv = QLabel(f"{self.op.value()}%")
+        self.opv.setObjectName("dim")
+        self.opv.setFixedWidth(38)
+        self.op.valueChanged.connect(lambda v: (self.opv.setText(f"{v}%"), self._look("dial_opacity", v)))
+        orow.addWidget(self.op)
+        orow.addWidget(self.opv)
+        grid.addLayout(orow, r, 1)
+        r += 1
+
         grid.addWidget(QLabel(tr("Accent colour")), r, 0)
         sw_row = QHBoxLayout()
         sw_row.setSpacing(8)
@@ -202,6 +235,12 @@ class SettingsWindow(GlassWindow):
             self.auto.toggled.connect(set_autostart)
             grid.addWidget(self.auto, r, 1)
             r += 1
+        keys = "⌃⌥D" if IS_MAC else "Ctrl+Alt+D"
+        self.hot = QCheckBox(tr("{keys} opens Home from anywhere", keys=keys))
+        self.hot.setChecked(self.s.get("hotkey"))
+        self.hot.toggled.connect(lambda on: self._save("hotkey", on))
+        grid.addWidget(self.hot, r, 1)
+        r += 1
         self.upd = QCheckBox(tr("Check for updates automatically"))
         self.upd.setToolTip(tr("Asks GitHub once every few hours whether a newer DropDial exists. "
                                "Nothing about you or your files is sent."))
@@ -241,6 +280,13 @@ class SettingsWindow(GlassWindow):
         i18n.apply_direction()
         self.lang_note.setText(tr("Restart DropDial to apply everywhere"))
         self.lang_note.show()
+
+    def _look(self, key, value):
+        self.s.q.setValue(key, value)
+        self.s.apply_look()
+        self.setStyleSheet(glass.QSS)       # this window updates at once; others as they open
+        self.update()
+        self.changed.emit()
 
     def _accent(self, key: str):
         for k, b in self.swatches:

@@ -26,6 +26,8 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-e3be7a" alt="MIT license"></a>
 </p>
 
+<p align="center"><b>English</b> · <a href="README.hi.md">हिन्दी</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a> · <a href="README.de.md">Deutsch</a> · <a href="README.pt-BR.md">Português (Brasil)</a> · <a href="README.ja.md">日本語</a> · <a href="README.ko.md">한국어</a> · <a href="README.zh-CN.md">简体中文</a> · <a href="README.ru.md">Русский</a> · <a href="README.ar.md">العربية</a></p>
+
 <p align="center">
   <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-apple-silicon.dmg"><img src="docs/btn-mac-arm.svg" alt="Download for macOS (Apple Silicon)" height="56"></a>
   <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-intel.dmg"><img src="docs/btn-mac-intel.svg" alt="Download for macOS (Intel)" height="56"></a>
@@ -61,6 +63,7 @@ Download from [Releases](https://github.com/prithwirajmukherjee15-cmd/DropDial/r
   ```
 - **Windows 10/11**: run [`DropDial-Setup.exe`](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-Setup.exe) (installs for your user, no admin rights; adds the right-click menu, *Send to*, and start with Windows), or use the portable [`DropDial.exe`](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial.exe).
 - **Linux x64** (Debian 12+, Ubuntu 23.04+, Mint…): `sudo apt install ./DropDial-linux-amd64.deb` ([download](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb)). The Shift gesture needs X11; on Wayland, use Home's drop zone or right-click → **Open With → DropDial**.
+- **Linux ARM64** (Ubuntu 24.04+, Debian 13+, Raspberry Pi OS 13 64-bit…): `sudo apt install ./DropDial-linux-arm64.deb` ([download](https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-arm64.deb)).
 
 DropDial lives in the menu bar / system tray. It tells you when a new version is out.
 
