@@ -62,6 +62,9 @@ RECIPE_HINTS = {"Web-ready": N_("WebP · no metadata"), "Email size": N_("Fits i
                 "Private": N_("Strip GPS · camera"), "Social": N_("4:5 gradient post"), "Scan → PDF": N_("Pages → one PDF"),
                 "Confidential": N_("Stamp every page"), "Share video": N_("720p MP4"), "Podcast": N_("MP3 · −16 LUFS")}
 
+# convert targets that are words rather than format names (translated on the dial)
+WORD_TARGETS = (N_("EXTRACT"), N_("BINARY"))
+
 IMAGE_TOOLS = ["Compress", "Resize", "Crop", "Edit", "Annotate", "Redact", "Add BG", "Watermark", "Metadata"]
 PDF_TOOLS = ["Compress", "Split", "Rotate", "Numbers", "Watermark", "Protect", "Extract", "Metadata"]
 
@@ -222,8 +225,8 @@ class DropDialApp(QObject):
         self.tray.setToolTip(self._tray_tip())
         m = QMenu()
         m.setStyleSheet(glass.QSS)
-        credit = m.addAction(f"{APP_NAME} {VERSION}  ·  {credit()}")
-        credit.setEnabled(False)          # a signature line, styled gold by the stylesheet
+        sig = m.addAction(f"{APP_NAME} {VERSION}  ·  {credit()}")
+        sig.setEnabled(False)             # a signature line, styled gold by the stylesheet
         m.addSeparator()
         self.act_enabled = QAction(tr("Enabled"), m, checkable=True, checked=True)
         self.act_enabled.toggled.connect(lambda on: setattr(self.watcher, "enabled", on))
