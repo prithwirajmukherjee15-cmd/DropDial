@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DropDial: drag, press Shift, drop to convert any file</title>
+<meta name="description" content="DropDial is a free, open-source file converter you use by dragging. Drag any file, press Shift, and drop it on the glass dial that opens at your cursor. 140+ file types, offline, for Windows, macOS and Linux.">
+<meta name="author" content="Prithwiraj Mukherjee">
+<meta name="theme-color" content="#0d0e14">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://prithwirajmukherjee15-cmd.github.io/DropDial/">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="DropDial">
+<meta property="og:title" content="DropDial: Drag. Shift. Drop. Done.">
+<meta property="og:description" content="A free, open-source file converter you use by dragging. 140+ file types, works offline, for Windows, macOS and Linux.">
+<meta property="og:url" content="https://prithwirajmukherjee15-cmd.github.io/DropDial/">
+<meta property="og:image" content="https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/main/docs/banner.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="DropDial: drag a file, press Shift, drop it on the dial">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DropDial: Drag. Shift. Drop. Done.">
+<meta name="twitter:description" content="A free, open-source file converter you use by dragging. 140+ file types, works offline, for Windows, macOS and Linux.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/main/docs/banner.png">
+<meta name="twitter:image:alt" content="DropDial: drag a file, press Shift, drop it on the dial">
+
+<style>
+:root {
+  --bg: #0d0e14;
+  --bg-2: #14151c;
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-2: rgba(255, 255, 255, 0.075);
+  --line: rgba(247, 231, 193, 0.13);
+  --line-strong: rgba(247, 231, 193, 0.28);
+  --text: #f7f4ee;
+  --text-dim: rgba(247, 244, 238, 0.72);
+  --text-faint: rgba(247, 244, 238, 0.56);
+  --champagne: #f7e7c1;
+  --gold: #d8ad62;
+  --gold-deep: #a87a34;
+  --gold-text: #e3be7a;
+  --on-gold: #1a1408;
+  --gold-grad: linear-gradient(180deg, #f7e7c1 0%, #d8ad62 55%, #a87a34 100%);
+  --radius: 18px;
+  --radius-sm: 12px;
+  --shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Text", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --wrap: 1120px;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--text);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(900px 600px at 85% -10%, rgba(168, 122, 52, 0.22), transparent 60%),
+    radial-gradient(700px 520px at 100% 30%, rgba(60, 140, 160, 0.13), transparent 65%),
+    radial-gradient(800px 600px at -10% 20%, rgba(120, 70, 130, 0.14), transparent 60%);
+  background-repeat: no-repeat;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--gold-text); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--champagne); }
+:focus-visible { outline: 2px solid var(--champagne); outline-offset: 3px; border-radius: 6px; }
+kbd {
+  font-family: var(--font); font-size: 0.82em; font-weight: 600;
+  padding: 0.1em 0.5em; border-radius: 6px; color: var(--champagne);
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.04));
+  border: 1px solid var(--line-strong); box-shadow: 0 2px 0 rgba(0,0,0,.45);
+  white-space: nowrap;
+}
+code { font-family: var(--mono); font-size: 0.88em; color: var(--champagne); }
+.wrap { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 0 24px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip { position: absolute; left: 16px; top: -60px; z-index: 100; padding: 10px 16px; border-radius: 10px; background: var(--champagne); color: var(--on-gold); font-weight: 600; text-decoration: none; }
+.skip:focus { top: 12px; }
+
+.glass {
+  background: linear-gradient(160deg, rgba(255,255,255,.075), rgba(255,255,255,.02) 60%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), var(--shadow);
+}
+.gold-text {
+  background: var(--gold-grad); -webkit-background-clip: text; background-clip: text;
+  color: transparent; -webkit-text-fill-color: transparent;
+}
+
+/* header */
+.top {
+  position: sticky; top: 0; z-index: 50;
+  background: rgba(13, 14, 20, 0.72);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  border-bottom: 1px solid rgba(247, 231, 193, 0.08);
+}
+.top .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--text); text-decoration: none; font-weight: 700; font-size: 18px; letter-spacing: -0.01em; }
+.brand img { width: 34px; height: 34px; }
+.brand:hover { color: var(--champagne); }
+.nav { display: flex; gap: 22px; margin-left: auto; }
+.nav a { color: var(--text-dim); text-decoration: none; font-size: 15px; }
+.nav a:hover { color: var(--champagne); }
+.top-actions { display: flex; gap: 10px; align-items: center; }
+
+/* buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 44px; padding: 10px 18px; border-radius: 12px;
+  font: 600 15px/1.2 var(--font); text-decoration: none; cursor: pointer;
+  border: 1px solid var(--line-strong); color: var(--text);
+  background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03));
+  transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.btn:hover { color: var(--champagne); border-color: rgba(247,231,193,.5); transform: translateY(-1px); }
+.btn svg { width: 18px; height: 18px; flex: none; }
+.btn-gold {
+  color: var(--on-gold); border-color: rgba(255, 240, 210, .6);
+  background: var(--gold-grad);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 10px 30px -10px rgba(216, 173, 98, .65);
+}
+.btn-gold:hover { color: var(--on-gold); box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 14px 36px -10px rgba(216, 173, 98, .8); }
+.btn-lg { min-height: 60px; padding: 12px 24px; border-radius: 16px; font-size: 17px; text-align: left; }
+.btn-lg .lbl { display: flex; flex-direction: column; }
+.btn-lg small { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; opacity: .78; }
+.btn-lg svg { width: 24px; height: 24px; }
+
+/* hero */
+.hero { padding: 72px 0 56px; }
+.hero .wrap { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 48px; align-items: center; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0 0 22px;
+  padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; letter-spacing: .04em;
+  color: var(--gold-text); border: 1px solid var(--line-strong); background: rgba(216,173,98,.07);
+  text-decoration: none;
+}
+.eyebrow:hover { color: var(--champagne); }
+.eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+h1 {
+  margin: 0; font-size: clamp(40px, 6.6vw, 76px); line-height: 1.02; letter-spacing: -0.035em; font-weight: 800;
+}
+.lede { margin: 22px 0 30px; font-size: clamp(18px, 2vw, 21px); color: var(--text-dim); max-width: 34em; }
+.lede strong { color: var(--text); font-weight: 600; }
+.dl-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.dl-note { margin: 16px 0 0; font-size: 14px; color: var(--text-faint); }
+.dl-note a { color: var(--text-dim); }
+.dl-note a:hover { color: var(--champagne); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; padding: 0; list-style: none; }
+.chips li { font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--text-dim); background: rgba(255,255,255,.03); }
+
+.dial-wrap { position: relative; max-width: 460px; width: 100%; margin: 0 auto; aspect-ratio: 1; }
+.dial-wrap::before {
+  content: ""; position: absolute; inset: 6%; border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(216,173,98,.28), rgba(90,150,170,.12) 55%, transparent 72%);
+  filter: blur(28px);
+}
+.dial { position: relative; width: 100%; height: 100%; overflow: visible; }
+.dial .slice { fill: url(#sliceFill); stroke: url(#rim); stroke-width: 1.3; transition: fill .2s ease; }
+.dial .slice.on { fill: url(#sliceOn); stroke: #f7e7c1; stroke-width: 1.6; }
+.dial text { font: 700 15px var(--font); letter-spacing: .06em; fill: #f7f4ee; text-anchor: middle; dominant-baseline: central; }
+.dial .on-label { fill: #1a1408; }
+.dial .small { font-size: 11.5px; letter-spacing: .1em; }
+.dial .hub-title { font-size: 19px; letter-spacing: 0; }
+.dial .hub-sub { font: 600 11.5px var(--font); fill: #e3be7a; letter-spacing: .02em; }
+.dial .spin { transform-origin: 200px 200px; animation: sweep 9s cubic-bezier(.6,.05,.3,1) infinite; }
+@keyframes sweep {
+  0%, 18% { transform: rotate(0deg); }
+  25%, 43% { transform: rotate(90deg); }
+  50%, 68% { transform: rotate(180deg); }
+  75%, 93% { transform: rotate(270deg); }
+  100% { transform: rotate(360deg); }
+}
+.dial .cursor { animation: bob 3s ease-in-out infinite; }
+@keyframes bob { 50% { transform: translate(-4px, -6px); } }
+
+/* sections */
+section { padding: 72px 0; scroll-margin-top: 64px; }
+.sec-head { max-width: 680px; margin: 0 0 40px; }
+.sec-head.center { margin-left: auto; margin-right: auto; text-align: center; }
+.kicker { margin: 0 0 10px; font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--gold-text); }
+h2 { margin: 0; font-size: clamp(30px, 4vw, 44px); line-height: 1.1; letter-spacing: -0.025em; font-weight: 750; }
+.sec-head p:not(.kicker) { margin: 14px 0 0; color: var(--text-dim); font-size: 18px; }
+h3 { margin: 0 0 8px; font-size: 19px; letter-spacing: -0.01em; }
+
+.demo { padding-top: 24px; }
+.demo-frame { padding: 10px; max-width: 800px; margin: 0 auto; }
+.demo-frame img { width: 100%; border-radius: 12px; aspect-ratio: 760 / 470; background: #181a22; }
+.demo-cap { text-align: center; margin: 16px 0 0; color: var(--text-faint); font-size: 15px; }
+
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; counter-reset: step; list-style: none; padding: 0; margin: 0; }
+.step { padding: 28px; position: relative; }
+.step .num {
+  display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; margin-bottom: 18px;
+  font-weight: 800; color: var(--on-gold); background: var(--gold-grad); box-shadow: 0 6px 20px -6px rgba(216,173,98,.7);
+}
+.step p { margin: 0; color: var(--text-dim); }
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.card { padding: 24px; }
+.card p { margin: 0; color: var(--text-dim); font-size: 16px; }
+.ico {
+  width: 44px; height: 44px; display: grid; place-items: center; margin-bottom: 16px; border-radius: 12px;
+  border: 1px solid var(--line-strong); background: linear-gradient(180deg, rgba(247,231,193,.14), rgba(216,173,98,.04));
+}
+.ico svg { width: 22px; height: 22px; stroke: var(--gold-text); fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* formats */
+.table-wrap { overflow: hidden; padding: 0; }
+table { width: 100%; border-collapse: collapse; font-size: 15.5px; }
+thead th { text-align: left; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold-text); padding: 16px 22px; border-bottom: 1px solid var(--line-strong); background: rgba(216,173,98,.06); }
+tbody td { padding: 14px 22px; vertical-align: top; border-bottom: 1px solid rgba(247,231,193,.07); color: var(--text-dim); }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: rgba(255,255,255,.025); }
+tbody td:first-child { width: 52%; }
+tbody td strong { color: var(--text); }
+.formats-foot { margin: 18px 0 0; color: var(--text-faint); font-size: 15px; text-align: center; }
+
+/* screenshots */
+.shots { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 20px; align-items: start; }
+.shot { margin: 0; padding: 10px; }
+.shot img { border-radius: 12px; width: 100%; }
+.shot figcaption { padding: 14px 8px 6px; color: var(--text-faint); font-size: 15px; }
+
+/* download */
+.dl-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.dl-card { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.dl-card.is-you { border-color: rgba(247,231,193,.45); box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 1px rgba(216,173,98,.25), var(--shadow); }
+.dl-card header { display: flex; align-items: center; gap: 12px; }
+.dl-card header svg { width: 26px; height: 26px; fill: var(--gold-text); }
+.dl-card h3 { margin: 0; }
+.dl-card .req { margin: 0; color: var(--text-faint); font-size: 14px; }
+.dl-card .links { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
+.dl-card .links .btn { justify-content: flex-start; }
+.badge-you { margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--on-gold); background: var(--gold-grad); padding: 3px 9px; border-radius: 999px; }
+.term { margin-top: 22px; padding: 20px 22px; }
+.term p { margin: 0 0 12px; color: var(--text-dim); font-size: 15.5px; }
+.codeline { display: flex; gap: 10px; align-items: stretch; }
+.codeline pre {
+  flex: 1; min-width: 0; margin: 0; padding: 12px 14px; border-radius: 10px; overflow-x: auto;
+  background: rgba(0,0,0,.35); border: 1px solid rgba(247,231,193,.1); font: 14px/1.5 var(--mono); color: var(--champagne);
+}
+.copy { min-height: 0; padding: 8px 14px; font-size: 14px; }
+
+/* first launch */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.help { padding: 28px; }
+.help .os { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.help .os svg { width: 24px; height: 24px; fill: var(--gold-text); }
+.help .os h3 { margin: 0; }
+.help .quote { margin: 0 0 16px; color: var(--text-faint); font-style: italic; font-size: 15.5px; }
+.help ol { margin: 0; padding-left: 22px; color: var(--text-dim); }
+.help li { margin: 6px 0; }
+.help li::marker { color: var(--gold-text); font-weight: 700; }
+.help .after { margin: 14px 0 0; font-size: 15px; color: var(--text-faint); }
+.dl-grid > *, .two > *, .grid > *, .steps > *, .shots > * { min-width: 0; }
+.cmd { display: block; max-width: 100%; margin-top: 8px; padding: 9px 12px; border-radius: 9px; font-size: 13px; white-space: nowrap; overflow-x: auto; background: rgba(0,0,0,.35); border: 1px solid rgba(247,231,193,.1); }
+.callout { margin: 20px 0 0; padding: 16px 20px; font-size: 15.5px; color: var(--text-dim); border-radius: var(--radius-sm); }
+.callout strong { color: var(--text); }
+
+/* privacy */
+.privacy { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 40px; align-items: center; padding: 40px; }
+.privacy ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.privacy li { display: flex; gap: 14px; color: var(--text-dim); }
+.privacy li svg { flex: none; width: 22px; height: 22px; margin-top: 3px; stroke: var(--gold-text); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.privacy li strong { color: var(--text); }
+
+/* faq */
+.faq { max-width: 820px; margin: 0 auto; display: grid; gap: 12px; }
+.faq details { padding: 0; border-radius: var(--radius-sm); }
+.faq summary {
+  list-style: none; cursor: pointer; padding: 18px 22px; font-weight: 650; font-size: 17px;
+  display: flex; justify-content: space-between; gap: 16px; align-items: center; border-radius: var(--radius-sm);
+}
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+  content: ""; flex: none; width: 10px; height: 10px; border-right: 2px solid var(--gold-text); border-bottom: 2px solid var(--gold-text);
+  transform: rotate(45deg) translateY(-3px); transition: transform .2s ease;
+}
+.faq details[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
+.faq .ans { padding: 0 22px 20px; color: var(--text-dim); }
+.faq .ans p { margin: 0 0 10px; }
+.faq .ans p:last-child { margin-bottom: 0; }
+.faq pre { margin: 10px 0; padding: 12px 14px; border-radius: 10px; overflow-x: auto; background: rgba(0,0,0,.35); border: 1px solid rgba(247,231,193,.1); font: 14px/1.6 var(--mono); color: var(--champagne); }
+
+/* cta + footer */
+.cta { text-align: center; padding: 56px 32px; }
+.cta h2 { margin-bottom: 12px; }
+.cta p { margin: 0 auto 28px; color: var(--text-dim); max-width: 34em; }
+.cta .dl-row { justify-content: center; }
+footer { padding: 40px 0 56px; border-top: 1px solid rgba(247,231,193,.08); margin-top: 40px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center; justify-content: space-between; color: var(--text-faint); font-size: 15px; }
+footer .made { display: flex; align-items: center; gap: 10px; }
+footer .made img { width: 28px; height: 28px; }
+footer nav { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+footer a { color: var(--text-dim); text-decoration: none; }
+footer a:hover { color: var(--champagne); text-decoration: underline; }
+
+/* responsive */
+@media (max-width: 980px) {
+  .nav { display: none; }
+  .top-actions { margin-left: auto; }
+  .hero { padding-top: 48px; }
+  .hero .wrap { grid-template-columns: 1fr; gap: 40px; }
+  .dial-wrap { max-width: 380px; }
+  .grid, .dl-grid { grid-template-columns: 1fr 1fr; }
+  .privacy { grid-template-columns: 1fr; gap: 24px; padding: 32px; }
+}
+@media (max-width: 720px) {
+  body { font-size: 16px; }
+  .wrap { padding: 0 16px; }
+  section { padding: 56px 0; }
+  .steps, .grid, .dl-grid, .two, .shots { grid-template-columns: 1fr; }
+  .top .wrap { gap: 12px; }
+  .top-actions .gh-label { display: none; }
+  .btn-lg { width: 100%; }
+  .dl-row { flex-direction: column; align-items: stretch; }
+  thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  tbody tr { padding: 14px 18px; border-bottom: 1px solid rgba(247,231,193,.08); }
+  tbody tr:last-child { border-bottom: 0; }
+  tbody td, tbody td:first-child { width: auto; padding: 0; border: 0; }
+  tbody td + td { margin-top: 6px; padding-left: 14px; border-left: 2px solid rgba(216,173,98,.4); }
+  tbody td + td::before { content: "To: "; color: var(--gold-text); font-weight: 600; }
+  .privacy { padding: 24px; }
+  .help, .step { padding: 22px; }
+  .cta { padding: 40px 20px; }
+  .codeline { flex-direction: column; }
+  footer .wrap { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 380px) {
+  .brand span { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-apple" viewBox="0 0 24 24"><path d="M16.4 12.6c0-2.4 2-3.6 2.1-3.7-1.2-1.7-3-1.9-3.6-2-1.5-.2-3 .9-3.8.9-.8 0-2-.9-3.3-.9-1.7 0-3.3 1-4.1 2.5-1.8 3.1-.5 7.6 1.3 10.1.8 1.2 1.8 2.6 3.1 2.5 1.2 0 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8 0 0-2.4-.9-2.4-3.6zM14 5.3c.7-.8 1.1-1.9 1-3-1 0-2.1.7-2.8 1.5-.6.7-1.2 1.8-1 2.9 1 .1 2.1-.6 2.8-1.4z"/></symbol>
+    <symbol id="i-win" viewBox="0 0 24 24"><path d="M2 5.1l8.2-1.1v7.9H2zM11.2 3.8L22 2.3v9.6H11.2zM2 12.9h8.2v7.9L2 19.7zM11.2 12.9H22v9.7l-10.8-1.5z"/></symbol>
+    <symbol id="i-linux" viewBox="0 0 24 24"><path d="M12 2c-2.3 0-3.6 1.9-3.6 4.4 0 1.3.3 2.2-.4 3.4-.9 1.5-2.6 3.4-2.9 5.9-.1 1 .1 1.8.6 2.4-.6.4-1.6.6-1.9 1.3-.4.9.6 1.6 2.4 1.9 1.3.2 2.3.7 3.1.7.7 0 1.2-.4 1.4-.9h2.6c.2.5.7.9 1.4.9.8 0 1.8-.5 3.1-.7 1.8-.3 2.8-1 2.4-1.9-.3-.7-1.3-.9-1.9-1.3.5-.6.7-1.4.6-2.4-.3-2.5-2-4.4-2.9-5.9-.7-1.2-.4-2.1-.4-3.4C15.6 3.9 14.3 2 12 2zm-1.3 3.4c.4 0 .7.5.7 1.1 0 .3-.1.6-.2.8l-.6-.1c.1-.2.1-.4.1-.6 0-.3-.1-.5-.2-.5s-.2.2-.2.5v.3l-.5-.2v-.1c0-.7.4-1.2.9-1.2zm2.6 0c.5 0 .9.5.9 1.2 0 .1 0 .3-.1.4l-.5.1v-.4c0-.3-.2-.6-.4-.6s-.3.3-.3.6v.2l-.6.2c-.1-.2-.1-.4-.1-.6.1-.6.5-1.1 1.1-1.1zM12 8c.8 0 1.9.6 1.9.9s-1 .9-1.9.9-1.9-.6-1.9-.9S11.2 8 12 8zm-2.7 3c.6.7 1.7 1.3 2.7 1.3s2.1-.6 2.7-1.3c.6 1 1.4 2.4 1.5 3.8.1 1.3-.4 2.2-1.1 2.6-.1-.8-.5-1.3-1.3-1.3h-3.6c-.8 0-1.2.5-1.3 1.3-.7-.4-1.2-1.3-1.1-2.6.1-1.4.9-2.8 1.5-3.8z"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14"/></symbol>
+    <symbol id="i-gh" viewBox="0 0 24 24"><path d="M12 .5C5.6.5.5 5.6.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.2 1.2a11 11 0 0 1 5.8 0c2.2-1.5 3.2-1.2 3.2-1.2.6 1.6.2 2.8.1 3.1.7.8 1.2 1.9 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.6 18.4.5 12 .5z"/></symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="DropDial home">
+      <img src="assets/icon-256.png" alt="" width="34" height="34">
+      <span>DropDial</span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#formats">Formats</a>
+      <a href="#first-launch">First launch</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="top-actions">
+      <a class="btn" href="https://github.com/prithwirajmukherjee15-cmd/DropDial" aria-label="DropDial on GitHub">
+        <svg aria-hidden="true" fill="currentColor"><use href="#i-gh"/></svg><span class="gh-label">GitHub</span>
+      </a>
+      <a class="btn btn-gold" href="#download">Download</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section class="hero" id="top" aria-labelledby="hero-title">
+  <div class="wrap">
+    <div>
+      <a class="eyebrow" href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest"><span class="dot" aria-hidden="true"></span>Version 1.1 · free and open source</a>
+      <h1 id="hero-title">Drag. Shift. Drop. <span class="gold-text">Done.</span></h1>
+      <p class="lede">A file converter you use by dragging. Drag any file, press <kbd>Shift</kbd>, and drop it on a slice of the glass dial that opens at your cursor. <strong>140+ file types, right on your computer.</strong></p>
+
+      <div class="dl-row" id="hero-dl">
+        <a class="btn btn-gold btn-lg" href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest">
+          <svg aria-hidden="true"><use href="#i-down"/></svg>
+          <span class="lbl"><small>Free download</small>Download DropDial</span>
+        </a>
+      </div>
+      <p class="dl-note" id="hero-note">Windows 10/11 · macOS 11+ · Linux. <a href="#download">All downloads</a></p>
+
+      <ul class="chips" aria-label="Highlights">
+        <li>No uploads</li>
+        <li>Works offline</li>
+        <li>No other software needed</li>
+        <li>MIT licensed</li>
+      </ul>
+    </div>
+
+    <div class="dial-wrap">
+      <svg class="dial" viewBox="0 0 400 400" role="img" aria-labelledby="dial-title">
+        <title id="dial-title">The DropDial dial: a ring of format slices (PNG, WEBP, PDF, AVIF, HEIC, Resize, Compress, SVG) around the file you are dragging</title>
+        <defs>
+          <linearGradient id="sliceFill" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#2a2c38" stop-opacity=".88"/>
+            <stop offset="1" stop-color="#15161e" stop-opacity=".88"/>
+          </linearGradient>
+          <linearGradient id="sliceOn" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#f7e7c1"/><stop offset=".55" stop-color="#d8ad62"/><stop offset="1" stop-color="#a87a34"/>
+          </linearGradient>
+          <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#f4dfb2" stop-opacity=".75"/>
+            <stop offset=".35" stop-color="#cfd6e4" stop-opacity=".35"/>
+            <stop offset=".7" stop-color="#e6c27e" stop-opacity=".6"/>
+            <stop offset="1" stop-color="#b8c1d6" stop-opacity=".3"/>
+          </linearGradient>
+          <radialGradient id="hub" cx=".5" cy=".35" r=".7">
+            <stop offset="0" stop-color="#2d2f3c"/><stop offset="1" stop-color="#121319"/>
+          </radialGradient>
+        </defs>
+        <g>
+          <path class="slice on" d="M135.6 36.2A176 176 0 0 1 264.4 36.2L225.3 130.5A74 74 0 0 0 174.7 130.5Z"/>
+          <path class="slice" d="M270.3 38.6A176 176 0 0 1 361.4 129.7L267.1 168.8A74 74 0 0 0 231.2 132.9Z"/>
+          <path class="slice" d="M363.8 135.6A176 176 0 0 1 363.8 264.4L269.5 225.3A74 74 0 0 0 269.5 174.7Z"/>
+          <path class="slice" d="M361.4 270.3A176 176 0 0 1 270.3 361.4L231.2 267.1A74 74 0 0 0 267.1 231.2Z"/>
+          <path class="slice" d="M264.4 363.8A176 176 0 0 1 135.6 363.8L174.7 269.5A74 74 0 0 0 225.3 269.5Z"/>
+          <path class="slice" d="M129.7 361.4A176 176 0 0 1 38.6 270.3L132.9 231.2A74 74 0 0 0 168.8 267.1Z"/>
+          <path class="slice" d="M36.2 264.4A176 176 0 0 1 36.2 135.6L130.5 174.7A74 74 0 0 0 130.5 225.3Z"/>
+          <path class="slice" d="M38.6 129.7A176 176 0 0 1 129.7 38.6L168.8 132.9A74 74 0 0 0 132.9 168.8Z"/>
+          <text class="on-label" x="200" y="77">PNG</text>
+          <text x="288.4" y="111.6">WEBP</text>
+          <text x="325" y="200">PDF</text>
+          <text x="288.4" y="288.4">AVIF</text>
+          <text x="200" y="325">HEIC</text>
+          <text class="small" x="111.6" y="288.4">RESIZE</text>
+          <text class="small" x="75" y="200">COMPRESS</text>
+          <text x="111.6" y="111.6">SVG</text>
+        </g>
+        <circle cx="200" cy="200" r="66" fill="url(#hub)" stroke="url(#rim)" stroke-width="1.5"/>
+        <g class="spin" aria-hidden="true">
+          <circle cx="200" cy="200" r="58" fill="none" stroke="#d8ad62" stroke-opacity=".35" stroke-width="1" stroke-dasharray="2 7"/>
+        </g>
+        <text class="hub-title" x="200" y="192">photo.jpg</text>
+        <text class="hub-sub" x="200" y="216">Drop on PNG</text>
+        <g class="cursor" aria-hidden="true">
+          <path d="M214 92 l0 26 l6.5 -6 l4.5 10 l4 -1.8 l-4.4 -9.8 l8.6 -.4 Z" fill="#f7f4ee" stroke="#0d0e14" stroke-width="1.6" stroke-linejoin="round"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="demo" aria-labelledby="demo-title">
+  <div class="wrap">
+    <h2 id="demo-title" class="sr-only">See it in action</h2>
+    <div class="glass demo-frame">
+      <picture>
+        <source media="(prefers-reduced-motion: reduce)" srcset="assets/demo-still.jpg">
+        <img src="assets/demo.gif" width="760" height="470" loading="lazy" decoding="async"
+             alt="A photo is dragged, Shift is pressed, and the glass dial opens around the cursor with formats like PNG, WEBP, HEIC, AVIF, PDF and ICO; the photo is dropped on a slice to convert it.">
+      </picture>
+    </div>
+    <p class="demo-cap">The dial shows only the formats and tools that fit the files you're dragging.</p>
+  </div>
+</section>
+
+<section id="how" aria-labelledby="how-title">
+  <div class="wrap">
+    <div class="sec-head center">
+      <p class="kicker">How it works</p>
+      <h2 id="how-title">Three moves. No app window.</h2>
+      <p>You don't open DropDial to use it. It waits in the menu bar or system tray and shows up when you need it.</p>
+    </div>
+    <ol class="steps">
+      <li class="glass step">
+        <span class="num" aria-hidden="true">1</span>
+        <h3>Drag a file</h3>
+        <p>Pick up one file or a whole pile from your desktop, a folder, an e-mail or straight out of your web browser.</p>
+      </li>
+      <li class="glass step">
+        <span class="num" aria-hidden="true">2</span>
+        <h3>Press <kbd>Shift</kbd></h3>
+        <p>The glass dial opens right at your cursor with the formats that fit. Tap <kbd>Shift</kbd> again or turn the wheel for more sides.</p>
+      </li>
+      <li class="glass step">
+        <span class="num" aria-hidden="true">3</span>
+        <h3>Drop on a slice</h3>
+        <p>The result is saved next to the original, never over it. Find it again or undo it from History.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="features" aria-labelledby="features-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker">Features</p>
+      <h2 id="features-title">More than a converter</h2>
+      <p>Convert, compress and edit, all from the same gesture.</p>
+    </div>
+    <div class="grid">
+      <article class="glass card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3v5.5M12 15.5V21M3 12h5.5M15.5 12H21"/></svg></div>
+        <h3>A dial at the cursor</h3>
+        <p>No window to find. The dial appears where you already are, with only the formats that make sense for your files.</p>
+      </article>
+      <article class="glass card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h11M4 12h16M4 17h8"/><path d="M18 4l3 3-3 3"/></svg></div>
+        <h3>More than one side</h3>
+        <p>Flip with <kbd>Shift</kbd>, <kbd>Tab</kbd> or the mouse wheel to reach More formats, Tools and Recipes.</p>
+      </article>
+      <article class="glass card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/><path d="M12 12v5m0 0l-2.2-2.2M12 17l2.2-2.2"/></svg></div>
+        <h3>Straight from the browser</h3>
+        <p>Drag a picture, a file link or a download out of Chrome, Edge, Firefox or Safari. DropDial saves it, then converts it.</p>
+      </article>
+      <article class="glass card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/></svg></div>
+        <h3>Tools for every kind of file</h3>
+        <p>Compress, resize, crop, annotate, redact and watermark images; merge, split and protect PDFs; mute and trim video; and more.</p>
+      </article>
+      <article class="glass card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 6h4v4H5zM15 14h4v4h-4zM9 8h4a2 2 0 0 1 2 2v4"/><path d="M13 12l2 2 2-2"/></svg></div>
+        <h3>Recipes</h3>
+        <p>Chain steps into one slice, like "Web-ready", "Email size" or "Private", or build your own.</p>
+      </article>
+      <article class="glass card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 16.5z"/><circle cx="12" cy="13" r="2.5"/></svg></div>
+        <h3>Watch folders</h3>
+        <p>Point DropDial at a folder and every file that lands in it is converted automatically.</p>
+      </article>
+      <article class="glass card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4.5h4.5"/><path d="M12 8v4l3 2"/></svg></div>
+        <h3>Many files, full History</h3>
+        <p>Convert a batch at once, zip a pile of files or a folder, and find or undo anything in History.</p>
+      </article>
+      <article class="glass card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 9l3 3-3 3M12.5 15H17"/></svg></div>
+        <h3>Other ways in</h3>
+        <p>Right-click menu, <em>Send to</em> on Windows, Home's drop zone (no <kbd>Shift</kbd> needed) and a <code>dropdial</code> command.</p>
+      </article>
+      <article class="glass card">
+        <div class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none" opacity=".35"/><circle cx="8.5" cy="9" r="1"/><circle cx="12" cy="7" r="1"/><circle cx="15.5" cy="9" r="1"/></svg></div>
+        <h3>Your look</h3>
+        <p>Liquid-glass dial with your accent colour: Champagne, Rose, Ocean, Emerald, Violet or Silver.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="formats" aria-labelledby="formats-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker">Formats</p>
+      <h2 id="formats-title">140+ file types, nothing else to install</h2>
+      <p>Images, camera RAW, PDF, Word, Excel, e-books, video, audio, subtitles, archives, fonts, 3D models and map files work without Office or anything else.</p>
+    </div>
+    <div class="glass table-wrap">
+      <table>
+        <caption class="sr-only">What DropDial converts from and to</caption>
+        <thead><tr><th scope="col">From</th><th scope="col">To</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Images</strong>: JPG, PNG, WEBP, HEIC, AVIF, TIFF, GIF, BMP, ICO</td><td>each other, PDF, SVG (traced), ICNS, TGA, QOI</td></tr>
+          <tr><td><strong>Pro images</strong>: camera RAW (CR2, CR3, NEF, ARW, DNG, RAF, ORF, RW2…), PSD, TGA, QOI, JPEG 2000, DDS, ICNS, PPM…</td><td>JPG, PNG, TIFF (16-bit for RAW), WEBP, AVIF, HEIC, PDF</td></tr>
+          <tr><td><strong>Vector</strong>: SVG</td><td>PDF (stays vector), PNG, JPG, WEBP, ICO</td></tr>
+          <tr><td><strong>PDF</strong></td><td>JPG, PNG, DOCX, TXT; merge, split, rotate, compress, number, watermark, protect, unlock, extract images</td></tr>
+          <tr><td><strong>Documents</strong>: DOCX, TXT, Markdown, HTML, saved web pages (MHTML), reStructuredText</td><td>PDF, DOCX, HTML, Markdown, TXT</td></tr>
+          <tr><td><strong>E-mail</strong>: EML</td><td>PDF, DOCX, HTML, TXT; save attachments</td></tr>
+          <tr><td><strong>Spreadsheets</strong>: XLSX, XLSM, XLS, ODS, CSV, TSV</td><td>XLSX, ODS, CSV, TSV, JSON, HTML, PDF, DOCX, Markdown; contacts CSV → VCF; combine, split sheets</td></tr>
+          <tr><td><strong>Data</strong>: JSON, JSON Lines, YAML, TOML, XML, plist, vCard</td><td>each other, CSV, XLSX, PDF</td></tr>
+          <tr><td><strong>E-books</strong>: EPUB, MOBI, FB2, CBZ, XPS</td><td>PDF, DOCX, TXT</td></tr>
+          <tr><td><strong>Video</strong>: MP4, MOV, MKV, WEBM, AVI, WMV, FLV, M4V, MPEG, 3GP</td><td>MP4, WEBM, MOV, GIF, MP3; compress, mute, rotate, still frame (iPhone HDR is tone-mapped)</td></tr>
+          <tr><td><strong>Audio</strong>: MP3, M4A, AAC, WAV, FLAC, OGG, OPUS, WMA, AIFF</td><td>MP3, M4A, WAV, FLAC, OGG; normalise loudness, trim silence, compress</td></tr>
+          <tr><td><strong>Subtitles</strong>: SRT, WebVTT, ASS/SSA, SBV, MicroDVD, SAMI, LRC, TTML</td><td>each other as UTF-8, TXT; clean captions, fix 25 / 23.976 fps timing</td></tr>
+          <tr><td><strong>Archives</strong>: ZIP, 7Z, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, GZ, BZ2, XZ</td><td>extract, ZIP, 7Z, TAR.GZ; any files or folder → one ZIP</td></tr>
+          <tr><td><strong>Fonts</strong>: TTF, OTF, WOFF, WOFF2, TTC</td><td>each other, PNG / PDF specimen; Latin subset, web font kit</td></tr>
+          <tr><td><strong>3D models</strong>: STL, OBJ, PLY, GLB, glTF, OFF, 3MF</td><td>each other, PNG preview; center &amp; ground, repair, decimate</td></tr>
+          <tr><td><strong>Map data</strong>: GPX, KML, KMZ, GeoJSON, Shapefile</td><td>each other, CSV, PNG map; trip stats, reverse, simplify</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="formats-foot">Everything works out of the box: the downloads include all the engines, FFmpeg for video and audio among them.</p>
+  </div>
+</section>
+
+<section id="screenshots" aria-labelledby="shots-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker">Screenshots</p>
+      <h2 id="shots-title">Home and the dial</h2>
+    </div>
+    <div class="shots">
+      <figure class="glass shot">
+        <img src="assets/screen-home.png" width="900" height="880" loading="lazy" decoding="async"
+             alt="DropDial Home window: a drop zone at the top and a grid of recent results with previews, including an SVG, a WEBP, a 3D render, a GPS map, a PDF, a spreadsheet and a font specimen.">
+        <figcaption>Home: click the tray or menu-bar icon for a drop zone and your recent results.</figcaption>
+      </figure>
+      <figure class="glass shot">
+        <img src="assets/screen-dial.png" width="440" height="440" loading="lazy" decoding="async"
+             alt="The dial for a spreadsheet, with slices for XLSX, PDF, JSON, HTML, DOCX and MD around a centre reading 'XLSX, opens in Excel'.">
+        <figcaption>The dial for a spreadsheet. Flip it for More formats and Tools.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section id="download" aria-labelledby="download-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker">Download</p>
+      <h2 id="download-title">Get DropDial</h2>
+      <p>Free for Windows, macOS and Linux. It lives in the menu bar or system tray and tells you when a new version is out.</p>
+    </div>
+    <div class="dl-grid">
+      <div class="glass dl-card" id="card-mac">
+        <header><svg aria-hidden="true"><use href="#i-apple"/></svg><h3>macOS</h3></header>
+        <p class="req">macOS 11 or later. Apple Silicon is for M1 and newer Macs. Open the .dmg and drag DropDial to Applications.</p>
+        <div class="links">
+          <a class="btn btn-gold" href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-apple-silicon.dmg"><svg aria-hidden="true"><use href="#i-down"/></svg>Apple Silicon</a>
+          <a class="btn" href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-mac-intel.dmg"><svg aria-hidden="true"><use href="#i-down"/></svg>Intel</a>
+        </div>
+      </div>
+      <div class="glass dl-card" id="card-win">
+        <header><svg aria-hidden="true"><use href="#i-win"/></svg><h3>Windows</h3></header>
+        <p class="req">Windows 10 or 11. Installs for your user, no admin rights. Adds the right-click menu and <em>Send to</em>.</p>
+        <div class="links">
+          <a class="btn btn-gold" href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-Setup.exe"><svg aria-hidden="true"><use href="#i-down"/></svg>Installer (.exe)</a>
+          <a class="btn" href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial.exe"><svg aria-hidden="true"><use href="#i-down"/></svg>Portable (.exe)</a>
+        </div>
+      </div>
+      <div class="glass dl-card" id="card-linux">
+        <header><svg aria-hidden="true"><use href="#i-linux"/></svg><h3>Linux</h3></header>
+        <p class="req">Debian 12+, Ubuntu 23.04+, Mint… Install with:</p>
+        <code class="cmd">sudo apt install ./DropDial-linux-amd64.deb</code>
+        <div class="links">
+          <a class="btn btn-gold" href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-amd64.deb"><svg aria-hidden="true"><use href="#i-down"/></svg>x64 (.deb)</a>
+          <a class="btn" href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/DropDial-linux-arm64.deb"><svg aria-hidden="true"><use href="#i-down"/></svg>ARM64 (.deb)</a>
+        </div>
+      </div>
+    </div>
+    <div class="glass term">
+      <p><strong style="color:var(--text)">On a Mac, prefer Terminal?</strong> This line picks the right build, installs it with no security prompt, and updates it when you run it again.</p>
+      <div class="codeline">
+        <pre id="mac-cmd"><code>curl -fsSL https://raw.githubusercontent.com/prithwirajmukherjee15-cmd/DropDial/main/install-mac.sh | bash</code></pre>
+        <button class="btn copy" type="button" data-copy="mac-cmd">Copy</button>
+      </div>
+    </div>
+    <p class="dl-note" style="text-align:center">All files and release notes are on <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest">GitHub Releases</a>. Every download is built from the public source by GitHub Actions.</p>
+  </div>
+</section>
+
+<section id="first-launch" aria-labelledby="first-title">
+  <div class="wrap">
+    <div class="sec-head">
+      <p class="kicker">First launch</p>
+      <h2 id="first-title">A one-time warning, and how to get past it</h2>
+      <p>DropDial isn't code-signed yet (signing certificates cost money every year), so Windows and macOS warn the first time only. It takes about ten seconds.</p>
+    </div>
+    <div class="two">
+      <div class="glass help">
+        <div class="os"><svg aria-hidden="true"><use href="#i-win"/></svg><h3>Windows</h3></div>
+        <p class="quote">"Windows protected your PC"</p>
+        <ol>
+          <li>Click <strong>More info</strong>.</li>
+          <li>Click <strong>Run anyway</strong>.</li>
+        </ol>
+        <p class="after">That's it. Windows won't ask again.</p>
+      </div>
+      <div class="glass help">
+        <div class="os"><svg aria-hidden="true"><use href="#i-apple"/></svg><h3>macOS</h3></div>
+        <p class="quote">"Apple could not verify 'DropDial' is free of malware…"</p>
+        <ol>
+          <li>Open DropDial from Applications once and click <strong>Done</strong>.</li>
+          <li>Go to <strong>System Settings → Privacy &amp; Security</strong>, scroll to <em>"DropDial" was blocked</em> and click <strong>Open Anyway</strong>.</li>
+          <li>Enter your password and confirm with <strong>Open Anyway</strong>.</li>
+        </ol>
+        <p class="after">Or in Terminal:</p>
+        <code class="cmd">xattr -dr com.apple.quarantine /Applications/DropDial.app</code>
+      </div>
+    </div>
+    <p class="glass callout">On macOS 15 (Sequoia) and later, the old <strong>right-click → Open</strong> shortcut no longer gets past the warning; use the steps above. Installed with the Terminal line? Then there's no warning at all.</p>
+  </div>
+</section>
+
+<section id="privacy" aria-labelledby="privacy-title">
+  <div class="wrap">
+    <div class="glass privacy">
+      <div>
+        <p class="kicker">Privacy</p>
+        <h2 id="privacy-title">Your files stay on your computer</h2>
+        <p style="color:var(--text-dim);margin:14px 0 0">DropDial converts everything locally. It collects no usage data and sends no telemetry.</p>
+      </div>
+      <ul>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><strong>Nothing is uploaded.</strong> It works offline and saves results next to the original, never over it.</span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><strong>One update check.</strong> It asks GitHub whether a newer release exists every few hours. Turn it off in Settings.</span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><strong>Only when you ask.</strong> It goes online to fetch a file you drag out of your browser, or when you click a link.</span></li>
+        <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><strong>Screen Recording on Mac is optional.</strong> It only lets the glass show the windows behind it. Nothing is ever recorded or sent.</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="faq" aria-labelledby="faq-title">
+  <div class="wrap">
+    <div class="sec-head center">
+      <p class="kicker">FAQ</p>
+      <h2 id="faq-title">Questions</h2>
+    </div>
+    <div class="faq">
+      <details class="glass">
+        <summary>Is DropDial really free?</summary>
+        <div class="ans"><p>Yes. It's open source under the MIT license, with no account, no ads and no paid tier. The full source is on <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial">GitHub</a>.</p></div>
+      </details>
+      <details class="glass">
+        <summary>Why does my computer warn me the first time?</summary>
+        <div class="ans"><p>The Windows and macOS downloads aren't code-signed or notarized yet, so the system shows a one-time warning for any app like that. Every download is built from the public source by GitHub Actions; nothing is built by hand. See <a href="#first-launch">First launch</a> for the ten-second fix.</p></div>
+      </details>
+      <details class="glass">
+        <summary>Do I need Office, FFmpeg or anything else installed?</summary>
+        <div class="ans"><p>No. The downloads include every engine DropDial uses, FFmpeg for video and audio among them, so Word, Excel, e-book, video and 3D files all work on a fresh computer.</p></div>
+      </details>
+      <details class="glass">
+        <summary>Does the Shift gesture work on Linux?</summary>
+        <div class="ans"><p>On X11, yes. On Wayland, use Home's drop zone (click the tray icon) or right-click a file → <strong>Open With → DropDial</strong>. Everything else works the same.</p></div>
+      </details>
+      <details class="glass">
+        <summary>Will it overwrite my original files?</summary>
+        <div class="ans"><p>Never. Results are saved next to the original with a new name, and History lets you open, show in folder, convert again or undo any of them.</p></div>
+      </details>
+      <details class="glass">
+        <summary>Is there a command line?</summary>
+        <div class="ans">
+          <p>Yes. The <code>dropdial</code> command uses the same engines and recipes as the app:</p>
+<pre><code>dropdial convert *.heic --to jpg
+dropdial compress photo.jpg --target 500KB
+dropdial pdf merge a.pdf b.pdf
+dropdial watch ~/Screenshots --recipe web-ready</code></pre>
+          <p>Add <code>--json</code> for machine-readable output. <code>dropdial formats</code> prints the full list.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="cta-title" style="padding-top:24px">
+  <div class="wrap">
+    <div class="glass cta">
+      <h2 id="cta-title">Drag. Shift. Drop. <span class="gold-text">Done.</span></h2>
+      <p>Your next conversion is one gesture away.</p>
+      <div class="dl-row" id="cta-dl">
+        <a class="btn btn-gold btn-lg" href="#download"><svg aria-hidden="true"><use href="#i-down"/></svg><span class="lbl"><small>Free</small>Download DropDial</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="made">
+      <img src="assets/icon-256.png" alt="" width="28" height="28">
+      <span>Made by Prithwiraj Mukherjee · MIT</span>
+    </div>
+    <nav aria-label="Footer">
+      <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial">GitHub</a>
+      <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases">Releases</a>
+      <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/issues">Report a problem</a>
+      <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/blob/main/LICENSE">License</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var BASE = "https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest/download/";
+  var ICON = { mac: "#i-apple", win: "#i-win", linux: "#i-linux" };
+
+  function detectOS() {
+    var uad = navigator.userAgentData;
+    var p = (uad && uad.platform) || navigator.platform || "";
+    var ua = navigator.userAgent || "";
+    var s = (p + " " + ua).toLowerCase();
+    if (/android|iphone|ipad|ipod|cros/.test(s) || (uad && uad.mobile)) return "other";
+    if (/win/.test(s)) return "win";
+    if (/mac/.test(s)) return (navigator.maxTouchPoints > 1) ? "other" : "mac";
+    if (/linux|x11/.test(s)) return "linux";
+    return "other";
+  }
+
+  function button(file, label, small, os, primary) {
+    var a = document.createElement("a");
+    a.className = "btn btn-lg" + (primary ? " btn-gold" : "");
+    a.href = BASE + file;
+    a.innerHTML = '<svg aria-hidden="true" fill="currentColor"><use href="' + ICON[os] + '"/></svg>' +
+      '<span class="lbl"><small></small></span>';
+    a.querySelector("small").textContent = small;
+    a.querySelector(".lbl").appendChild(document.createTextNode(label));
+    return a;
+  }
+
+  var os = detectOS();
+  var row = document.getElementById("hero-dl");
+  var note = document.getElementById("hero-note");
+  var more = ' <a href="#download">Other platforms</a>';
+  var btns = [];
+
+  if (os === "mac") {
+    btns = [button("DropDial-mac-apple-silicon.dmg", "Apple Silicon", "Download for Mac", "mac", true),
+            button("DropDial-mac-intel.dmg", "Intel", "Download for Mac", "mac", false)];
+    note.innerHTML = "macOS 11+. Not sure which? Apple menu → About This Mac: “Chip: Apple M…” means Apple Silicon." + more;
+  } else if (os === "win") {
+    btns = [button("DropDial-Setup.exe", "Download for Windows", "Free · Installer", "win", true)];
+    note.innerHTML = 'Windows 10/11, no admin rights needed. Or the <a href="' + BASE + 'DropDial.exe">portable .exe</a>.' + more;
+  } else if (os === "linux") {
+    btns = [button("DropDial-linux-amd64.deb", "Download for Linux", "Free · x64 .deb", "linux", true)];
+    note.innerHTML = 'Debian 12+, Ubuntu 23.04+. On ARM64? Get <a href="' + BASE + 'DropDial-linux-arm64.deb">DropDial-linux-arm64.deb</a>.' + more;
+  }
+  if (btns.length) {
+    row.textContent = "";
+    btns.forEach(function (b) { row.appendChild(b); });
+    var card = document.getElementById("card-" + os);
+    if (card) {
+      card.classList.add("is-you");
+      var badge = document.createElement("span");
+      badge.className = "badge-you";
+      badge.textContent = "Your system";
+      card.querySelector("header").appendChild(badge);
+    }
+    var cta = document.querySelector("#cta-dl a");
+    if (cta) { cta.href = btns[0].href; }
+  } else {
+    var link = row.querySelector("a");
+    if (link) { link.href = "#download"; }
+    note.textContent = "DropDial is a desktop app for Windows 10/11, macOS 11+ and Linux. Open this page on your computer to download it.";
+  }
+
+  // Chromium on a Mac can tell Apple Silicon from Intel; use it to order the buttons when available.
+  if (os === "mac" && navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {
+    navigator.userAgentData.getHighEntropyValues(["architecture"]).then(function (v) {
+      if (v && v.architecture === "x86" && btns.length === 2) {
+        btns[0].classList.remove("btn-gold"); btns[1].classList.add("btn-gold");
+        row.insertBefore(btns[1], btns[0]);
+        var cta2 = document.querySelector("#cta-dl a");
+        if (cta2) { cta2.href = btns[1].href; }
+      }
+    }).catch(function () {});
+  }
+
+  // copy buttons
+  Array.prototype.forEach.call(document.querySelectorAll("[data-copy]"), function (b) {
+    b.addEventListener("click", function () {
+      var el = document.getElementById(b.getAttribute("data-copy"));
+      var text = el ? el.textContent.trim() : "";
+      var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1600); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+      } else {
+        var r = document.createRange(); r.selectNodeContents(el);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        try { document.execCommand("copy"); done(); } catch (e) {}
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
