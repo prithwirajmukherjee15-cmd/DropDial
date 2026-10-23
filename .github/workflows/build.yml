@@ -241,7 +241,7 @@ jobs:
 
       - name: Build the .deb
         run: |
-          PATH=/opt/venv/bin:$PATH packaging/linux/build-deb.sh 1.1.0
+          PATH=/opt/venv/bin:$PATH packaging/linux/build-deb.sh 1.2.0
           dpkg-deb --info dist/DropDial-linux-amd64.deb
           desktop-file-validate packaging/linux/dropdial.desktop
 
@@ -341,7 +341,7 @@ jobs:
 
       - name: Build the .deb
         run: |
-          PATH=/opt/venv/bin:$PATH packaging/linux/build-deb.sh 1.1.0
+          PATH=/opt/venv/bin:$PATH packaging/linux/build-deb.sh 1.2.0
           dpkg-deb --info dist/DropDial-linux-arm64.deb
           dpkg-deb --field dist/DropDial-linux-arm64.deb Architecture | grep -qx arm64
           desktop-file-validate packaging/linux/dropdial.desktop

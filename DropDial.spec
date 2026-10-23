@@ -67,10 +67,10 @@ if IS_MAC:
         info_plist={
             "CFBundleName": "DropDial",
             "CFBundleDisplayName": "DropDial",
-            "CFBundleShortVersionString": "1.1.0",
-            "CFBundleVersion": "1.1.0",
+            "CFBundleShortVersionString": "1.2.0",
+            "CFBundleVersion": "1.2.0",
             "NSHumanReadableCopyright": "© 2026 Prithwiraj Mukherjee. Made by Prithwiraj Mukherjee.",
-            "CFBundleGetInfoString": "DropDial 1.1.0, made by Prithwiraj Mukherjee",
+            "CFBundleGetInfoString": "DropDial 1.2.0, made by Prithwiraj Mukherjee",
             "LSUIElement": True,                 # menu-bar app, no Dock icon
             "LSMinimumSystemVersion": "11.0",
             "NSHighResolutionCapable": True,

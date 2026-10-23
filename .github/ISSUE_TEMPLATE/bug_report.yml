@@ -36,7 +36,7 @@ body:
     attributes:
       label: DropDial version
       description: Shown at the top of the tray (menu-bar) menu, or run `dropdial --version`.
-      placeholder: "1.1.0"
+      placeholder: "1.2.0"
     validations:
       required: true
   - type: dropdown

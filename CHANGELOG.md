@@ -2,6 +2,19 @@
 
 What changed in each version of DropDial, written for the people using it.
 
+## 1.2.0
+
+- **DropDial speaks your language**: English, हिन्दी, Español, Français, Deutsch, Português (Brasil),
+  日本語, 한국어, 简体中文, Русский and العربية (right to left). It follows your system; change it in
+  Settings → Language.
+- **Light glass**: Settings → Appearance: Dark glass, Light glass or Match my system.
+- **Dial glass**: make the dial's glass more see-through (40–100 %); its labels always stay solid.
+- **Ctrl+Alt+D** (⌃⌥D on a Mac) opens Home from anywhere. Turn it off in Settings.
+- **Linux ARM64**: a download for Raspberry Pi and ARM laptops (Ubuntu 24.04+, Debian 13+,
+  Raspberry Pi OS 13).
+- The first drag after starting DropDial is now as quick as every other one (on Windows it could be missed).
+- A website: https://prithwirajmukherjee15-cmd.github.io/DropDial/ and the README in 11 languages.
+
 ## 1.1.0
 
 **Many more kinds of file**
