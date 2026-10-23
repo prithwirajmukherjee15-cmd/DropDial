@@ -27,8 +27,11 @@ a = Analysis(
     hiddenimports=["win32com.client", "PySide6.QtNetwork", "PySide6.QtSvg", "AppKit", "Quartz", "objc"] + heif_hidden + ff_hidden + family_hidden,
     excludes=["tkinter", "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtQml",
               "PySide6.QtQuick", "PySide6.Qt3DCore", "PySide6.QtMultimedia", "PySide6.QtCharts",
-              "PySide6.QtDataVisualization", "PySide6.QtPdf", "pandas", "yaml", "PySide6.QtSql", "PySide6.QtTest",
-              "PySide6.QtOpenGL", "PySide6.QtSvgWidgets", "PySide6.QtDesigner", "matplotlib", "scipy"],
+              "PySide6.QtDataVisualization", "PySide6.QtPdf", "pandas", "PySide6.QtSql", "PySide6.QtTest",
+              "PySide6.QtOpenGL", "PySide6.QtSvgWidgets", "PySide6.QtDesigner", "matplotlib", "scipy",
+              # PyMuPDF 2 pulls in an AI layout add-on (onnxruntime, ~100 MB) DropDial never uses;
+              # left out, `import pymupdf.layout` fails and PyMuPDF quietly carries on without it
+              "pymupdf.layout", "pymupdf_layout", "pymupdf4llm", "onnxruntime"],
 )
 
 DROP = ("Qt6Quick", "Qt6Qml", "Qt6Pdf", "Qt6WebEngine", "Qt63D", "Qt6Multimedia", "Qt6Charts",

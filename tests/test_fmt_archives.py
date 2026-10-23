@@ -9,6 +9,7 @@ import io
 import lzma
 import os
 import shutil
+import sys
 import stat
 import struct
 import subprocess
@@ -164,7 +165,7 @@ def test_repack_chain_preserves_everything(tmp_path):
         assert members["Album/data/nested empty"].isdir()
         assert all(m.uname == "" and m.uid == 0 for m in members.values())
         assert tf.extractfile(members["Album/नमस्ते दुनिया.txt"]).read() == (src / "नमस्ते दुनिया.txt").read_bytes()
-    if shutil.which("tar"):
+    if shutil.which("tar") and sys.platform != "win32":   # Windows tar reads "C:" as a host name
         ind = tmp_path / "tar-out"
         ind.mkdir()
         subprocess.run(["tar", "-xzf", str(tgz), "-C", str(ind)], check=True)
@@ -331,6 +332,7 @@ def test_7z_traversal_names_are_skipped(tmp_path):
     assert (out / "good.txt").read_bytes() == b"payload 3"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="making symlinks needs admin rights on Windows")
 def test_7z_symlink_member_is_not_created(tmp_path):
     def build(p):
         src = tmp_path / "linky"

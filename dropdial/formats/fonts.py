@@ -548,7 +548,8 @@ def _specimen_pdf(src: Path, faces: list, out: Path) -> Path:
            ".meta{font-size:9pt;color:#555;margin-bottom:14pt}")
 
     def write(dst):
-        writer = fitz.DocumentWriter(str(dst))
+        raw = Path(str(dst) + ".raw")
+        writer = fitz.DocumentWriter(str(raw))
         page = fitz.paper_rect("a4")
         where = page + (48, 48, -48, -48)
         for i, font in enumerate(faces):
@@ -570,13 +571,19 @@ def _specimen_pdf(src: Path, faces: list, out: Path) -> Path:
                 writer.end_page()
             report_progress((i + 1) / len(faces))
         writer.close()
-        doc = fitz.open(str(dst))      # embed only the glyphs the sheet uses
+        del writer                     # Windows: release the file before anything else touches it
         try:
-            doc.subset_fonts()
-            doc.save(str(dst) + ".tmp", garbage=3, deflate=True)
+            doc = fitz.open(str(raw))  # embed only the glyphs the sheet uses
+            try:
+                doc.subset_fonts()
+                doc.save(str(dst), garbage=3, deflate=True)
+            finally:
+                doc.close()
         finally:
-            doc.close()
-        Path(str(dst) + ".tmp").replace(dst)
+            try:
+                raw.unlink()
+            except OSError:
+                pass
 
     atomic_save(write, out)
     return out
