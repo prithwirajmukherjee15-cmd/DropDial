@@ -484,6 +484,7 @@ class RadialMenu(QWidget):
 
     def paintEvent(self, e):
         p = QPainter(self)
+        p.setLayoutDirection(Qt.LayoutDirectionAuto)   # each text in its own direction (Arabic + "140 KB")
         p.setRenderHint(QPainter.Antialiasing)
         p.setRenderHint(QPainter.TextAntialiasing)
         p.setRenderHint(QPainter.SmoothPixmapTransform)
@@ -617,6 +618,8 @@ class RadialMenu(QWidget):
                      h: float, fg: QColor, shadow_col: QColor):
         rad = math.radians(ang)
         push = 6 * h
+        # room across the petal at the label's radius: long words shrink to it, not into a neighbour
+        room = min(84.0, 2 * r * math.sin(math.pi / max(2, len(self.items))) - 8)
         pt = QPointF(c.x() + (r + push) * math.cos(rad), c.y() - (r + push) * math.sin(rad))
         p.save()
         p.setOpacity(p.opacity() * (0.25 + 0.75 * self._swap))
@@ -630,11 +633,11 @@ class RadialMenu(QWidget):
             f.setBold(True)
             f.setLetterSpacing(QFont.AbsoluteSpacing, 0.7)
             label = it.label.upper()
-            p.setFont(self._fit(f, label, 10, 84))
+            p.setFont(self._fit(f, label, 10, room))
             self._text(p, QRectF(pt.x() - 42, pt.y() + 1, 84, 16), label, col, shadow_col)
         else:
             f.setBold(True)
             f.setLetterSpacing(QFont.AbsoluteSpacing, 0.9)
-            p.setFont(self._fit(f, it.label, int(14 + 2 * h), 84))
+            p.setFont(self._fit(f, it.label, int(14 + 2 * h), room))
             self._text(p, QRectF(pt.x() - 42, pt.y() - 12, 84, 24), it.label, col, shadow_col)
         p.restore()

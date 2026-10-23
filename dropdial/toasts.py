@@ -242,6 +242,7 @@ class ToastCard(QWidget):
     # ------------------------------------------------------------ paint
     def paintEvent(self, e):
         p = QPainter(self)
+        p.setLayoutDirection(Qt.LayoutDirectionAuto)   # each text in its own direction (Arabic + "140 KB")
         p.setRenderHint(QPainter.Antialiasing)
         p.setRenderHint(QPainter.TextAntialiasing)
         r = QRectF(self.rect()).adjusted(0.5, 0.5, -0.5, -0.5)
@@ -296,7 +297,7 @@ class ToastCard(QWidget):
         fm = QFontMetrics(f)
         title = fm.elidedText(self.title, Qt.ElideRight, int(tw))
         p.setPen(QColor(255, 255, 255))
-        p.drawText(QRectF(x, 13, tw, 20), Qt.AlignLeft | Qt.AlignVCenter, title)
+        p.drawText(QRectF(x, 13, tw, 20), Qt.AlignLeft | Qt.AlignAbsolute | Qt.AlignVCenter, title)
         # highlighted figure chip (e.g. "75% smaller")
         if self.good:
             gx = x + fm.horizontalAdvance(title) + 8

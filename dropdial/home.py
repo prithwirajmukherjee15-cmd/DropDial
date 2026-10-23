@@ -66,6 +66,7 @@ class DropZone(QWidget):
 
     def paintEvent(self, e):
         p = QPainter(self)
+        p.setLayoutDirection(Qt.LayoutDirectionAuto)   # each text in its own direction (Arabic + "140 KB")
         p.setRenderHint(QPainter.Antialiasing)
         r = QRectF(self.rect()).adjusted(2, 2, -2, -2)
         path = QPainterPath()

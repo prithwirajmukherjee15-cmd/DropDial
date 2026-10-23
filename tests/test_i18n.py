@@ -69,8 +69,13 @@ def catalogue(code: str) -> dict[str, str]:
     return json.loads((i18n.LOCALES / f"{code}.json").read_text(encoding="utf-8"))
 
 
-def fields(s: str) -> set[str]:
-    return {name for _, name, _, _ in string.Formatter().parse(s) if name is not None}
+def fields(s: str) -> set[str] | None:
+    """Named {fields} of a template; None for a plain sentence that merely contains braces."""
+    try:
+        names = {name for _, name, _, _ in string.Formatter().parse(s) if name is not None}
+    except ValueError:
+        return None
+    return names if all(n.isidentifier() for n in names) else None
 
 
 @pytest.fixture
@@ -96,7 +101,8 @@ def test_placeholders_match(code):
     bad = [k for k, v in catalogue(code).items() if fields(k) != fields(v)]
     assert not bad, f"{code}: placeholders differ in {bad[:5]}"
     for k, v in catalogue(code).items():      # and every translation formats cleanly
-        v.format(**{f: "x" for f in fields(k)})
+        if fields(k):
+            v.format(**{f: "x" for f in fields(k)})
 
 
 @pytest.mark.parametrize("code", LANGS)
