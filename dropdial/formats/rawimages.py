@@ -92,7 +92,7 @@ def _open_pil(src: Path):
         if src.suffix.lower() == ".psd":
             raise UserError("Can't read this Photoshop file. It may be damaged, or use 16-bit, "
                             "32-bit or Lab colour (save it as 8-bit RGB).") from None
-        raise UserError(f"Can't read this {name} file. It may be damaged or not really {name}.") from None
+        raise UserError("Can't read this {name} file. It may be damaged or not really {name}.", name=name) from None
 
 
 def _develop(src: Path):
@@ -340,12 +340,12 @@ def _convert(src: Path, target: str) -> list[Path]:
         raise UserError("HEIC isn't available on this computer.")
     if ext in RAW_EXTS:
         if t not in RAW_TARGETS and t not in EXTRA_TARGETS:
-            raise UserError(f"Can't turn a RAW photo into {t}.")
+            raise UserError("Can't turn a RAW photo into {target}.", target=t)
         return _raw_to(src, t)
     if ext not in PIL_EXTS:
         raise UserError("This file type isn't supported here.")
     if t not in MAIN_TARGETS and t not in EXTRA_TARGETS:
-        raise UserError(f"Can't convert this image to {t}.")
+        raise UserError("Can't convert this image to {target}.", target=t)
     return [_write(_open_pil(src), src, t)]
 
 

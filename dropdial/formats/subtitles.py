@@ -801,7 +801,7 @@ def _ttml_clock(root_attrs: dict):
             scale = {"h": 3_600_000, "m": 60_000, "s": 1000, "ms": 1,
                      "f": 1000 / fps, "t": 1000 / tick}[m.group(2)]
             return round(x * scale)
-        raise util.UserError(f"Can't read the TTML time {v[:20]!r}.")
+        raise util.UserError("Can't read the TTML time {value}.", value=f"{v[:20]!r}")
     return clock
 
 
@@ -1085,7 +1085,7 @@ def targets(src_ext: str) -> list[str]:
 def convert(src: Path, target: str) -> list[Path]:
     target = target.upper()
     if target not in TARGET_EXT:
-        raise util.UserError(f"Subtitles can't be converted to {target}.")
+        raise util.UserError("Subtitles can't be converted to {target}.", target=target)
     doc, _, _ = load(src)
     fmt = target.lower()
     text = render(doc, fmt, src.stem)

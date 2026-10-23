@@ -21,6 +21,7 @@ import time
 from pathlib import Path
 
 from .. import util
+from ..i18n import N_
 from ..util import UserError
 from . import Family, Tool, register
 
@@ -34,9 +35,9 @@ EXTS = {".zip", ".7z", ".tar", ".tgz", ".gz", ".tbz2", ".tbz", ".bz2", ".txz", "
 SINGLE = ("gz", "bz2", "xz")      # single-file compressors
 _COMPOUND = (".tar.gz", ".tar.bz2", ".tar.xz")
 
-PASSWORD = "This archive is password-protected."
-DAMAGED = "This archive is damaged or incomplete."
-BOMB = "This archive would expand to an unsafe size (a possible zip bomb), so it wasn't extracted."
+PASSWORD = N_("This archive is password-protected.")
+DAMAGED = N_("This archive is damaged or incomplete.")
+BOMB = N_("This archive would expand to an unsafe size (a possible zip bomb), so it wasn't extracted.")
 
 # already-compressed data: storing beats deflating it again
 _STORED_EXTS = {".zip", ".7z", ".gz", ".bz2", ".xz", ".rar", ".jpg", ".jpeg", ".png", ".gif", ".webp",
@@ -112,7 +113,7 @@ def _kind(src: Path) -> str:
         with open(src, "rb") as f:
             head = f.read(8)
     except OSError as e:
-        raise UserError(f"Can't read this file ({e.strerror or e}).") from None
+        raise UserError("Can't read this file ({error}).", error=e.strerror or e) from None
     if head.startswith(b"7z\xbc\xaf\x27\x1c"):
         return "7z"
     if head[:2] == b"\x1f\x8b" or head[:3] == b"BZh" or head.startswith(b"\xfd7zXZ\x00"):
@@ -494,7 +495,7 @@ def _read_into(src: Path, kind: str, root: Path) -> _Sink:
     except OSError as e:
         if e.errno is None:                          # gzip / bz2 report corrupt data as OSError
             raise UserError(DAMAGED) from e
-        raise UserError(f"Couldn't write the extracted files ({e.strerror or e}).") from e
+        raise UserError("Couldn't write the extracted files ({error}).", error=e.strerror or e) from e
     except Exception as e:  # noqa: BLE001 - py7zr raises its own zoo of exceptions
         if type(e).__module__.startswith("py7zr"):
             raise UserError(DAMAGED) from e
@@ -604,7 +605,7 @@ def _atomic(write, out: Path) -> None:
     try:
         atomic_save(write, out)
     except OSError as e:
-        raise UserError(f"Couldn't write {out.name} ({e.strerror or e}).") from e
+        raise UserError("Couldn't write {name} ({error}).", name=out.name, error=e.strerror or e) from e
 
 
 _WRITERS = {"ZIP": ".zip", "7Z": ".7z", "TAR.GZ": ".tar.gz"}
@@ -752,7 +753,7 @@ def _convert(src: Path, target: str) -> list[Path]:
         return extract(src)
     if target in _WRITERS:
         return repack(src, target)
-    raise UserError(f"Can't convert an archive to {target}.")
+    raise UserError("Can't convert an archive to {target}.", target=target)
 
 
 def _has_7z() -> bool:

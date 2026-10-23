@@ -65,7 +65,7 @@ def _read(src: Path, limit: int) -> bytes:
     except OSError:
         raise UserError("The file couldn't be opened.") from None
     if size > limit:
-        raise UserError(f"This file is too large to convert (over {limit // (1024 * 1024)} MB).")
+        raise UserError("This file is too large to convert (over {limit} MB).", limit=limit // (1024 * 1024))
     return src.read_bytes()
 
 
@@ -1421,7 +1421,7 @@ def convert(src: Path, target: str) -> list[Path]:
     src = Path(src)
     target = target.upper()
     if target not in targets(src.suffix):
-        raise UserError(f"Can't turn a {src.suffix or 'file'} into {target}.")
+        raise UserError("Can't turn a {suffix} into {target}.", suffix=src.suffix or 'file', target=target)
     report_progress(0.05)
     doc = _load(src)
     report_progress(0.3)

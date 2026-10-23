@@ -155,7 +155,7 @@ def _read_capped(path: Path) -> bytes:
             raise UserError("This map file is too large to open (over 200 MB).")
         return path.read_bytes()
     except OSError as e:
-        raise UserError(f"Couldn't read the file ({e.strerror or e}).") from None
+        raise UserError("Couldn't read the file ({error}).", error=e.strerror or e) from None
 
 
 def _xml(data: bytes):
@@ -543,7 +543,7 @@ def _gj_feature(geom, props: dict, doc: GeoDoc) -> None:
             for g in geom.get("geometries") or []:
                 _gj_feature(g, {**props, "name": name, "description": desc}, doc)
         else:
-            raise UserError(f"This GeoJSON has an unknown geometry type ({str(t)[:30]}).")
+            raise UserError("This GeoJSON has an unknown geometry type ({value}).", value=str(t)[:30])
     except TypeError:
         raise UserError("This GeoJSON has malformed coordinates.") from None
 
@@ -825,7 +825,7 @@ def write(doc: GeoDoc, src: Path, fmt: str, label: str = "") -> Path:
     elif fmt == "PNG":
         render_png(doc, out, src.stem)
     else:
-        raise UserError(f"Can't save map data as {fmt}.")
+        raise UserError("Can't save map data as {fmt}.", fmt=fmt)
     return out
 
 
@@ -1214,7 +1214,7 @@ def targets(src_ext: str) -> list[str]:
 def convert(src: Path, target: str) -> list[Path]:
     target = target.upper()
     if target not in ALL_TARGETS:
-        raise UserError(f"Can't convert map data to {target}.")
+        raise UserError("Can't convert map data to {target}.", target=target)
     if target == "SHP" and not SHP_OK:
         raise UserError("Saving a Shapefile needs the pyshp package.")
     doc = read(src)

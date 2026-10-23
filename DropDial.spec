@@ -22,7 +22,7 @@ family_hidden += du_hidden + ["markdown", "shapefile", "defusedxml"]
 
 a = Analysis(
     ["run.py"],
-    datas=[("dropdial/assets", "dropdial/assets"), ("LICENSE", ".")] + heif_datas + ff_datas + family_datas,
+    datas=[("dropdial/assets", "dropdial/assets"), ("dropdial/locales", "dropdial/locales"), ("LICENSE", ".")] + heif_datas + ff_datas + family_datas,
     binaries=heif_bins + ff_bins + family_bins,
     hiddenimports=["win32com.client", "PySide6.QtNetwork", "PySide6.QtSvg", "AppKit", "Quartz", "objc"] + heif_hidden + ff_hidden + family_hidden,
     excludes=["tkinter", "PySide6.QtWebEngineCore", "PySide6.QtWebEngineWidgets", "PySide6.QtQml",

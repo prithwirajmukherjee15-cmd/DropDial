@@ -1115,7 +1115,7 @@ def convert(src: Path, target: str) -> list[Path]:
     elif target == "MD":
         _write_md(tables, out)
     else:
-        raise UserError(f"Can't convert a spreadsheet to {target}.")
+        raise UserError("Can't convert a spreadsheet to {target}.", target=target)
     return [out]
 
 

@@ -72,14 +72,16 @@ def _resolver(root: Path):
             raw = unquote(str(name)).strip().replace("\\", "/")
             label = raw.rsplit("/", 1)[-1] or "a file"
             if not raw or ":" in raw or raw.startswith("/"):
-                raise UserError(f"This model refers to “{label}” outside its folder, which isn't allowed.")
+                raise UserError("This model refers to “{label}” outside its folder, which isn't allowed.",
+                                label=label)
             path = (self.root / raw).resolve()
             if not path.is_relative_to(self.root):
-                raise UserError(f"This model refers to “{label}” outside its folder, which isn't allowed.")
+                raise UserError("This model refers to “{label}” outside its folder, which isn't allowed.",
+                                label=label)
             if not path.is_file():
-                raise UserError(f"This model needs “{label}”, which isn't in its folder.")
+                raise UserError("This model needs “{label}”, which isn't in its folder.", label=label)
             if path.stat().st_size > MAX_BYTES:
-                raise UserError(f"“{label}” is too big to load.")
+                raise UserError("“{label}” is too big to load.", label=label)
             return path.read_bytes()
 
         def write(self, name, data):
@@ -137,7 +139,7 @@ def _load(src: Path):
     except MemoryError:
         raise UserError("This model is too big to open.") from None
     except Exception:
-        raise UserError(f"Couldn't read this {ext.upper()} file — it may be damaged.") from None
+        raise UserError("Couldn't read this {ext} file — it may be damaged.", ext=ext.upper()) from None
 
     drop = [k for k, g in scene.geometry.items()
             if not isinstance(g, trimesh.Trimesh) or len(g.faces) == 0]
@@ -148,9 +150,9 @@ def _load(src: Path):
     faces = 0
     for name, g in list(scene.geometry.items()):
         if not np.isfinite(g.vertices).all():
-            raise UserError(f"This {ext.upper()} file has broken coordinates — it may be damaged.")
+            raise UserError("This {ext} file has broken coordinates — it may be damaged.", ext=ext.upper())
         if len(g.faces) and (g.faces.min() < 0 or g.faces.max() >= len(g.vertices)):
-            raise UserError(f"This {ext.upper()} file has broken faces — it may be damaged.")
+            raise UserError("This {ext} file has broken faces — it may be damaged.", ext=ext.upper())
         faces += len(g.faces)
         if isinstance(g.visual, trimesh.visual.ColorVisuals) and g.visual.kind == "face":
             scene.geometry[name] = _face_to_vertex_colors(g)
@@ -369,7 +371,7 @@ def _up_axis(src: Path) -> int:
 def convert(src: Path, target: str) -> list[Path]:
     target = target.upper()
     if target not in ORDER:
-        raise UserError(f"Can't turn a 3D model into {target}.")
+        raise UserError("Can't turn a 3D model into {target}.", target=target)
     return _save(_load(Path(src)), Path(src), target)
 
 

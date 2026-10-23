@@ -92,12 +92,13 @@ def _read_bytes(src: Path) -> bytes:
     try:
         size = src.stat().st_size
         if size > MAX_BYTES:
-            raise UserError(f"{src.name} is too big to convert (over {MAX_BYTES // 2**20} MB).")
+            raise UserError("{name} is too big to convert (over {limit} MB).",
+                            name=src.name, limit=MAX_BYTES // 2**20)
         raw = src.read_bytes()
     except OSError as e:
-        raise UserError(f"Can't read {src.name}: {e.strerror or e}.") from None
+        raise UserError("Can't read {name}: {error}.", name=src.name, error=e.strerror or e) from None
     if not raw.strip():
-        raise UserError(f"{src.name} is empty.")
+        raise UserError("{name} is empty.", name=src.name)
     return raw
 
 
@@ -116,9 +117,10 @@ def _load_json(text: str, name: str):
     try:
         return json.loads(text)
     except json.JSONDecodeError as e:
-        raise UserError(f"{name} isn't valid JSON (line {e.lineno}, column {e.colno}: {e.msg}).") from None
+        raise UserError("{name} isn't valid JSON (line {lineno}, column {colno}: {msg}).",
+                        name=name, lineno=e.lineno, colno=e.colno, msg=e.msg) from None
     except ValueError as e:   # e.g. integers longer than Python's 4300-digit safety limit
-        raise UserError(f"{name} has a value that can't be read: {e}.") from None
+        raise UserError("{name} has a value that can't be read: {error}.", name=name, error=e) from None
 
 
 def _load_jsonl(text: str, name: str) -> list:
@@ -129,9 +131,10 @@ def _load_jsonl(text: str, name: str) -> list:
         try:
             out.append(json.loads(line))
         except json.JSONDecodeError as e:
-            raise UserError(f"{name}: line {no} isn't valid JSON ({e.msg}).") from None
+            raise UserError("{name}: line {no} isn't valid JSON ({msg}).", name=name, no=no, msg=e.msg) from None
         except ValueError as e:
-            raise UserError(f"{name}: line {no} has a value that can't be read ({e}).") from None
+            raise UserError("{name}: line {no} has a value that can't be read ({error}).",
+                            name=name, no=no, error=e) from None
     return out
 
 
@@ -142,10 +145,10 @@ def _load_yaml(text: str, name: str):
     except yaml.YAMLError as e:
         mark = getattr(e, "problem_mark", None)
         where = f" (line {mark.line + 1})" if mark is not None else ""
-        raise UserError(f"{name} isn't valid YAML{where}.") from None
+        raise UserError("{name} isn't valid YAML{where}.", name=name, where=where) from None
     docs = [d for d in docs if d is not None] or [None]
     if len(docs) == 1 and docs[0] is None:
-        raise UserError(f"{name} has no data in it.")
+        raise UserError("{name} has no data in it.", name=name)
     return docs[0] if len(docs) == 1 else docs   # several documents -> a list of them
 
 
@@ -154,7 +157,7 @@ def _load_toml(text: str, name: str):
     try:
         return tomllib.loads(text)
     except tomllib.TOMLDecodeError as e:
-        raise UserError(f"{name} isn't valid TOML ({e}).") from None
+        raise UserError("{name} isn't valid TOML ({error}).", name=name, error=e) from None
 
 
 def _load_plist(raw: bytes, name: str):
@@ -162,7 +165,7 @@ def _load_plist(raw: bytes, name: str):
     try:
         return plistlib.loads(raw)
     except Exception:   # InvalidFileException, ExpatError, ValueError, OverflowError…
-        raise UserError(f"{name} isn't a valid property list.") from None
+        raise UserError("{name} isn't a valid property list.", name=name) from None
 
 
 def _xml_tree(raw: bytes, name: str):
@@ -173,9 +176,9 @@ def _xml_tree(raw: bytes, name: str):
     try:
         yield from iterparse(io.BytesIO(raw), events=("start-ns", "start", "end"))
     except DefusedXmlException:
-        raise UserError(f"{name} uses XML entities, which aren't allowed for safety.") from None
+        raise UserError("{name} uses XML entities, which aren't allowed for safety.", name=name) from None
     except ParseError as e:
-        raise UserError(f"{name} isn't valid XML ({e}).") from None
+        raise UserError("{name} isn't valid XML ({error}).", name=name, error=e) from None
 
 
 _INT_RE = re.compile(r"-?(?:0|[1-9][0-9]{0,14})")   # up to 15 digits: exact in every app
@@ -253,7 +256,7 @@ def _load_xml(raw: bytes, name: str):
                         value[k] = [value[k], v]
             results[id(el)] = (qname(el.tag), value)
     if root is None:
-        raise UserError(f"{name} has no XML elements in it.")
+        raise UserError("{name} has no XML elements in it.", name=name)
     tag, value = results[id(root)]
     # our own wrappers (see module docstring)
     if tag == "root":
@@ -303,12 +306,12 @@ def _normalise(data, name: str):
         nonlocal count
         count += 1
         if count > MAX_NODES:
-            raise UserError(f"{name} expands to too much data to convert.")
+            raise UserError("{name} expands to too much data to convert.", name=name)
         if depth > MAX_DEPTH:
-            raise UserError(f"{name} is nested too deeply to convert.")
+            raise UserError("{name} is nested too deeply to convert.", name=name)
         if isinstance(v, (dict, list, tuple)):
             if id(v) in active:
-                raise UserError(f"{name} refers to itself, so it can't be written out.")
+                raise UserError("{name} refers to itself, so it can't be written out.", name=name)
             active.add(id(v))
             try:
                 if isinstance(v, dict):
@@ -325,7 +328,7 @@ def _normalise(data, name: str):
     try:
         return walk(data, 0)
     except RecursionError:
-        raise UserError(f"{name} is nested too deeply to convert.") from None
+        raise UserError("{name} is nested too deeply to convert.", name=name) from None
 
 
 # ---------------------------------------------------------------- scalar helpers
@@ -356,7 +359,7 @@ def _jsonable(v, path):
     if isinstance(v, bytes):
         return _b64(v)
     if isinstance(v, float) and not math.isfinite(v):
-        raise UserError(f"JSON can't store {v} (at {_where(path)}).")
+        raise UserError("JSON can't store {target} (at {where}).", target=v, where=_where(path))
     return v
 
 
@@ -388,7 +391,7 @@ def _list_of(data, what: str) -> list:
     while isinstance(data, dict) and len(data) == 1:
         data = next(iter(data.values()))
     if not isinstance(data, list):
-        raise UserError(f"{what} needs a list of records, and this file holds a single object.")
+        raise UserError("{what} needs a list of records, and this file holds a single object.", what=what)
     return data
 
 
@@ -411,7 +414,8 @@ def _dump_yaml(data) -> str:
 def _no_null(fmt):
     def fn(v, path):
         if v is None:
-            raise UserError(f"{fmt} can't store empty (null) values, and there's one at {_where(path)}.")
+            raise UserError("{fmt} can't store empty (null) values, and there's one at {where}.",
+                            fmt=fmt, where=_where(path))
         return v
     return fn
 
@@ -426,7 +430,7 @@ def _dump_toml(data) -> str:
         if isinstance(v, bytes):
             return _b64(v)
         if isinstance(v, int) and not isinstance(v, bool) and not -2**63 <= v < 2**63:
-            raise UserError(f"TOML numbers must fit in 64 bits; {_where(path)} is too large.")
+            raise UserError("TOML numbers must fit in 64 bits; {where} is too large.", where=_where(path))
         return v
     return tomli_w.dumps(_map(data, fix))
 
@@ -437,7 +441,8 @@ def _dump_plist(data, binary: bool) -> bytes:
     def fix(v, path):
         _no_null("A property list")(v, path)
         if isinstance(v, int) and not isinstance(v, bool) and not -2**63 <= v < 2**64:
-            raise UserError(f"Property list numbers must fit in 64 bits; {_where(path)} is too large.")
+            raise UserError("Property list numbers must fit in 64 bits; {where} is too large.",
+                            where=_where(path))
         if isinstance(v, dt.datetime):
             if v.tzinfo is not None:
                 v = v.astimezone(dt.timezone.utc).replace(tzinfo=None)
@@ -470,7 +475,7 @@ def _xml_name(key: str) -> str:
 def _xml_text(v, path) -> str | None:
     t = _text(v)
     if t is not None and _BAD_XML_CHARS.search(t):
-        raise UserError(f"{_where(path)} contains control characters that XML can't store.")
+        raise UserError("{where} contains control characters that XML can't store.", where=_where(path))
     return t
 
 
@@ -555,8 +560,9 @@ def _table(data) -> tuple[list[str], list[list]]:
     for r in rows:
         cols.update(dict.fromkeys(r))
         if len(cols) > MAX_COLUMNS:
-            raise UserError(f"This data would need more than {MAX_COLUMNS} columns; "
-                            "it's too deeply nested for a table.")
+            raise UserError("This data would need more than {limit} columns; it's too deeply nested for a "
+                            "table.",
+                            limit=MAX_COLUMNS)
     header = list(cols)
     return header, [[r.get(c) for c in header] for r in rows]
 
@@ -674,7 +680,8 @@ def _write_pdf(src: Path, fmt: str, out: Path) -> None:
     for line in _listing_text(src, fmt).splitlines():
         lines.extend(_wrap(line))
         if len(lines) > MAX_PDF_LINES:
-            raise UserError(f"{src.name} is too long for a PDF listing (over {MAX_PDF_LINES:,} lines).")
+            raise UserError("{name} is too long for a PDF listing (over {limit} lines).",
+                            name=src.name, limit=f"{MAX_PDF_LINES:,}")
     body = (f"<h3>{html.escape(src.name)}</h3>"
             f"<pre>{html.escape(chr(10).join(lines))}</pre>")
 
@@ -851,7 +858,7 @@ def parse_vcards(text: str, name: str = "file") -> list[dict]:
         elif pname == "NICKNAME":
             cur["nickname"] = _unescape(value).strip()
     if not contacts:
-        raise UserError(f"{name} doesn't contain any contacts.")
+        raise UserError("{name} doesn't contain any contacts.", name=name)
     return contacts
 
 
@@ -972,12 +979,12 @@ def csv_to_vcards(src: str | Path) -> list[Path]:
     try:
         rows = list(csv.reader(io.StringIO(text), dialect))
     except csv.Error as e:
-        raise UserError(f"{src.name} isn't a readable CSV file ({e}).") from None
+        raise UserError("{name} isn't a readable CSV file ({error}).", name=src.name, error=e) from None
     if len(rows) < 2:
-        raise UserError(f"{src.name} has no contact rows under its header.")
+        raise UserError("{name} has no contact rows under its header.", name=src.name)
     roles = [_csv_role(h) for h in rows[0]]
     if not {"name", "given", "family", "email", "phone", "org"} & set(roles):
-        raise UserError(f"{src.name} has no contact columns (like Name, Email or Phone).")
+        raise UserError("{name} has no contact columns (like Name, Email or Phone).", name=src.name)
     cards = []
     for row in rows[1:]:
         f: dict[str, list[str]] = {}
@@ -1018,7 +1025,7 @@ def csv_to_vcards(src: str | Path) -> list[Path]:
         lines.append("END:VCARD")
         cards.append("\r\n".join(_fold(x) for x in lines))
     if not cards:
-        raise UserError(f"{src.name} has no contacts with a name, email or phone number.")
+        raise UserError("{name} has no contacts with a name, email or phone number.", name=src.name)
     from ..convert import atomic_save
     out = sibling(src, ext=".vcf")
     atomic_save(lambda dst: Path(dst).write_bytes(("\r\n".join(cards) + "\r\n").encode("utf-8")), out)
@@ -1058,15 +1065,15 @@ def convert(src: Path, target: str) -> list[Path]:
     target = target.upper()
     fmt = EXT_FORMAT.get(src.suffix.lower())
     if fmt is None or target not in _TARGETS.get(fmt, []):
-        raise UserError(f"Can't convert {src.suffix or 'this file'} to {target}.")
+        raise UserError("Can't convert {suffix} to {target}.", suffix=src.suffix or 'this file', target=target)
     try:
         return _convert(src, fmt, target)
     except UnicodeEncodeError:
-        raise UserError(f"{src.name} contains broken text characters that can't be saved.") from None
+        raise UserError("{name} contains broken text characters that can't be saved.", name=src.name) from None
     except RecursionError:
-        raise UserError(f"{src.name} is nested too deeply to convert.") from None
+        raise UserError("{name} is nested too deeply to convert.", name=src.name) from None
     except MemoryError:
-        raise UserError(f"{src.name} is too big to convert.") from None
+        raise UserError("{name} is too big to convert.", name=src.name) from None
 
 
 def _convert(src: Path, fmt: str, target: str) -> list[Path]:
@@ -1114,9 +1121,9 @@ def _minidom(raw: bytes, name: str):
     try:
         doc = parseString(raw)
     except DefusedXmlException:
-        raise UserError(f"{name} uses XML entities, which aren't allowed for safety.") from None
+        raise UserError("{name} uses XML entities, which aren't allowed for safety.", name=name) from None
     except Exception as e:
-        raise UserError(f"{name} isn't valid XML ({e}).") from None
+        raise UserError("{name} isn't valid XML ({error}).", name=name, error=e) from None
     _strip_blank_text(doc.documentElement)
     return doc
 
@@ -1143,9 +1150,9 @@ def _reformat(path: Path, pretty: bool) -> list[Path]:
             data = _dump_plist(load(path), binary=False)
         else:
             what = "JSON, XML and property list" if pretty else "JSON, JSON Lines and XML"
-            raise UserError(f"{label} works on {what} files.")
+            raise UserError("{label} works on {what} files.", label=label, what=what)
     except UnicodeEncodeError:
-        raise UserError(f"{path.name} contains broken text characters that can't be saved.") from None
+        raise UserError("{name} contains broken text characters that can't be saved.", name=path.name) from None
     out = sibling(path, label)
     _save_bytes(data, out)
     return [out]

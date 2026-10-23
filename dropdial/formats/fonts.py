@@ -20,6 +20,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from . import Family, Tool, register
+from ..i18n import N_
 from ..util import NotSmaller, UserError, output_dir, report_progress, sibling, unique_path
 
 EXTS = {".ttf", ".otf", ".woff", ".woff2", ".ttc", ".otc"}
@@ -107,7 +108,7 @@ def _targets(src_ext: str) -> list[str]:
 
 # ---------------------------------------------------------------- reading (untrusted input)
 @contextmanager
-def _friendly(msg: str = "This font file is damaged or uses something DropDial can't read."):
+def _friendly(msg: str = N_("This font file is damaged or uses something DropDial can't read.")):
     try:
         yield
     except UserError:
@@ -156,7 +157,7 @@ def _guard_woff2(data: bytes) -> None:
     import brotli
     from fontTools.ttLib import woff2
     f = io.BytesIO(data)
-    with _friendly("This WOFF2 file is damaged."):
+    with _friendly(N_("This WOFF2 file is damaged.")):
         hdr = woff2.sstruct.unpack(woff2.woff2DirectoryFormat, f.read(woff2.woff2DirectorySize))
         if hdr["sfntVersion"] in (b"ttcf", "ttcf"):
             raise UserError("WOFF2 font collections aren't supported.")
@@ -386,7 +387,7 @@ def convert(src: Path, target: str) -> list[Path]:
     outs = []
     multi = len(faces) > 1
     for i, face in enumerate(faces):
-        with _friendly("This font couldn't be converted (it may be damaged)."):
+        with _friendly(N_("This font couldn't be converted (it may be damaged).")):
             font = _standalone(face) if kind == "collection" else face
             ext = _convert_face(font, target)
             out = sibling(src, _file_label(font) if multi else "", ext)
@@ -590,7 +591,7 @@ def _specimen_pdf(src: Path, faces: list, out: Path) -> Path:
 
 
 def _specimen(src: Path, faces: list, target: str) -> list[Path]:
-    with _friendly("Couldn't render this font (it may be damaged)."):
+    with _friendly(N_("Couldn't render this font (it may be damaged).")):
         if target == "PDF":
             return [_specimen_pdf(src, faces, sibling(src, "Specimen", ".pdf"))]
         outs = []
@@ -609,7 +610,7 @@ def subset_latin(src: Path) -> list[Path]:
     kind, faces = _open(src)
     outs = []
     for face in faces:
-        with _friendly("This font couldn't be subset (it may be damaged)."):
+        with _friendly(N_("This font couldn't be subset (it may be damaged).")):
             font = _standalone(face) if kind == "collection" else face
             cmap = _cmap(font)
             if not any(c in cmap for c in range(0x41, 0x7B)):
@@ -654,7 +655,7 @@ def web_kit(srcs: list[Path]) -> list[Path]:
     for src in srcs:
         kind, faces = _open(src)
         for face in faces:
-            with _friendly("This font couldn't be converted (it may be damaged)."):
+            with _friendly(N_("This font couldn't be converted (it may be damaged).")):
                 font = _standalone(face) if kind == "collection" else face
                 fam = _name(font, 16, 1) or _display_name(font)
                 os2 = font["OS/2"] if "OS/2" in font else None
@@ -768,7 +769,7 @@ def _info_text(src: Path, kind: str, font) -> str:
 
 def font_info(src: Path) -> list[Path]:
     kind, faces = _open(src)
-    with _friendly("This font's details couldn't be read (it may be damaged)."):
+    with _friendly(N_("This font's details couldn't be read (it may be damaged).")):
         text = "\n\n\n".join(_info_text(src, kind, f) for f in faces)
     out = sibling(src, "Info", ".txt")
     from ..convert import atomic_save

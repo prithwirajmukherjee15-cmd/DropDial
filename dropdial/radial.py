@@ -13,7 +13,7 @@ from typing import Callable
 
 from PySide6.QtCore import (QEasingCurve, QObject, QPoint, QPointF, QRectF, QRunnable, Qt,
                             QThreadPool, QTimer, QVariantAnimation, Signal)
-from PySide6.QtGui import (QColor, QCursor, QFont, QGuiApplication, QImage, QPainter,
+from PySide6.QtGui import (QColor, QCursor, QFont, QFontMetricsF, QGuiApplication, QImage, QPainter,
                            QPainterPath, QPen, QPixmap, QRadialGradient)
 from PySide6.QtWidgets import QWidget
 
@@ -584,10 +584,9 @@ class RadialMenu(QWidget):
             else:
                 sub = tr(ring_name).upper()
         f = QFont("Segoe UI Variable Display", 1)
-        f.setPixelSize(14)
         f.setBold(True)
-        p.setFont(f)
         rect_top = QRectF(c.x() - R_HUB + 4, c.y() - 21, 2 * R_HUB - 8, 20)
+        p.setFont(self._fit(f, top, 14, rect_top.width() + 4, smallest=9))
         self._text(p, rect_top, top, fg, shadow_col)
         f.setPixelSize(10)
         f.setBold(False)
@@ -604,6 +603,16 @@ class RadialMenu(QWidget):
         p.setPen(col)
         p.drawText(r, flags, text)
 
+    @staticmethod
+    def _fit(f: QFont, text: str, px: int, width: float, smallest: int = 7) -> QFont:
+        """`f` at `px` pixels, or smaller (down to `smallest`) until `text` fits in `width`:
+        a long word in another language mustn't spill out of its petal."""
+        f.setPixelSize(px)
+        while px > smallest and QFontMetricsF(f).horizontalAdvance(text) > width - 4:
+            px -= 1
+            f.setPixelSize(px)
+        return f
+
     def _petal_label(self, p: QPainter, c: QPointF, it: Item, ang: float, r: float,
                      h: float, fg: QColor, shadow_col: QColor):
         rad = math.radians(ang)
@@ -618,15 +627,14 @@ class RadialMenu(QWidget):
             p.setFont(f)
             self._text(p, QRectF(pt.x() - 30, pt.y() - 24, 60, 24), it.glyph, col, shadow_col,
                        Qt.AlignHCenter | Qt.AlignBottom)
-            f.setPixelSize(10)
             f.setBold(True)
             f.setLetterSpacing(QFont.AbsoluteSpacing, 0.7)
-            p.setFont(f)
-            self._text(p, QRectF(pt.x() - 42, pt.y() + 1, 84, 16), it.label.upper(), col, shadow_col)
+            label = it.label.upper()
+            p.setFont(self._fit(f, label, 10, 84))
+            self._text(p, QRectF(pt.x() - 42, pt.y() + 1, 84, 16), label, col, shadow_col)
         else:
-            f.setPixelSize(int(14 + 2 * h))
             f.setBold(True)
             f.setLetterSpacing(QFont.AbsoluteSpacing, 0.9)
-            p.setFont(f)
+            p.setFont(self._fit(f, it.label, int(14 + 2 * h), 84))
             self._text(p, QRectF(pt.x() - 42, pt.y() - 12, 84, 24), it.label, col, shadow_col)
         p.restore()
