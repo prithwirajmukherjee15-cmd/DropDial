@@ -8,6 +8,7 @@
 </p>
 
 <p align="center">
+  <a href="https://dropdial-app.netlify.app"><b>Website</b></a> ·
   <a href="https://github.com/prithwirajmukherjee15-cmd/DropDial/releases/latest"><b>Download</b></a> ·
   <a href="#install">Install</a> ·
   <a href="#first-launch">First launch</a> ·

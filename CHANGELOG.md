@@ -13,7 +13,7 @@ What changed in each version of DropDial, written for the people using it.
 - **Linux ARM64**: a download for Raspberry Pi and ARM laptops (Ubuntu 24.04+, Debian 13+,
   Raspberry Pi OS 13).
 - The first drag after starting DropDial is now as quick as every other one (on Windows it could be missed).
-- A website: https://prithwirajmukherjee15-cmd.github.io/DropDial/ and the README in 11 languages.
+- A website: https://dropdial-app.netlify.app and the README in 11 languages.
 
 ## 1.1.0
 
